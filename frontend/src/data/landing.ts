@@ -165,20 +165,32 @@ export const landingConfig = {
   
   faq: [
     {
-      question: "What is Patient Vault?",
-      answer: "Patient Vault is a secure subscription service that allows you to store and access your personal information and data safely.",
+      question: "Is my personal data secure in the Patient Vault?",
+      answer: "Yes, completely. MedCard utilizes end-to-end encryption to ensure your medical and personal data is visible only to you and authorized personnel. Our system is built strictly in compliance with Rwanda's Law on Personal Data Protection and Privacy, ensuring your records are kept private, confidential, and safe from unauthorized access.",
     },
     {
-      question: "How do I pay for Patient Vault?",
-      answer: "Contact us for payment details.",
+      question: "Can anyone read my medical file if I lose my physical MedCard?",
+      answer: "No. The physical MedCard acts as a secure key, but it does not display or store open medical files directly on the card itself. If someone finds your card, they cannot access your Patient Vault without your biometric verification or authorized PIN confirmation at a partner clinic system. If you lose your card, you can instantly freeze it by calling our support line.",
     },
     {
-      question: "Can I cancel my subscription?",
-      answer: "Yes, you can cancel your subscription at any time. Contact our support team for assistance.",
+      question: "How do I pay for my Patient Vault subscription?",
+      answer: "Payment is completely digital and hassle-free. We integrate directly with MTN Mobile Money (MoMo) and Airtel Money. When choosing your plan (Basic or Premium), you will receive a prompt on your phone to securely authorize the monthly billing transaction.",
     },
     {
-      question: "Is my data secure?",
-      answer: "We handle your information with care and keep it private.",
+      question: "Can I cancel or change my subscription tier at any time?",
+      answer: "Yes, absolutely. There are no long-term contracts. You can upgrade from Basic to Premium, downgrade, or cancel your subscription at any moment directly through your online account portal without any hidden fees.",
+    },
+    {
+      question: "What happens to my uploaded documents if I downgrade to the Basic plan?",
+      answer: "If you downgrade from Premium to Basic, your previously uploaded documents (such as PDFs, X-rays, and lab reports) will be securely archived and hidden, as Basic only supports text-based clinical record data retrieval. They will not be deleted, and you can re-access them instantly by upgrading back to Premium.",
+    },
+    {
+      question: "Do I need a physical card to use the Patient Vault service?",
+      answer: "No, you can sign up and manage your text-based records entirely online via our portal. However, having a physical MedCard allows you to use our instant NFC Tap feature at participating healthcare providers, schools, or businesses to verify your identity in seconds.",
+    },
+    {
+      question: "How does MedCard tie into precision dental manufacturing?",
+      answer: "MedCard is a comprehensive technology provider. While the Patient Vault stores consumer data, our manufacturing division builds advanced technology solutions for clinics—starting with digital dentistry design, 3D printing, and precise dental restoration fabrication.",
     },
   ],
 };

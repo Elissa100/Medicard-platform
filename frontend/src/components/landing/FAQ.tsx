@@ -10,8 +10,11 @@ export function FAQ() {
       <div className="max-w-[768px] mx-auto px-5 md:px-10 lg:px-20">
         <div className="text-center mb-12">
           <h2 className="text-[clamp(2rem,4vw,2.75rem)] font-bold text-navy mb-4">
-            Questions about Patient Vault
+            Frequently Asked Questions
           </h2>
+          <p className="text-body-text max-w-2xl mx-auto">
+            Common questions about Patient Vault, security, and payments
+          </p>
         </div>
 
         <div className="space-y-4">
@@ -34,7 +37,7 @@ export function FAQ() {
                 )}
               </button>
               {openIndex === index && (
-                <div className="px-6 pb-4 text-body-text">
+                <div className="px-6 pb-4 text-body-text leading-relaxed">
                   {faq.answer}
                 </div>
               )}
