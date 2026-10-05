@@ -10,7 +10,7 @@ const iconMap = {
 
 export function WhyMedicard() {
   return (
-    <section className="py-16 md:py-24 bg-section-tint">
+    <section className="scroll-mt-[72px] md:scroll-mt-[88px] py-16 md:py-24 bg-section-tint">
       <div className="max-w-[1280px] mx-auto px-5 md:px-10 lg:px-20">
         <div className="text-center mb-12">
           <h2 className="text-[clamp(2rem,4vw,2.75rem)] font-bold text-navy mb-4">

@@ -6,7 +6,7 @@ export function FAQ() {
   const [openIndex, setOpenIndex] = useState<number>(0);
 
   return (
-    <section className="py-16 md:py-24 bg-white">
+    <section className="scroll-mt-[72px] md:scroll-mt-[88px] py-16 md:py-24 bg-white">
       <div className="max-w-[768px] mx-auto px-5 md:px-10 lg:px-20">
         <div className="text-center mb-12">
           <h2 className="text-[clamp(2rem,4vw,2.75rem)] font-bold text-navy mb-4">

@@ -3,7 +3,7 @@ import { landingConfig } from "../../data/landing";
 
 export function Services() {
   return (
-    <section id="services" className="py-16 md:py-24 bg-section-tint">
+    <section id="services" className="scroll-mt-[72px] md:scroll-mt-[88px] py-16 md:py-24 bg-section-tint">
       <div className="max-w-[1280px] mx-auto px-5 md:px-10 lg:px-20">
         <div className="mb-12">
           <p className="text-sm font-semibold text-teal mb-4">

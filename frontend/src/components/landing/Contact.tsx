@@ -2,7 +2,7 @@ import { landingConfig } from "../../data/landing";
 
 export function Contact() {
   return (
-    <section id="contact" className="py-16 md:py-24 bg-navy text-white">
+    <section id="contact" className="scroll-mt-[72px] md:scroll-mt-[88px] py-16 md:py-24 bg-navy text-white">
       <div className="max-w-[1280px] mx-auto px-5 md:px-10 lg:px-20">
         <div className="grid md:grid-cols-3 gap-12 mb-12">
           <div className="md:col-span-1">
