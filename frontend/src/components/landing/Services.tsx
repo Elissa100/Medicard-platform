@@ -1,76 +1,89 @@
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Tooth } from "lucide-react";
 import { landingConfig } from "../../data/landing";
 
 export function Services() {
   return (
-    <section id="services" className="py-20 bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl font-bold text-navy mb-4 font-serif">
-            Our Services
-          </h2>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Technology solutions across multiple sectors
+    <section id="services" className="py-16 md:py-24 bg-section-tint">
+      <div className="max-w-[1280px] mx-auto px-5 md:px-10 lg:px-20">
+        <div className="mb-12">
+          <p className="text-sm font-semibold text-teal mb-4">
+            {landingConfig.services.eyebrow}
           </p>
+          <h2 className="text-[clamp(2rem,4vw,2.75rem)] font-bold text-navy">
+            {landingConfig.services.headline}
+          </h2>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-8">
-          <div className="bg-white rounded-xl shadow-md p-8 hover:shadow-lg transition-shadow">
-            <h3 className="text-2xl font-bold text-navy mb-4">
-              {landingConfig.services.nfc.headline}
+        <div className="grid md:grid-cols-2 gap-10">
+          <div className="relative bg-navy rounded-[32px] p-8 min-h-[380px] hover:translate-y-[-4px] hover:shadow-lift transition-all duration-200">
+            <div className="absolute top-0 right-0 w-32 h-32 overflow-hidden opacity-20">
+              <div className="absolute inset-0 border-2 border-teal rounded-full" />
+              <div className="absolute inset-4 border-2 border-teal rounded-full" />
+              <div className="absolute inset-8 border-2 border-teal rounded-full" />
+            </div>
+
+            <p className="text-accent-on-navy text-sm font-semibold mb-4">
+              {landingConfig.services.nfc.label}
+            </p>
+            <h3 className="text-[38px] font-bold text-white mb-4">
+              {landingConfig.services.nfc.title}
             </h3>
-            <p className="text-gray-600 mb-6">
+            <p className="text-soft-text-on-navy mb-8">
               {landingConfig.services.nfc.description}
             </p>
-            <div className="space-y-4 mb-8">
-              {landingConfig.services.nfc.sectors.map((sector) => (
-                <div key={sector.name} className="flex items-start gap-3">
-                  <div className="w-2 h-2 mt-2 rounded-full bg-teal flex-shrink-0" />
-                  <div>
-                    <h4 className="font-semibold text-navy">{sector.name}</h4>
-                    <p className="text-sm text-gray-500">{sector.description}</p>
-                  </div>
-                </div>
+
+            <div className="flex flex-wrap gap-2 mb-8">
+              {landingConfig.services.nfc.pills.map((pill) => (
+                <span
+                  key={pill.label}
+                  className="inline-flex items-center px-4 py-2 border-2 border-mid-blue rounded-full text-sm font-semibold text-white"
+                >
+                  {pill.label}
+                </span>
               ))}
             </div>
-            {landingConfig.services.nfc.cta.href && landingConfig.services.nfc.cta.label && (
-              <a
-                href={landingConfig.services.nfc.cta.href}
-                className="inline-flex items-center text-teal font-semibold hover:text-teal-dark transition-colors"
-              >
-                {landingConfig.services.nfc.cta.label}
-                <ArrowRight size={18} className="ml-2" />
-              </a>
-            )}
+
+            <a
+              href={landingConfig.services.nfc.cta.href}
+              className="inline-flex items-center justify-center px-6 py-3 bg-white text-navy font-semibold rounded-full hover:bg-pale-cyan transition-colors focus:outline-none focus:ring-2 focus:ring-teal focus:ring-offset-2 focus:ring-offset-navy"
+            >
+              {landingConfig.services.nfc.cta.label}
+              <ArrowRight size={18} className="ml-2" />
+            </a>
           </div>
 
-          <div className="bg-white rounded-xl shadow-md p-8 hover:shadow-lg transition-shadow">
-            <h3 className="text-2xl font-bold text-navy mb-4">
-              {landingConfig.services.manufacturing.headline}
+          <div className="relative bg-white border-2 border-border rounded-[32px] p-8 min-h-[380px] hover:translate-y-[-4px] hover:shadow-lift transition-all duration-200">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-pale-cyan rounded-full flex items-center justify-center">
+              <Tooth size={48} className="text-teal" />
+            </div>
+
+            <p className="text-teal text-sm font-semibold mb-4">
+              {landingConfig.services.manufacturing.label}
+            </p>
+            <h3 className="text-[clamp(1.75rem,3vw,2.25rem)] font-bold text-navy mb-4 leading-tight">
+              {landingConfig.services.manufacturing.title}
             </h3>
-            <p className="text-gray-600 mb-6">
+            <p className="text-body-text mb-8">
               {landingConfig.services.manufacturing.description}
             </p>
-            <div className="space-y-4 mb-8">
-              {landingConfig.services.manufacturing.sectors.map((sector) => (
-                <div key={sector.name} className="flex items-start gap-3">
-                  <div className="w-2 h-2 mt-2 rounded-full bg-teal flex-shrink-0" />
-                  <div>
-                    <h4 className="font-semibold text-navy">{sector.name}</h4>
-                    <p className="text-sm text-gray-500">{sector.description}</p>
-                  </div>
-                </div>
+
+            <div className="flex flex-wrap gap-2 mb-8">
+              {landingConfig.services.manufacturing.pills.map((pill) => (
+                <span
+                  key={pill.label}
+                  className="inline-flex items-center px-4 py-2 border-2 border-teal rounded-full text-sm font-semibold text-teal"
+                >
+                  {pill.label}
+                </span>
               ))}
             </div>
-            {landingConfig.services.manufacturing.cta.href && (
-              <a
-                href={landingConfig.services.manufacturing.cta.href}
-                className="inline-flex items-center text-teal font-semibold hover:text-teal-dark transition-colors"
-              >
-                {landingConfig.services.manufacturing.cta.label}
-                <ArrowRight size={18} className="ml-2" />
-              </a>
-            )}
+
+            <button
+              disabled={landingConfig.services.manufacturing.cta.disabled}
+              className="inline-flex items-center justify-center px-6 py-3 border-2 border-navy text-navy font-semibold rounded-full disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-teal focus:ring-offset-2"
+            >
+              {landingConfig.services.manufacturing.cta.label}
+            </button>
           </div>
         </div>
       </div>
