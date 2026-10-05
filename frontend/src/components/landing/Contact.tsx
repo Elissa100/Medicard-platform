@@ -1,4 +1,3 @@
-import { Phone, MapPin, Mail } from "lucide-react";
 import { landingConfig } from "../../data/landing";
 
 export function Contact() {

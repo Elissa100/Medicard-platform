@@ -17,7 +17,7 @@ export function PatientVault() {
         </div>
 
         <div className="relative grid md:grid-cols-3 gap-8 mb-12">
-          {landingConfig.patientVault.steps.map((step, index) => (
+          {landingConfig.patientVault.steps.map((step) => (
             <div key={step.number} className="flex flex-col items-center text-center relative">
               <div className="w-12 h-12 bg-pale-cyan rounded-full flex items-center justify-center mb-4">
                 <span className="text-navy font-bold text-xl">{step.number}</span>
