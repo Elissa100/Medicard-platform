@@ -10,20 +10,21 @@ export const landingConfig = {
   
   nav: {
     links: [
+      { label: "About", href: "#about" },
       { label: "Services", href: "#services" },
       { label: "Patient Vault", href: "#patient-vault" },
-      { label: "About", href: "#about" },
       { label: "Contact", href: "#contact" },
     ],
     cta: {
-      label: "Get Started",
-      href: "#patient-vault",
+      label: "Explore Services",
+      href: "#services",
     },
   },
   
   hero: {
-    headline: "Smart Technology. Better Connections.",
-    description: "MedCard provides innovative technology solutions that connect people, information and services across healthcare, education and other industries.",
+    eyebrow: "Technology company in Kigali, Rwanda",
+    headline: "Technology connecting people and possibilities.",
+    description: "Medicard builds NFC, manufacturing and data solutions that connect people, information and services across healthcare, education and business.",
     primaryCta: {
       label: "Explore Services",
       href: "#services",
@@ -34,19 +35,35 @@ export const landingConfig = {
     },
   },
   
+  solutions: {
+    prefix: "Solutions for",
+    items: [
+      { label: "Healthcare" },
+      { label: "Education" },
+      { label: "Business" },
+      { label: "Dentistry" },
+    ],
+  },
+  
   about: {
-    headline: "Who We Are",
-    description: "MedCard is a technology company based in Kigali, Rwanda, developing NFC-powered solutions and manufacturing technology for healthcare, education and business sectors.",
+    eyebrow: "About Medicard",
+    headlinePart1: "One company.",
+    headlinePart2: "Many ways to connect.",
+    description: "Medicard is a technology company. We design and deliver solutions that connect people, information and services, from healthcare identity to education, business and precision manufacturing.",
   },
   
   services: {
+    eyebrow: "Our services",
+    headline: "Two ways we put technology to work.",
     nfc: {
-      headline: "NFC Technology",
-      description: "Near Field Communication technology connecting people, information and services across multiple sectors.",
-      sectors: [
-        { name: "Healthcare", description: "Secure patient identity and connected medical records" },
-        { name: "Education", description: "Digital campus cards and access control" },
-        { name: "Business", description: "Secure identification and access management" },
+      label: "Service 01",
+      title: "NFC Technology",
+      description: "Near field communication for healthcare, education, business and other industries.",
+      pills: [
+        { label: "Healthcare" },
+        { label: "Education" },
+        { label: "Business" },
+        { label: "And more" },
       ],
       cta: {
         label: "Explore NFC Technology",
@@ -54,85 +71,56 @@ export const landingConfig = {
       },
     },
     manufacturing: {
-      headline: "Manufacturing Technology",
-      description: "Advanced manufacturing solutions specialized in dental technology and precision equipment.",
-      sectors: [
-        { name: "Dentistry", description: "Dental equipment and manufacturing technology" },
+      label: "Service 02",
+      title: "Manufacturing Technology",
+      description: "Precision technology for production, starting with dental solutions.",
+      pills: [
+        { label: "Dentistry" },
       ],
       cta: {
-        label: "",
+        label: "Coming soon",
         href: "",
+        disabled: true,
       },
     },
   },
   
-  useCases: [
-    {
-      icon: "healthcare",
-      title: "Healthcare",
-      description: "Secure patient identity and connected medical records across facilities",
-    },
-    {
-      icon: "education",
-      title: "Education",
-      description: "Digital campus cards and access control for schools and universities",
-    },
-    {
-      icon: "business",
-      title: "Business",
-      description: "Secure identification and access management for organizations",
-    },
-    {
-      icon: "dental",
-      title: "Dental",
-      description: "Precision manufacturing technology for dental equipment",
-    },
-  ],
-  
   patientVault: {
-    headline: "Patient Vault",
-    description: "Secure subscription-based storage for your personal information and data",
+    eyebrow: "Patient Vault",
+    headlinePart1: "Your health information,",
+    headlinePart2: "safe and always within reach.",
     steps: [
       {
-        number: "01",
-        title: "Create Account",
-        description: "Sign up and create your secure Patient Vault account",
+        number: "1",
+        title: "Create your account",
+        description: "Sign up in a few minutes.",
       },
       {
-        number: "02",
-        title: "Store Information",
-        description: "Upload and store your personal information securely",
+        number: "2",
+        title: "Store your information",
+        description: "Keep your records in one private place.",
       },
       {
-        number: "03",
-        title: "Access Anytime",
-        description: "Access your stored data whenever you need it",
+        number: "3",
+        title: "Access it anytime",
+        description: "View your data and manage your plan.",
       },
     ],
     pricing: [
       {
         name: "Basic",
         price: "1,000",
-        period: "month",
-        currency: "RWF",
-        features: [
-          "Basic Patient Vault access",
-          "Secure data storage",
-          "Web access",
-        ],
+        period: "RWF per month",
+        description: "Basic Patient Vault access",
+        features: [],
         featured: false,
       },
       {
         name: "Premium",
         price: "5,000",
-        period: "month",
-        currency: "RWF",
-        features: [
-          "Premium Patient Vault access",
-          "Enhanced security features",
-          "Priority support",
-          "Mobile app access",
-        ],
+        period: "RWF per month",
+        description: "Premium Patient Vault access",
+        features: [],
         featured: true,
       },
     ],
@@ -140,20 +128,24 @@ export const landingConfig = {
   
   whyMedicard: [
     {
+      icon: "Cpu",
       title: "Technology",
-      description: "Cutting-edge NFC and manufacturing technology solutions",
+      description: "NFC and manufacturing technology under one roof.",
     },
     {
+      icon: "Lightbulb",
       title: "Innovation",
-      description: "Continuous innovation to solve real-world problems",
+      description: "Practical solutions designed around real needs.",
     },
     {
+      icon: "ShieldCheck",
       title: "Security",
-      description: "Enterprise-grade security for your data and identity",
+      description: "Your information is handled with care and kept private.",
     },
     {
+      icon: "Users",
       title: "Accessibility",
-      description: "Solutions designed for accessibility across Rwanda",
+      description: "Simple to use, affordable and available across Rwanda.",
     },
   ],
   
@@ -164,7 +156,7 @@ export const landingConfig = {
     },
     {
       question: "How do I pay for Patient Vault?",
-      answer: "Payment can be made through mobile money or bank transfer. Contact us for payment details.",
+      answer: "Contact us for payment details.",
     },
     {
       question: "Can I cancel my subscription?",
@@ -172,7 +164,7 @@ export const landingConfig = {
     },
     {
       question: "Is my data secure?",
-      answer: "Yes, we use enterprise-grade security measures to protect your data and ensure privacy.",
+      answer: "We handle your information with care and keep it private.",
     },
   ],
 };
