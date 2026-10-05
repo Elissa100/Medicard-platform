@@ -5,6 +5,7 @@ import {
   Navigate,
 } from "react-router-dom";
 
+import CompanyLandingPage from "./pages/CompanyLandingPage";
 import LandingPage from "./pages/LandingPage";
 import FacilityLoginPage from "./pages/FacilityLoginPage";
 import LoginPage from "./pages/LoginPage";
@@ -27,9 +28,14 @@ function App() {
     <BrowserRouter>
       <Routes>
         {/* =====================================================
-            PUBLIC MEDCARD LANDING PAGE
+            COMPANY LANDING PAGE
         ====================================================== */}
-        <Route path="/" element={<LandingPage />} />
+        <Route path="/" element={<CompanyLandingPage />} />
+
+        {/* =====================================================
+            NFC CARD LANDING PAGE
+        ====================================================== */}
+        <Route path="/nfc" element={<LandingPage />} />
 
         {/* =====================================================
             PATIENT REGISTRATION
@@ -67,7 +73,7 @@ function App() {
             NFC PATIENT IDENTIFICATION
         ====================================================== */}
         <Route
-          path="/nfc"
+          path="/nfc/scan"
           element={<NFCScannerPage />}
         />
 
