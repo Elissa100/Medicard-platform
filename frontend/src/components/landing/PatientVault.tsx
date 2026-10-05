@@ -1,3 +1,4 @@
+import { Check, X } from "lucide-react";
 import { landingConfig } from "../../data/landing";
 
 export function PatientVault() {
@@ -35,13 +36,24 @@ export function PatientVault() {
           {landingConfig.patientVault.pricing.map((plan) => (
             <div
               key={plan.name}
-              className={`p-8 rounded-[32px] h-full flex flex-col ${
+              className={`relative p-8 rounded-[32px] h-full flex flex-col ${
                 plan.featured
-                  ? "bg-navy text-white"
+                  ? "bg-navy text-white border-2 border-teal"
                   : "bg-white border-2 border-border"
               }`}
             >
-              <h3 className="text-2xl font-bold mb-4">{plan.name}</h3>
+              {plan.featured && (
+                <div className="absolute top-0 right-0 bg-teal text-white text-xs font-bold px-3 py-1 rounded-bl-lg rounded-tr-lg">
+                  MOST POPULAR
+                </div>
+              )}
+              
+              <h3 className="text-2xl font-bold mb-2">{plan.name}</h3>
+              {plan.subtitle && (
+                <p className={`mb-4 text-sm ${plan.featured ? "text-soft-text-on-navy" : "text-body-text"}`}>
+                  {plan.subtitle}
+                </p>
+              )}
               <div className="mb-6">
                 <span className="text-[64px] font-bold leading-none">
                   {plan.price}
@@ -50,24 +62,22 @@ export function PatientVault() {
                   {" "}{plan.period}
                 </span>
               </div>
-              <p className={`mb-2 ${plan.featured ? "text-white" : "text-body-text"}`}>
-                {plan.description}
-              </p>
-              {plan.features.length === 0 && (
-                <p className={`mb-8 italic text-sm ${plan.featured ? "text-soft-text-on-navy" : "text-muted-text"}`}>
-                  Feature list to be confirmed
-                </p>
-              )}
+              
               <ul className="space-y-3 mb-8 flex-grow">
-                {plan.features.map((feature) => (
-                  <li key={feature} className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-teal flex-shrink-0" />
-                    <span className={plan.featured ? "text-white" : "text-body-text"}>
-                      {feature}
+                {plan.features.map((feature, index) => (
+                  <li key={index} className="flex items-start gap-3">
+                    {feature.active ? (
+                      <Check size={20} className={plan.featured ? "text-teal flex-shrink-0 mt-0.5" : "text-teal flex-shrink-0 mt-0.5"} />
+                    ) : (
+                      <X size={20} className="text-muted-text flex-shrink-0 mt-0.5" />
+                    )}
+                    <span className={plan.featured ? "text-white" : feature.active ? "text-navy" : "text-muted-text"}>
+                      {feature.text}
                     </span>
                   </li>
                 ))}
               </ul>
+              
               <a
                 href="#contact"
                 className={`inline-flex items-center justify-center w-full py-3 rounded-full font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-teal focus:ring-offset-2 ${
