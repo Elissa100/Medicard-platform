@@ -12,7 +12,7 @@ export default function CompanyLandingPage() {
   return (
     <div className="min-h-screen">
       <Header />
-      <main>
+      <main className="pt-[72px] md:pt-[88px]">
         <Hero />
         <SolutionsStrip />
         <About />
