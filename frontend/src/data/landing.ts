@@ -59,7 +59,10 @@ export const landingConfig = {
       sectors: [
         { name: "Dentistry", description: "Dental equipment and manufacturing technology" },
       ],
-      cta: null,
+      cta: {
+        label: "",
+        href: "",
+      },
     },
   },
   
@@ -172,4 +175,4 @@ export const landingConfig = {
       answer: "Yes, we use enterprise-grade security measures to protect your data and ensure privacy.",
     },
   ],
-} as const;
+};

@@ -33,7 +33,7 @@ export function Services() {
                 </div>
               ))}
             </div>
-            {landingConfig.services.nfc.cta && (
+            {landingConfig.services.nfc.cta.href && landingConfig.services.nfc.cta.label && (
               <a
                 href={landingConfig.services.nfc.cta.href}
                 className="inline-flex items-center text-teal font-semibold hover:text-teal-dark transition-colors"
@@ -62,7 +62,7 @@ export function Services() {
                 </div>
               ))}
             </div>
-            {landingConfig.services.manufacturing.cta && (
+            {landingConfig.services.manufacturing.cta.href && (
               <a
                 href={landingConfig.services.manufacturing.cta.href}
                 className="inline-flex items-center text-teal font-semibold hover:text-teal-dark transition-colors"
