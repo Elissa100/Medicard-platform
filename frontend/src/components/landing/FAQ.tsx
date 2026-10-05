@@ -3,30 +3,27 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 import { landingConfig } from "../../data/landing";
 
 export function FAQ() {
-  const [openIndex, setOpenIndex] = useState<number | null>(null);
+  const [openIndex, setOpenIndex] = useState<number>(0);
 
   return (
-    <section className="py-20 bg-gray-50">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl font-bold text-navy mb-4 font-serif">
-            Frequently Asked Questions
+    <section className="py-16 md:py-24 bg-white">
+      <div className="max-w-[768px] mx-auto px-5 md:px-10 lg:px-20">
+        <div className="text-center mb-12">
+          <h2 className="text-[clamp(2rem,4vw,2.75rem)] font-bold text-navy mb-4">
+            Questions about Patient Vault
           </h2>
-          <p className="text-lg text-gray-600">
-            Common questions about Patient Vault
-          </p>
         </div>
 
         <div className="space-y-4">
           {landingConfig.faq.map((faq, index) => (
             <div
               key={index}
-              className="bg-white rounded-lg shadow-sm overflow-hidden"
+              className="border-2 border-border rounded-lg overflow-hidden"
             >
               <button
                 type="button"
-                onClick={() => setOpenIndex(openIndex === index ? null : index)}
-                className="w-full px-6 py-4 flex items-center justify-between text-left"
+                onClick={() => setOpenIndex(openIndex === index ? -1 : index)}
+                className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-section-tint transition-colors focus:outline-none focus:ring-2 focus:ring-teal focus:ring-inset"
                 aria-expanded={openIndex === index}
               >
                 <span className="font-semibold text-navy">{faq.question}</span>
@@ -37,7 +34,7 @@ export function FAQ() {
                 )}
               </button>
               {openIndex === index && (
-                <div className="px-6 pb-4 text-gray-600">
+                <div className="px-6 pb-4 text-body-text">
                   {faq.answer}
                 </div>
               )}
