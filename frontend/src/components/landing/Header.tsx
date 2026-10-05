@@ -6,7 +6,7 @@ export function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 h-[88px] bg-white border-b border-border">
+    <header className="sticky top-0 z-50 h-[72px] md:h-[88px] bg-white/95 backdrop-blur border-b border-border">
       <div className="max-w-[1280px] mx-auto px-5 md:px-10 lg:px-20 h-full">
         <div className="flex items-center justify-between h-full">
           <a href="/" className="flex items-center gap-3">
