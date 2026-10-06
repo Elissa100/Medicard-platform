@@ -7,6 +7,7 @@ import {
 
 import CompanyLandingPage from "./pages/CompanyLandingPage";
 import NFCLandingPage from "./pages/NFCLandingPage";
+import PatientVaultPage from "./pages/PatientVaultPage";
 import FacilityLoginPage from "./pages/FacilityLoginPage";
 import LoginPage from "./pages/LoginPage";
 
@@ -36,6 +37,11 @@ function App() {
             NFC CARD LANDING PAGE
         ====================================================== */}
         <Route path="/nfc" element={<NFCLandingPage />} />
+
+        {/* =====================================================
+            PATIENT VAULT
+        ====================================================== */}
+        <Route path="/patient-vault" element={<PatientVaultPage />} />
 
         {/* =====================================================
             PATIENT REGISTRATION
