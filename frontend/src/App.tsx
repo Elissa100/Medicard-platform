@@ -6,7 +6,7 @@ import {
 } from "react-router-dom";
 
 import CompanyLandingPage from "./pages/CompanyLandingPage";
-import LandingPage from "./pages/LandingPage";
+import NFCLandingPage from "./pages/NFCLandingPage";
 import FacilityLoginPage from "./pages/FacilityLoginPage";
 import LoginPage from "./pages/LoginPage";
 
@@ -35,7 +35,7 @@ function App() {
         {/* =====================================================
             NFC CARD LANDING PAGE
         ====================================================== */}
-        <Route path="/nfc" element={<LandingPage />} />
+        <Route path="/nfc" element={<NFCLandingPage />} />
 
         {/* =====================================================
             PATIENT REGISTRATION
