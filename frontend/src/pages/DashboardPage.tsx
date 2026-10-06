@@ -1,11 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Users,
   Wifi,
-  CalendarDays,
-  FlaskConical,
-  Pill,
   ArrowRight,
   ShieldCheck,
   UserRoundPlus,
@@ -247,131 +243,58 @@ export default function DashboardPage() {
           : undefined
       }
     >
-      <div className="space-y-6">
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="space-y-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <div
-            className="bg-white border border-border rounded-2xl p-4 sm:p-6 cursor-pointer hover:border-teal hover:shadow-card transition-all"
+            className="bg-white border border-border rounded-lg p-3 cursor-pointer hover:border-teal transition-all"
             onClick={() =>
               navigate("/patients")
             }
           >
-            <span className="text-xs sm:text-sm font-semibold text-body-text">Registered Patients</span>
-            <strong className="block text-2xl sm:text-3xl font-bold text-navy mt-1 sm:mt-2">4,892</strong>
-            <small className="text-xs sm:text-sm text-teal font-semibold">+14 enrolled today</small>
+            <span className="text-xs font-medium text-body-text">Patients</span>
+            <strong className="block text-xl font-bold text-navy">4,892</strong>
+            <small className="text-xs text-teal">+14 today</small>
           </div>
 
           <div
-            className="bg-white border border-border rounded-2xl p-4 sm:p-6 cursor-pointer hover:border-teal hover:shadow-card transition-all"
+            className="bg-white border border-border rounded-lg p-3 cursor-pointer hover:border-teal transition-all"
             onClick={() =>
               navigate("/nfc")
             }
           >
-            <span className="text-xs sm:text-sm font-semibold text-body-text">MedCard NFC Scans</span>
-            <strong className="block text-2xl sm:text-3xl font-bold text-navy mt-1 sm:mt-2">128</strong>
-            <small className="text-xs sm:text-sm text-teal font-semibold">Instant Tap ID</small>
+            <span className="text-xs font-medium text-body-text">NFC Scans</span>
+            <strong className="block text-xl font-bold text-navy">128</strong>
+            <small className="text-xs text-teal">Live</small>
           </div>
 
           <div
-            className="bg-white border border-border rounded-2xl p-4 sm:p-6 cursor-pointer hover:border-teal hover:shadow-card transition-all"
+            className="bg-white border border-border rounded-lg p-3 cursor-pointer hover:border-teal transition-all"
             onClick={() =>
               navigate("/appointments")
             }
           >
-            <span className="text-xs sm:text-sm font-semibold text-body-text">Today's Appointments</span>
-            <strong className="block text-2xl sm:text-3xl font-bold text-navy mt-1 sm:mt-2">46</strong>
-            <small className="text-xs sm:text-sm text-teal font-semibold">8 currently waiting</small>
+            <span className="text-xs font-medium text-body-text">Appointments</span>
+            <strong className="block text-xl font-bold text-navy">46</strong>
+            <small className="text-xs text-teal">8 waiting</small>
           </div>
 
           <div
-            className="bg-white border border-border rounded-2xl p-4 sm:p-6 cursor-pointer hover:border-teal hover:shadow-card transition-all"
+            className="bg-white border border-border rounded-lg p-3 cursor-pointer hover:border-teal transition-all"
             onClick={() =>
               navigate("/payment")
             }
           >
-            <span className="text-xs sm:text-sm font-semibold text-body-text">Settled Claims</span>
-            <strong className="block text-2xl sm:text-3xl font-bold text-navy mt-1 sm:mt-2">RWF 4.2M</strong>
-            <small className="text-xs sm:text-sm text-teal font-semibold">100% digital sync</small>
+            <span className="text-xs font-medium text-body-text">Claims</span>
+            <strong className="block text-xl font-bold text-navy">4.2M</strong>
+            <small className="text-xs text-teal">RWF</small>
           </div>
         </div>
 
-        <div className="bg-white border border-border rounded-2xl overflow-hidden">
+        <div className="bg-white border border-border rounded-lg overflow-hidden">
           <PatientIdentificationPanel />
         </div>
 
-        <div className="hidden lg:block">
-          <span className="text-sm font-semibold text-navy block mb-4">Clinical Stations Quick-Access:</span>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <button
-              type="button"
-              className="bg-white border border-border rounded-xl p-4 flex items-center gap-4 hover:border-teal hover:shadow-card transition-all text-left"
-              onClick={() =>
-                navigate("/patients")
-              }
-            >
-              <div className="w-10 h-10 bg-pale-cyan rounded-full flex items-center justify-center flex-shrink-0">
-                <Users size={18} className="text-teal" />
-              </div>
-              <div className="flex-1">
-                <strong className="text-navy text-sm">Patient Registry</strong>
-                <small className="text-body-text text-xs block">4,892 active files</small>
-              </div>
-              <ArrowRight size={16} className="text-body-text" />
-            </button>
-
-            <button
-              type="button"
-              className="bg-white border border-border rounded-xl p-4 flex items-center gap-4 hover:border-teal hover:shadow-card transition-all text-left"
-              onClick={() =>
-                navigate("/appointments")
-              }
-            >
-              <div className="w-10 h-10 bg-pale-cyan rounded-full flex items-center justify-center flex-shrink-0">
-                <CalendarDays size={18} className="text-teal" />
-              </div>
-              <div className="flex-1">
-                <strong className="text-navy text-sm">Clinic Queue</strong>
-                <small className="text-body-text text-xs block">8 waiting in lobby</small>
-              </div>
-              <ArrowRight size={16} className="text-body-text" />
-            </button>
-
-            <button
-              type="button"
-              className="bg-white border border-border rounded-xl p-4 flex items-center gap-4 hover:border-teal hover:shadow-card transition-all text-left"
-              onClick={() =>
-                navigate("/laboratory")
-              }
-            >
-              <div className="w-10 h-10 bg-pale-cyan rounded-full flex items-center justify-center flex-shrink-0">
-                <FlaskConical size={18} className="text-teal" />
-              </div>
-              <div className="flex-1">
-                <strong className="text-navy text-sm">Laboratory Portal</strong>
-                <small className="text-body-text text-xs block">4 orders pending</small>
-              </div>
-              <ArrowRight size={16} className="text-body-text" />
-            </button>
-
-            <button
-              type="button"
-              className="bg-white border border-border rounded-xl p-4 flex items-center gap-4 hover:border-teal hover:shadow-card transition-all text-left"
-              onClick={() =>
-                navigate("/pharmacy")
-              }
-            >
-              <div className="w-10 h-10 bg-pale-cyan rounded-full flex items-center justify-center flex-shrink-0">
-                <Pill size={18} className="text-teal" />
-              </div>
-              <div className="flex-1">
-                <strong className="text-navy text-sm">E-Pharmacy</strong>
-                <small className="text-body-text text-xs block">Rx dispensing station</small>
-              </div>
-              <ArrowRight size={16} className="text-body-text" />
-            </button>
-          </div>
-        </div>
-
-        <div className="grid lg:grid-cols-2 gap-6">
+        <div className="grid lg:grid-cols-2 gap-4">
           <div className="bg-white border border-border rounded-2xl overflow-hidden">
             <div className="p-6 border-b border-border flex items-center justify-between">
               <div>

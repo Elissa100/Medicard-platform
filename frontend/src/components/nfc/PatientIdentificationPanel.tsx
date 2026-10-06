@@ -3,13 +3,11 @@ import { useNavigate } from "react-router-dom";
 import {
   ArrowRight,
   CheckCircle2,
-  CreditCard,
   LoaderCircle,
   ShieldCheck,
   Stethoscope,
   Wifi,
   XCircle,
-  Play,
   RefreshCw,
 } from "lucide-react";
 
@@ -188,160 +186,120 @@ export default function PatientIdentificationPanel() {
 
   if (state === "waiting") {
     return (
-      <div className="p-4 md:p-6 lg:p-8">
-        <div className="grid md:grid-cols-2 gap-6 md:gap-8">
-          <div className="flex flex-col items-center justify-center">
-            <div className="relative">
-              <div className="w-24 h-24 md:w-32 md:h-32 rounded-full border-4 border-teal/30 flex items-center justify-center">
-                <div className="w-16 h-16 md:w-24 md:h-24 rounded-full border-4 border-teal/50 flex items-center justify-center">
-                  <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-pale-cyan flex items-center justify-center">
-                    <Wifi size={28} className="text-teal" />
-                  </div>
-                </div>
-              </div>
+      <div className="p-3">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full border-2 border-teal/30 flex items-center justify-center bg-pale-cyan">
+              <Wifi size={20} className="text-teal" />
             </div>
-            <div className="mt-3 md:mt-4 flex items-center gap-2 px-3 py-1.5 bg-pale-cyan rounded-full">
-              <span className="w-2 h-2 rounded-full bg-teal animate-pulse" />
-              <span className="text-xs md:text-sm font-semibold text-teal">NFC Reader Active (13.56 MHz)</span>
+            <div>
+              <h2 className="text-sm font-bold text-navy">Tap MedCard</h2>
+              <p className="text-xs text-body-text">Place card on reader</p>
             </div>
           </div>
 
-          <div>
-            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-4 md:mb-6">
-              <div>
-                <span className="text-xs md:text-sm font-semibold text-teal">PATIENT IDENTIFICATION</span>
-                <h2 className="text-lg md:text-xl font-bold text-navy mt-1 mb-2">Tap Contactless MedCard</h2>
-                <p className="text-body-text text-xs md:text-sm">
-                  Place the patient's smart card on the reader to securely verify identity & load their clinical record.
-                </p>
-              </div>
-              <div className="flex items-center gap-2 px-3 py-1 bg-pale-cyan rounded-full flex-shrink-0">
-                <CreditCard size={12} className="text-teal" />
-                <span className="text-xs md:text-sm font-semibold text-teal">ACR122U Ready</span>
-              </div>
-            </div>
-
-            <div className="mb-4 md:mb-6">
-              <span className="text-xs md:text-sm font-semibold text-navy flex items-center gap-2 mb-3">
-                <Play size={10} />
-                Simulate NFC Card Tap:
-              </span>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() =>
-                    handleSimulateTap({
-                      patient: {
-                        id: "ac844b2b-cc1b-45a4-9404-e059fdd6df0b",
-                        patientNumber: "MC-2026-0811",
-                        firstName: "Alice",
-                        lastName: "Mutoni",
-                        gender: "Female",
-                        phone: "+250 788 123 456",
-                      },
-                      card: {
-                        id: "card-101",
-                        cardUid: "04:A2:8B:1F:90:3C",
-                        status: "ACTIVE",
-                        lastUsedAt: new Date().toISOString(),
-                      },
-                      encounter: {
-                        id: "enc-today-01",
-                        status: "IN_PROGRESS",
-                        type: "OUTPATIENT_VISIT",
-                        startedAt: new Date().toISOString(),
-                      },
-                    })
-                  }
-                  className="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 text-xs md:text-sm font-semibold text-navy border-2 border-navy rounded-full hover:bg-navy hover:text-white transition-colors"
-                >
-                  <Wifi size={12} />
-                  <span className="hidden sm:inline">Tap: </span>Alice Mutoni
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() =>
-                    handleSimulateTap({
-                      patient: {
-                        id: "patient-002",
-                        patientNumber: "MC-2026-0492",
-                        firstName: "Jean",
-                        lastName: "Rukundo",
-                        gender: "Male",
-                        phone: "+250 788 456 789",
-                      },
-                      card: {
-                        id: "card-102",
-                        cardUid: "04:C5:1E:44:88:9A",
-                        status: "ACTIVE",
-                        lastUsedAt: new Date().toISOString(),
-                      },
-                      encounter: {
-                        id: "enc-today-02",
-                        status: "WAITING",
-                        type: "CARDIOLOGY_FOLLOWUP",
-                        startedAt: new Date().toISOString(),
-                      },
-                    })
-                  }
-                  className="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 text-xs md:text-sm font-semibold text-navy border-2 border-navy rounded-full hover:bg-navy hover:text-white transition-colors"
-                >
-                  <Wifi size={12} />
-                  <span className="hidden sm:inline">Tap: </span>Jean Rukundo
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() =>
-                    handleSimulateTap({
-                      patient: {
-                        id: "patient-003",
-                        patientNumber: "MC-2026-1108",
-                        firstName: "Keza",
-                        lastName: "Uwase",
-                        gender: "Female",
-                        phone: "+250 783 777 888",
-                      },
-                      card: {
-                        id: "card-103",
-                        cardUid: "04:F8:33:AA:11:55",
-                        status: "ACTIVE",
-                        lastUsedAt: new Date().toISOString(),
-                      },
-                      encounter: {
-                        id: "enc-today-03",
-                        status: "LAB_ORDER",
-                        type: "DIAGNOSTIC_PANEL",
-                        startedAt: new Date().toISOString(),
-                      },
-                    })
-                  }
-                  className="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 text-xs md:text-sm font-semibold text-navy border-2 border-navy rounded-full hover:bg-navy hover:text-white transition-colors"
-                >
-                  <Wifi size={12} />
-                  <span className="hidden sm:inline">Tap: </span>Keza Uwase
-                </button>
-              </div>
-            </div>
-
-            <div className="hidden md:flex items-center gap-4">
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-pale-cyan rounded-full">
-                <span className="w-5 h-5 rounded-full bg-teal flex items-center justify-center text-white text-xs font-bold">1</span>
-                <span className="text-xs font-semibold text-navy">NFC Tap</span>
-              </div>
-              <span className="text-body-text">→</span>
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-section-tint rounded-full">
-                <span className="w-5 h-5 rounded-full bg-border flex items-center justify-center text-white text-xs font-bold">2</span>
-                <span className="text-xs font-semibold text-body-text">Patient Auth</span>
-              </div>
-              <span className="text-body-text">→</span>
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-section-tint rounded-full">
-                <span className="w-5 h-5 rounded-full bg-border flex items-center justify-center text-white text-xs font-bold">3</span>
-                <span className="text-xs font-semibold text-body-text">Clinical Encounter</span>
-              </div>
-            </div>
+          <div className="flex items-center gap-2 px-2 py-1 bg-pale-cyan rounded-full">
+            <span className="w-1.5 h-1.5 rounded-full bg-teal animate-pulse" />
+            <span className="text-xs font-semibold text-teal">Ready</span>
           </div>
+        </div>
+
+        <div className="mt-3 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() =>
+              handleSimulateTap({
+                patient: {
+                  id: "ac844b2b-cc1b-45a4-9404-e059fdd6df0b",
+                  patientNumber: "MC-2026-0811",
+                  firstName: "Alice",
+                  lastName: "Mutoni",
+                  gender: "Female",
+                  phone: "+250 788 123 456",
+                },
+                card: {
+                  id: "card-101",
+                  cardUid: "04:A2:8B:1F:90:3C",
+                  status: "ACTIVE",
+                  lastUsedAt: new Date().toISOString(),
+                },
+                encounter: {
+                  id: "enc-today-01",
+                  status: "IN_PROGRESS",
+                  type: "OUTPATIENT_VISIT",
+                  startedAt: new Date().toISOString(),
+                },
+              })
+            }
+            className="inline-flex items-center gap-1.5 px-2 py-1 text-xs font-semibold text-navy border border-navy rounded hover:bg-navy hover:text-white transition-colors"
+          >
+            <Wifi size={10} />
+            Alice
+          </button>
+
+          <button
+            type="button"
+            onClick={() =>
+              handleSimulateTap({
+                patient: {
+                  id: "patient-002",
+                  patientNumber: "MC-2026-0492",
+                  firstName: "Jean",
+                  lastName: "Rukundo",
+                  gender: "Male",
+                  phone: "+250 788 456 789",
+                },
+                card: {
+                  id: "card-102",
+                  cardUid: "04:C5:1E:44:88:9A",
+                  status: "ACTIVE",
+                  lastUsedAt: new Date().toISOString(),
+                },
+                encounter: {
+                  id: "enc-today-02",
+                  status: "WAITING",
+                  type: "CARDIOLOGY_FOLLOWUP",
+                  startedAt: new Date().toISOString(),
+                },
+              })
+            }
+            className="inline-flex items-center gap-1.5 px-2 py-1 text-xs font-semibold text-navy border border-navy rounded hover:bg-navy hover:text-white transition-colors"
+          >
+            <Wifi size={10} />
+            Jean
+          </button>
+
+          <button
+            type="button"
+            onClick={() =>
+              handleSimulateTap({
+                patient: {
+                  id: "patient-003",
+                  patientNumber: "MC-2026-1108",
+                  firstName: "Keza",
+                  lastName: "Uwase",
+                  gender: "Female",
+                  phone: "+250 783 777 888",
+                },
+                card: {
+                  id: "card-103",
+                  cardUid: "04:F8:33:AA:11:55",
+                  status: "ACTIVE",
+                  lastUsedAt: new Date().toISOString(),
+                },
+                encounter: {
+                  id: "enc-today-03",
+                  status: "LAB_ORDER",
+                  type: "DIAGNOSTIC_PANEL",
+                  startedAt: new Date().toISOString(),
+                },
+              })
+            }
+            className="inline-flex items-center gap-1.5 px-2 py-1 text-xs font-semibold text-navy border border-navy rounded hover:bg-navy hover:text-white transition-colors"
+          >
+            <Wifi size={10} />
+            Keza
+          </button>
         </div>
       </div>
     );
