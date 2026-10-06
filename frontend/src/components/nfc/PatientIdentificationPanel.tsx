@@ -102,7 +102,6 @@ export default function PatientIdentificationPanel() {
   const [session, setSession] = useState<SessionContext | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
 
-  /* Real-time NFC Identification via Socket.IO */
   useEffect(() => {
     const handlePatientIdentified = (response: IdentificationResponse) => {
       if (!response?.success || !response.data) {
@@ -148,7 +147,6 @@ export default function PatientIdentificationPanel() {
     };
   }, []);
 
-  /* Demo Fast Simulation Trigger for presentations */
   const handleSimulateTap = (mock: {
     patient: Patient;
     card: CardContext;
@@ -188,52 +186,49 @@ export default function PatientIdentificationPanel() {
     setErrorMessage("");
   };
 
-  /* STATE: WAITING FOR TAP */
   if (state === "waiting") {
     return (
-      <section className="nfc-station-card">
-        <div className="nfc-station-grid">
-          {/* Left Column: Visual Radar & Reader Graphic */}
-          <div className="nfc-station-visual">
-            <div className="nfc-radar-rings">
-              <div className="nfc-ring outer" />
-              <div className="nfc-ring middle" />
-              <div className="nfc-ring inner">
-                <Wifi size={38} className="nfc-pulse-radar-icon" />
+      <div className="p-6 md:p-8">
+        <div className="grid md:grid-cols-2 gap-8">
+          <div className="flex flex-col items-center justify-center">
+            <div className="relative">
+              <div className="w-32 h-32 rounded-full border-4 border-teal/30 flex items-center justify-center">
+                <div className="w-24 h-24 rounded-full border-4 border-teal/50 flex items-center justify-center">
+                  <div className="w-16 h-16 rounded-full bg-pale-cyan flex items-center justify-center">
+                    <Wifi size={32} className="text-teal" />
+                  </div>
+                </div>
               </div>
             </div>
-            <div className="nfc-status-pill-live">
-              <span className="nfc-live-pulse" />
-              <span>NFC Reader Active (13.56 MHz)</span>
+            <div className="mt-4 flex items-center gap-2 px-4 py-2 bg-pale-cyan rounded-full">
+              <span className="w-2 h-2 rounded-full bg-teal animate-pulse" />
+              <span className="text-sm font-semibold text-teal">NFC Reader Active (13.56 MHz)</span>
             </div>
           </div>
 
-          {/* Right Column: Copy & Interactive Demo Simulator */}
-          <div className="nfc-station-content">
-            <div className="station-header-row">
+          <div>
+            <div className="flex items-start justify-between mb-6">
               <div>
-                <span className="eyebrow">PATIENT IDENTIFICATION</span>
-                <h2>Tap Contactless MedCard</h2>
-                <p>
-                  Place the patient's smart card on the reader to securely verify
-                  identity & load their clinical record.
+                <span className="text-sm font-semibold text-teal">PATIENT IDENTIFICATION</span>
+                <h2 className="text-xl font-bold text-navy mt-1 mb-2">Tap Contactless MedCard</h2>
+                <p className="text-body-text text-sm">
+                  Place the patient's smart card on the reader to securely verify identity & load their clinical record.
                 </p>
               </div>
-              <div className="reader-badge-tag">
-                <CreditCard size={15} />
-                <span>ACR122U Ready</span>
+              <div className="flex items-center gap-2 px-3 py-1 bg-pale-cyan rounded-full">
+                <CreditCard size={14} className="text-teal" />
+                <span className="text-sm font-semibold text-teal">ACR122U Ready</span>
               </div>
             </div>
 
-            {/* Quick One-Click Demo Simulation Pills */}
-            <div className="station-demo-triggers">
-              <span className="demo-trigger-label">
-                <Play size={11} /> Simulate NFC Card Tap:
+            <div className="mb-6">
+              <span className="text-sm font-semibold text-navy flex items-center gap-2 mb-3">
+                <Play size={11} />
+                Simulate NFC Card Tap:
               </span>
-              <div className="demo-pill-buttons-row">
+              <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
-                  className="demo-patient-pill"
                   onClick={() =>
                     handleSimulateTap({
                       patient: {
@@ -258,6 +253,7 @@ export default function PatientIdentificationPanel() {
                       },
                     })
                   }
+                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-navy border-2 border-navy rounded-full hover:bg-navy hover:text-white transition-colors"
                 >
                   <Wifi size={13} />
                   <span>Tap: Alice Mutoni</span>
@@ -265,7 +261,6 @@ export default function PatientIdentificationPanel() {
 
                 <button
                   type="button"
-                  className="demo-patient-pill"
                   onClick={() =>
                     handleSimulateTap({
                       patient: {
@@ -290,6 +285,7 @@ export default function PatientIdentificationPanel() {
                       },
                     })
                   }
+                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-navy border-2 border-navy rounded-full hover:bg-navy hover:text-white transition-colors"
                 >
                   <Wifi size={13} />
                   <span>Tap: Jean Rukundo</span>
@@ -297,7 +293,6 @@ export default function PatientIdentificationPanel() {
 
                 <button
                   type="button"
-                  className="demo-patient-pill"
                   onClick={() =>
                     handleSimulateTap({
                       patient: {
@@ -322,6 +317,7 @@ export default function PatientIdentificationPanel() {
                       },
                     })
                   }
+                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-navy border-2 border-navy rounded-full hover:bg-navy hover:text-white transition-colors"
                 >
                   <Wifi size={13} />
                   <span>Tap: Keza Uwase</span>
@@ -329,60 +325,57 @@ export default function PatientIdentificationPanel() {
               </div>
             </div>
 
-            {/* Workflow Breadcrumb Indicator */}
-            <div className="nfc-workflow-steps">
-              <div className="flow-step active">
-                <span className="step-num">1</span>
-                <span>NFC Tap</span>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 px-4 py-2 bg-pale-cyan rounded-full">
+                <span className="w-6 h-6 rounded-full bg-teal flex items-center justify-center text-white text-sm font-bold">1</span>
+                <span className="text-sm font-semibold text-navy">NFC Tap</span>
               </div>
-              <span className="flow-arrow">→</span>
-              <div className="flow-step">
-                <span className="step-num">2</span>
-                <span>Patient Auth</span>
+              <span className="text-body-text">→</span>
+              <div className="flex items-center gap-2 px-4 py-2 bg-section-tint rounded-full">
+                <span className="w-6 h-6 rounded-full bg-border flex items-center justify-center text-white text-sm font-bold">2</span>
+                <span className="text-sm font-semibold text-body-text">Patient Auth</span>
               </div>
-              <span className="flow-arrow">→</span>
-              <div className="flow-step">
-                <span className="step-num">3</span>
-                <span>Clinical Encounter</span>
+              <span className="text-body-text">→</span>
+              <div className="flex items-center gap-2 px-4 py-2 bg-section-tint rounded-full">
+                <span className="w-6 h-6 rounded-full bg-border flex items-center justify-center text-white text-sm font-bold">3</span>
+                <span className="text-sm font-semibold text-body-text">Clinical Encounter</span>
               </div>
             </div>
           </div>
         </div>
-      </section>
+      </div>
     );
   }
 
-  /* STATE: IDENTIFYING (LOADING) */
   if (state === "identifying") {
     return (
-      <section className="nfc-station-card identifying-state">
-        <div className="nfc-identifying-box">
-          <LoaderCircle size={44} className="spin nfc-spinner" />
-          <h3>Authenticating MedCard...</h3>
-          <p>Decrypting contactless token & fetching Rwanda Health Grid records.</p>
-        </div>
-      </section>
+      <div className="p-12 text-center">
+        <LoaderCircle size={48} className="text-teal animate-spin mx-auto mb-4" />
+        <h3 className="text-xl font-bold text-navy mb-2">Authenticating MedCard...</h3>
+        <p className="text-body-text text-sm">Decrypting contactless token & fetching Rwanda Health Grid records.</p>
+      </div>
     );
   }
 
-  /* STATE: PATIENT IDENTIFIED */
   if (state === "identified" && patient && card) {
     return (
-      <section className="nfc-station-card identified-state">
-        <div className="identified-card-header">
-          <div className="identified-banner-left">
-            <div className="identified-avatar-circle">
-              {getInitials(patient.firstName, patient.lastName)}
+      <div className="p-6 md:p-8">
+        <div className="flex flex-col md:flex-row items-start justify-between gap-6 mb-6">
+          <div className="flex items-start gap-4">
+            <div className="w-16 h-16 bg-pale-cyan rounded-full flex items-center justify-center flex-shrink-0">
+              <span className="text-navy font-bold text-xl">{getInitials(patient.firstName, patient.lastName)}</span>
             </div>
             <div>
-              <span className="verified-chip-tag">
-                <CheckCircle2 size={13} />
-                <span>IDENTITY VERIFIED</span>
-              </span>
-              <h2>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded-full">
+                  <CheckCircle2 size={12} />
+                  <span>IDENTITY VERIFIED</span>
+                </span>
+              </div>
+              <h2 className="text-xl font-bold text-navy">
                 {patient.firstName} {patient.lastName}
               </h2>
-              <div className="identified-sub-tags">
+              <div className="flex items-center gap-2 text-sm text-body-text mt-1">
                 <span>{patient.patientNumber}</span>
                 <span>•</span>
                 <span>{patient.gender || "Citizen"}</span>
@@ -396,85 +389,80 @@ export default function PatientIdentificationPanel() {
             </div>
           </div>
 
-          <div className="identified-card-badge">
-            <div className="card-uid-pill">
-              <Wifi size={14} />
-              <span>{card.cardUid}</span>
+          <div className="flex flex-col items-end gap-2">
+            <div className="flex items-center gap-2 px-3 py-1 bg-pale-cyan rounded-full">
+              <Wifi size={14} className="text-teal" />
+              <span className="text-sm font-semibold text-teal">{card.cardUid}</span>
             </div>
-            <span className="card-active-status">ACTIVE MEDCARD</span>
+            <span className="text-xs font-semibold text-teal">ACTIVE MEDCARD</span>
           </div>
         </div>
 
-        {/* Clinical Context Snapshot */}
-        <div className="identified-context-strip">
-          <div className="context-item-box">
-            <span className="context-label">CURRENT ENCOUNTER</span>
-            <strong>{encounter?.type || "General Outpatient Visit"}</strong>
-            <small>Status: {encounter?.status || "IN_PROGRESS"}</small>
+        <div className="grid md:grid-cols-3 gap-4 mb-6">
+          <div className="bg-section-tint rounded-xl p-4">
+            <span className="text-xs font-semibold text-teal block mb-1">CURRENT ENCOUNTER</span>
+            <strong className="text-navy text-sm">{encounter?.type || "General Outpatient Visit"}</strong>
+            <small className="text-body-text text-xs block">Status: {encounter?.status || "IN_PROGRESS"}</small>
           </div>
 
-          <div className="context-item-box">
-            <span className="context-label">AUTHENTICATED AT</span>
-            <strong>{formatDateTime(card.lastUsedAt)}</strong>
-            <small>Session: {session?.status || "ACTIVE"}</small>
+          <div className="bg-section-tint rounded-xl p-4">
+            <span className="text-xs font-semibold text-teal block mb-1">AUTHENTICATED AT</span>
+            <strong className="text-navy text-sm">{formatDateTime(card.lastUsedAt)}</strong>
+            <small className="text-body-text text-xs block">Session: {session?.status || "ACTIVE"}</small>
           </div>
 
-          <div className="context-item-box security">
-            <ShieldCheck size={18} />
+          <div className="bg-section-tint rounded-xl p-4 flex items-center gap-3">
+            <ShieldCheck size={20} className="text-teal" />
             <div>
-              <span className="context-label">INSURANCE GATEWAY</span>
-              <strong>RSSB / RAMA Verified</strong>
+              <span className="text-xs font-semibold text-teal block">INSURANCE GATEWAY</span>
+              <strong className="text-navy text-sm">RSSB / RAMA Verified</strong>
             </div>
           </div>
         </div>
 
-        {/* Action Buttons Footer */}
-        <div className="identified-actions-bar">
+        <div className="flex flex-col sm:flex-row gap-4">
           <button
             type="button"
-            className="action-pill-btn secondary"
             onClick={resetIdentification}
+            className="inline-flex items-center justify-center h-12 px-6 text-base font-semibold text-navy border-2 border-navy rounded-full hover:bg-navy hover:text-white transition-colors"
           >
-            <RefreshCw size={15} />
+            <RefreshCw size={16} className="mr-2" />
             <span>Scan Another Card</span>
           </button>
 
           <button
             type="button"
-            className="action-pill-btn primary"
             onClick={openPatientWorkspace}
+            className="inline-flex items-center justify-center h-12 px-6 text-base font-semibold text-white bg-navy rounded-full hover:bg-mid-blue transition-colors"
           >
-            <Stethoscope size={16} />
+            <Stethoscope size={16} className="mr-2" />
             <span>Open Clinical Workspace</span>
-            <ArrowRight size={15} />
+            <ArrowRight size={16} className="ml-2" />
           </button>
         </div>
-      </section>
+      </div>
     );
   }
 
-  /* STATE: ERROR OR NOT REGISTERED */
   return (
-    <section className="nfc-station-card error-state">
-      <div className="nfc-error-box">
-        <XCircle size={42} className="error-icon" />
-        <h3>
-          {state === "not-registered"
-            ? "MedCard Not Registered"
-            : state === "not-allowed"
-            ? "Card Access Restricted"
-            : "Card Identification Error"}
-        </h3>
-        <p>{errorMessage || "Unable to read this card. Please try again."}</p>
-        <button
-          type="button"
-          className="action-pill-btn primary"
-          onClick={resetIdentification}
-        >
-          <RefreshCw size={15} />
-          <span>Try Another Card</span>
-        </button>
-      </div>
-    </section>
+    <div className="p-12 text-center">
+      <XCircle size={48} className="text-red-600 mx-auto mb-4" />
+      <h3 className="text-xl font-bold text-navy mb-2">
+        {state === "not-registered"
+          ? "MedCard Not Registered"
+          : state === "not-allowed"
+          ? "Card Access Restricted"
+          : "Card Identification Error"}
+      </h3>
+      <p className="text-body-text text-sm mb-6">{errorMessage || "Unable to read this card. Please try again."}</p>
+      <button
+        type="button"
+        onClick={resetIdentification}
+        className="inline-flex items-center justify-center h-12 px-6 text-base font-semibold text-white bg-navy rounded-full hover:bg-mid-blue transition-colors"
+      >
+        <RefreshCw size={16} className="mr-2" />
+        <span>Try Another Card</span>
+      </button>
+    </div>
   );
 }
