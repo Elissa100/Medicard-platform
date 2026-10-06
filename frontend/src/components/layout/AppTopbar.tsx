@@ -6,7 +6,6 @@ import {
   Plus,
   X,
   CheckCircle2,
-  Wallet,
 } from "lucide-react";
 import {
   useState,
