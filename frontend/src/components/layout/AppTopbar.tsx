@@ -97,12 +97,6 @@ export default function AppTopbar({
         )}
 
         <div className="hidden md:block">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-teal" />
-            <span className="text-sm font-semibold text-teal">
-              {currentRole} Workspace
-            </span>
-          </div>
           <h1 className="text-lg md:text-xl font-bold text-navy">
             {pageTitle}
           </h1>
