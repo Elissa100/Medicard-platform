@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, X, ArrowRight, Lock, Smartphone } from "lucide-react";
+import { Check, X, ArrowRight, Lock, Smartphone, CheckCircle2 } from "lucide-react";
 import { landingConfig } from "../data/landing";
 
 type Step = "plans" | "account" | "payment" | "confirm";
@@ -11,6 +11,7 @@ export default function PatientVaultPage() {
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<"airtel" | "mtn" | null>(null);
+  const [showToast, setShowToast] = useState(false);
 
   const handleSelectPlan = (planName: string) => {
     setSelectedPlan(planName);
@@ -31,7 +32,10 @@ export default function PatientVaultPage() {
 
   const handleConfirm = () => {
     // Simulate payment and account creation
-    alert("Account created! Redirecting to storage portal...");
+    setShowToast(true);
+    setTimeout(() => {
+      window.location.href = "/vault-portal";
+    }, 2000);
   };
 
   const goBack = () => {
@@ -50,6 +54,19 @@ export default function PatientVaultPage() {
           <ArrowRight size={14} className="rotate-180" />
           Back to Home
         </button>
+
+        {/* Toast Notification */}
+        {showToast && (
+          <div className="fixed top-4 right-4 z-50 bg-white border border-border rounded-xl shadow-lg p-4 flex items-center gap-3 animate-[slideIn_0.3s_ease-out]">
+            <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+              <CheckCircle2 size={20} className="text-green-600" />
+            </div>
+            <div>
+              <p className="font-semibold text-navy text-sm">Account Created!</p>
+              <p className="text-body-text text-xs">Redirecting to vault portal...</p>
+            </div>
+          </div>
+        )}
 
         <div className="bg-white border border-border rounded-2xl p-6 md:p-8">
           {/* Progress indicator */}
