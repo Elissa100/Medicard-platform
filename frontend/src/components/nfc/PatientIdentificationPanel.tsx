@@ -188,42 +188,42 @@ export default function PatientIdentificationPanel() {
 
   if (state === "waiting") {
     return (
-      <div className="p-6 md:p-8">
-        <div className="grid md:grid-cols-2 gap-8">
+      <div className="p-4 md:p-6 lg:p-8">
+        <div className="grid md:grid-cols-2 gap-6 md:gap-8">
           <div className="flex flex-col items-center justify-center">
             <div className="relative">
-              <div className="w-32 h-32 rounded-full border-4 border-teal/30 flex items-center justify-center">
-                <div className="w-24 h-24 rounded-full border-4 border-teal/50 flex items-center justify-center">
-                  <div className="w-16 h-16 rounded-full bg-pale-cyan flex items-center justify-center">
-                    <Wifi size={32} className="text-teal" />
+              <div className="w-24 h-24 md:w-32 md:h-32 rounded-full border-4 border-teal/30 flex items-center justify-center">
+                <div className="w-16 h-16 md:w-24 md:h-24 rounded-full border-4 border-teal/50 flex items-center justify-center">
+                  <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-pale-cyan flex items-center justify-center">
+                    <Wifi size={28} className="text-teal" />
                   </div>
                 </div>
               </div>
             </div>
-            <div className="mt-4 flex items-center gap-2 px-4 py-2 bg-pale-cyan rounded-full">
+            <div className="mt-3 md:mt-4 flex items-center gap-2 px-3 py-1.5 bg-pale-cyan rounded-full">
               <span className="w-2 h-2 rounded-full bg-teal animate-pulse" />
-              <span className="text-sm font-semibold text-teal">NFC Reader Active (13.56 MHz)</span>
+              <span className="text-xs md:text-sm font-semibold text-teal">NFC Reader Active (13.56 MHz)</span>
             </div>
           </div>
 
           <div>
-            <div className="flex items-start justify-between mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-4 md:mb-6">
               <div>
-                <span className="text-sm font-semibold text-teal">PATIENT IDENTIFICATION</span>
-                <h2 className="text-xl font-bold text-navy mt-1 mb-2">Tap Contactless MedCard</h2>
-                <p className="text-body-text text-sm">
+                <span className="text-xs md:text-sm font-semibold text-teal">PATIENT IDENTIFICATION</span>
+                <h2 className="text-lg md:text-xl font-bold text-navy mt-1 mb-2">Tap Contactless MedCard</h2>
+                <p className="text-body-text text-xs md:text-sm">
                   Place the patient's smart card on the reader to securely verify identity & load their clinical record.
                 </p>
               </div>
-              <div className="flex items-center gap-2 px-3 py-1 bg-pale-cyan rounded-full">
-                <CreditCard size={14} className="text-teal" />
-                <span className="text-sm font-semibold text-teal">ACR122U Ready</span>
+              <div className="flex items-center gap-2 px-3 py-1 bg-pale-cyan rounded-full flex-shrink-0">
+                <CreditCard size={12} className="text-teal" />
+                <span className="text-xs md:text-sm font-semibold text-teal">ACR122U Ready</span>
               </div>
             </div>
 
-            <div className="mb-6">
-              <span className="text-sm font-semibold text-navy flex items-center gap-2 mb-3">
-                <Play size={11} />
+            <div className="mb-4 md:mb-6">
+              <span className="text-xs md:text-sm font-semibold text-navy flex items-center gap-2 mb-3">
+                <Play size={10} />
                 Simulate NFC Card Tap:
               </span>
               <div className="flex flex-wrap gap-2">
@@ -253,10 +253,10 @@ export default function PatientIdentificationPanel() {
                       },
                     })
                   }
-                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-navy border-2 border-navy rounded-full hover:bg-navy hover:text-white transition-colors"
+                  className="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 text-xs md:text-sm font-semibold text-navy border-2 border-navy rounded-full hover:bg-navy hover:text-white transition-colors"
                 >
-                  <Wifi size={13} />
-                  <span>Tap: Alice Mutoni</span>
+                  <Wifi size={12} />
+                  <span className="hidden sm:inline">Tap: </span>Alice Mutoni
                 </button>
 
                 <button
@@ -285,10 +285,10 @@ export default function PatientIdentificationPanel() {
                       },
                     })
                   }
-                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-navy border-2 border-navy rounded-full hover:bg-navy hover:text-white transition-colors"
+                  className="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 text-xs md:text-sm font-semibold text-navy border-2 border-navy rounded-full hover:bg-navy hover:text-white transition-colors"
                 >
-                  <Wifi size={13} />
-                  <span>Tap: Jean Rukundo</span>
+                  <Wifi size={12} />
+                  <span className="hidden sm:inline">Tap: </span>Jean Rukundo
                 </button>
 
                 <button
@@ -317,28 +317,28 @@ export default function PatientIdentificationPanel() {
                       },
                     })
                   }
-                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-navy border-2 border-navy rounded-full hover:bg-navy hover:text-white transition-colors"
+                  className="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 text-xs md:text-sm font-semibold text-navy border-2 border-navy rounded-full hover:bg-navy hover:text-white transition-colors"
                 >
-                  <Wifi size={13} />
-                  <span>Tap: Keza Uwase</span>
+                  <Wifi size={12} />
+                  <span className="hidden sm:inline">Tap: </span>Keza Uwase
                 </button>
               </div>
             </div>
 
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2 px-4 py-2 bg-pale-cyan rounded-full">
-                <span className="w-6 h-6 rounded-full bg-teal flex items-center justify-center text-white text-sm font-bold">1</span>
-                <span className="text-sm font-semibold text-navy">NFC Tap</span>
+            <div className="hidden md:flex items-center gap-4">
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-pale-cyan rounded-full">
+                <span className="w-5 h-5 rounded-full bg-teal flex items-center justify-center text-white text-xs font-bold">1</span>
+                <span className="text-xs font-semibold text-navy">NFC Tap</span>
               </div>
               <span className="text-body-text">→</span>
-              <div className="flex items-center gap-2 px-4 py-2 bg-section-tint rounded-full">
-                <span className="w-6 h-6 rounded-full bg-border flex items-center justify-center text-white text-sm font-bold">2</span>
-                <span className="text-sm font-semibold text-body-text">Patient Auth</span>
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-section-tint rounded-full">
+                <span className="w-5 h-5 rounded-full bg-border flex items-center justify-center text-white text-xs font-bold">2</span>
+                <span className="text-xs font-semibold text-body-text">Patient Auth</span>
               </div>
               <span className="text-body-text">→</span>
-              <div className="flex items-center gap-2 px-4 py-2 bg-section-tint rounded-full">
-                <span className="w-6 h-6 rounded-full bg-border flex items-center justify-center text-white text-sm font-bold">3</span>
-                <span className="text-sm font-semibold text-body-text">Clinical Encounter</span>
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-section-tint rounded-full">
+                <span className="w-5 h-5 rounded-full bg-border flex items-center justify-center text-white text-xs font-bold">3</span>
+                <span className="text-xs font-semibold text-body-text">Clinical Encounter</span>
               </div>
             </div>
           </div>

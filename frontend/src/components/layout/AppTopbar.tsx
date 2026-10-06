@@ -161,7 +161,7 @@ export default function AppTopbar({
         {actionButton && (
           <button
             type="button"
-            className="hidden sm:flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-navy rounded-full hover:bg-mid-blue transition-colors"
+            className="hidden lg:flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-navy rounded-full hover:bg-mid-blue transition-colors"
             onClick={actionButton.onClick}
           >
             {actionButton.icon || <Plus size={15} />}
@@ -172,7 +172,7 @@ export default function AppTopbar({
         {secondaryActionButton && (
           <button
             type="button"
-            className="hidden sm:flex items-center gap-2 px-4 py-2 text-sm font-semibold text-navy border-2 border-navy rounded-full hover:bg-navy hover:text-white transition-colors"
+            className="hidden lg:flex items-center gap-2 px-4 py-2 text-sm font-semibold text-navy border-2 border-navy rounded-full hover:bg-navy hover:text-white transition-colors"
             onClick={secondaryActionButton.onClick}
           >
             {secondaryActionButton.icon}
@@ -182,7 +182,7 @@ export default function AppTopbar({
 
         <button
           type="button"
-          className="hidden sm:flex items-center gap-2 px-4 py-2 text-sm font-semibold text-teal border-2 border-teal rounded-full hover:bg-teal hover:text-white transition-colors"
+          className="hidden md:flex items-center gap-2 px-4 py-2 text-sm font-semibold text-teal border-2 border-teal rounded-full hover:bg-teal hover:text-white transition-colors"
           onClick={() => navigate("/nfc")}
           title="Open NFC Patient Tap Scanner"
         >
@@ -190,7 +190,7 @@ export default function AppTopbar({
           <span>Scan MedCard</span>
         </button>
 
-        <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-pale-cyan rounded-full">
+        <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 bg-pale-cyan rounded-full">
           <span className="w-2 h-2 rounded-full bg-teal animate-pulse" />
           <span className="text-xs font-semibold text-teal">
             Live Sync

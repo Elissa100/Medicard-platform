@@ -247,50 +247,50 @@ export default function DashboardPage() {
           : undefined
       }
     >
-      <div className="space-y-8">
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="space-y-6">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div
-            className="bg-white border border-border rounded-2xl p-6 cursor-pointer hover:border-teal hover:shadow-card transition-all"
+            className="bg-white border border-border rounded-2xl p-4 sm:p-6 cursor-pointer hover:border-teal hover:shadow-card transition-all"
             onClick={() =>
               navigate("/patients")
             }
           >
-            <span className="text-sm font-semibold text-body-text">Registered Patients</span>
-            <strong className="block text-3xl font-bold text-navy mt-2">4,892</strong>
-            <small className="text-sm text-teal font-semibold">+14 enrolled today</small>
+            <span className="text-xs sm:text-sm font-semibold text-body-text">Registered Patients</span>
+            <strong className="block text-2xl sm:text-3xl font-bold text-navy mt-1 sm:mt-2">4,892</strong>
+            <small className="text-xs sm:text-sm text-teal font-semibold">+14 enrolled today</small>
           </div>
 
           <div
-            className="bg-white border border-border rounded-2xl p-6 cursor-pointer hover:border-teal hover:shadow-card transition-all"
+            className="bg-white border border-border rounded-2xl p-4 sm:p-6 cursor-pointer hover:border-teal hover:shadow-card transition-all"
             onClick={() =>
               navigate("/nfc")
             }
           >
-            <span className="text-sm font-semibold text-body-text">MedCard NFC Scans</span>
-            <strong className="block text-3xl font-bold text-navy mt-2">128</strong>
-            <small className="text-sm text-teal font-semibold">Instant Tap ID</small>
+            <span className="text-xs sm:text-sm font-semibold text-body-text">MedCard NFC Scans</span>
+            <strong className="block text-2xl sm:text-3xl font-bold text-navy mt-1 sm:mt-2">128</strong>
+            <small className="text-xs sm:text-sm text-teal font-semibold">Instant Tap ID</small>
           </div>
 
           <div
-            className="bg-white border border-border rounded-2xl p-6 cursor-pointer hover:border-teal hover:shadow-card transition-all"
+            className="bg-white border border-border rounded-2xl p-4 sm:p-6 cursor-pointer hover:border-teal hover:shadow-card transition-all"
             onClick={() =>
               navigate("/appointments")
             }
           >
-            <span className="text-sm font-semibold text-body-text">Today's Appointments</span>
-            <strong className="block text-3xl font-bold text-navy mt-2">46</strong>
-            <small className="text-sm text-teal font-semibold">8 currently waiting</small>
+            <span className="text-xs sm:text-sm font-semibold text-body-text">Today's Appointments</span>
+            <strong className="block text-2xl sm:text-3xl font-bold text-navy mt-1 sm:mt-2">46</strong>
+            <small className="text-xs sm:text-sm text-teal font-semibold">8 currently waiting</small>
           </div>
 
           <div
-            className="bg-white border border-border rounded-2xl p-6 cursor-pointer hover:border-teal hover:shadow-card transition-all"
+            className="bg-white border border-border rounded-2xl p-4 sm:p-6 cursor-pointer hover:border-teal hover:shadow-card transition-all"
             onClick={() =>
               navigate("/payment")
             }
           >
-            <span className="text-sm font-semibold text-body-text">Settled Claims</span>
-            <strong className="block text-3xl font-bold text-navy mt-2">RWF 4.2M</strong>
-            <small className="text-sm text-teal font-semibold">100% digital sync</small>
+            <span className="text-xs sm:text-sm font-semibold text-body-text">Settled Claims</span>
+            <strong className="block text-2xl sm:text-3xl font-bold text-navy mt-1 sm:mt-2">RWF 4.2M</strong>
+            <small className="text-xs sm:text-sm text-teal font-semibold">100% digital sync</small>
           </div>
         </div>
 
@@ -298,7 +298,7 @@ export default function DashboardPage() {
           <PatientIdentificationPanel />
         </div>
 
-        <div>
+        <div className="hidden lg:block">
           <span className="text-sm font-semibold text-navy block mb-4">Clinical Stations Quick-Access:</span>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <button
