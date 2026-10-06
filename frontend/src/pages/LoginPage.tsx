@@ -49,6 +49,7 @@ function LoginPage() {
   const handleLogin = (event: FormEvent) => {
     event.preventDefault();
     localStorage.setItem(CURRENT_ROLE_KEY, selectedRole);
+    localStorage.setItem("medcard_authenticated", "true");
     navigate("/dashboard");
   };
 

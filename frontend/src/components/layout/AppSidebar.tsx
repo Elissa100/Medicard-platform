@@ -77,7 +77,7 @@ export default function AppSidebar({
     },
     {
       label: "NFC Scanner",
-      path: "/nfc",
+      path: "/nfc/scan",
       icon: Wifi,
       badge: "Live",
       badgeClass: "animate-pulse",
@@ -123,6 +123,7 @@ export default function AppSidebar({
 
   const handleLogout = () => {
     localStorage.removeItem(CURRENT_ROLE_KEY);
+    localStorage.removeItem("medcard_authenticated");
     navigate("/login");
   };
 
