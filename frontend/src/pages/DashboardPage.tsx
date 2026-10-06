@@ -215,9 +215,7 @@ export default function DashboardPage() {
 
   return (
     <AppLayout
-      pageTitle={`${currentRole} Command Center`}
-      pageSubtitle="Connected Healthcare Operations • Rwanda National Health Grid"
-
+      pageTitle={currentRole}
       actionButton={
         currentRole === "Reception"
           ? {
