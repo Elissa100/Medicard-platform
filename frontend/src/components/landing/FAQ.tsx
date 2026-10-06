@@ -21,7 +21,7 @@ export function FAQ() {
           {landingConfig.faq.map((faq, index) => (
             <div
               key={index}
-              className="border-2 border-border rounded-lg overflow-hidden"
+              className="border border-border rounded-xl overflow-hidden"
             >
               <button
                 type="button"

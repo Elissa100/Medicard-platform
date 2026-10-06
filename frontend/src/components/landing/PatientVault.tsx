@@ -39,7 +39,7 @@ export function PatientVault() {
               className={`relative p-8 rounded-[32px] h-full flex flex-col ${
                 plan.featured
                   ? "bg-navy text-white border-2 border-teal"
-                  : "bg-white border-2 border-border"
+                  : "bg-white border border-border"
               }`}
             >
               {plan.featured && (

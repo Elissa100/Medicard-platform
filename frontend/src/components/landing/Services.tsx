@@ -52,7 +52,7 @@ export function Services() {
             </a>
           </div>
 
-          <div className="relative bg-white border-2 border-border rounded-[32px] p-8 min-h-[380px] hover:translate-y-[-4px] hover:shadow-lift transition-all duration-200">
+          <div className="relative bg-white border border-border rounded-[32px] p-8 min-h-[380px] hover:translate-y-[-4px] hover:shadow-lift transition-all duration-200">
             <div className="absolute top-0 right-0 w-24 h-24 bg-pale-cyan rounded-full flex items-center justify-center">
               <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M12 2C8.5 2 6 4.5 6 7C6 8.5 7 9.5 7 11C7 12.5 5.5 13.5 5.5 15.5C5.5 17.5 7 19 8.5 19C9.5 19 10 18 12 18C14 18 14.5 19 15.5 19C17 19 18.5 17.5 18.5 15.5C18.5 13.5 17 12.5 17 11C17 9.5 18 8.5 18 7C18 4.5 15.5 2 12 2Z" stroke="#00A3B8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
