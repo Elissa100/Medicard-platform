@@ -11,9 +11,9 @@ type Step = "plans" | "account" | "verify" | "payment" | "confirm";
 export default function PatientVaultPage() {
   const [step, setStep] = useState<Step>("plans");
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
-  const [email, setEmail] = useState("alice.mutoni@example.com");
+  const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [password, setPassword] = useState("patient123");
+  const [password, setPassword] = useState("");
   const [verificationCode, setVerificationCode] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<"airtel" | "mtn" | null>(null);
   const [showToast, setShowToast] = useState(false);
@@ -121,7 +121,13 @@ export default function PatientVaultPage() {
       const data = await response.json();
 
       if (!data.success) {
-        setError(data.message || "Registration failed. Please try again.");
+        if (response.status === 409) {
+          setError(
+            data.message || "This email is already registered. Please login instead."
+          );
+        } else {
+          setError(data.message || "Registration failed. Please try again.");
+        }
         setIsLoading(false);
         return;
       }
@@ -418,7 +424,15 @@ export default function PatientVaultPage() {
                 {error && (
                   <div className="flex items-center gap-2 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-red-700">
                     <ShieldCheck size={16} />
-                    <span className="text-sm">{error}</span>
+                    <span className="text-sm flex-1">{error}</span>
+                    {error.includes("already registered") && (
+                      <button
+                        onClick={() => window.location.href = "/login"}
+                        className="text-xs font-semibold text-teal hover:text-navy underline"
+                      >
+                        Login
+                      </button>
+                    )}
                   </div>
                 )}
 

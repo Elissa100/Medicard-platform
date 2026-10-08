@@ -33,9 +33,6 @@ import registrationRoutes from "./routes/registration.routes.js";
 
 const app = express();
 
-// Trust proxy for Render deployment to fix express-rate-limit warnings
-app.set('trust proxy', true);
-
 /*
 |--------------------------------------------------------------------------
 | SECURITY
@@ -99,6 +96,12 @@ const limiter = rateLimit({
 
   standardHeaders: "draft-8",
   legacyHeaders: false,
+
+  // Skip rate limiting errors for Render
+  skip: (req) => {
+    // Allow Render health checks
+    return req.path === '/api/v1/health';
+  },
 
   message: {
     success: false,
