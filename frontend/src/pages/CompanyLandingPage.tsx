@@ -3,7 +3,7 @@ import { Hero } from "../components/landing/Hero";
 import { SolutionsStrip } from "../components/landing/SolutionsStrip";
 import { About } from "../components/landing/About";
 import { Services } from "../components/landing/Services";
-import { WhyMedicard } from "../components/landing/WhyMedicard";
+import { WhyMedCard } from "../components/landing/WhyMedCard";
 import { FAQ } from "../components/landing/FAQ";
 import { Contact } from "../components/landing/Contact";
 
@@ -16,7 +16,7 @@ export default function CompanyLandingPage() {
         <SolutionsStrip />
         <About />
         <Services />
-        <WhyMedicard />
+        <WhyMedCard />
         <FAQ />
         <Contact />
       </main>

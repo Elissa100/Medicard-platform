@@ -1,7 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Activity,
   Stethoscope,
   HeartPulse,
   UserRound,
@@ -116,9 +115,12 @@ function LoginPage() {
         <div className="max-w-md mx-auto">
           <div className="bg-white rounded-[32px] shadow-card p-8 md:p-12">
             <div className="flex items-center gap-3 mb-8">
-              <div className="w-12 h-12 bg-pale-cyan rounded-full flex items-center justify-center cursor-pointer" onClick={() => navigate("/")}>
-                <Activity size={24} className="text-teal" />
-              </div>
+              <img
+                src="/medcard-logo.svg"
+                alt="MedCard"
+                className="h-12 w-auto cursor-pointer"
+                onClick={() => navigate("/")}
+              />
               <div>
                 <h1 className="text-navy font-bold text-xl">MedCard</h1>
                 <p className="text-body-text text-sm">Rwanda Digital Health Grid</p>

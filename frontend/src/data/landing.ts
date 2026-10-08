@@ -24,7 +24,7 @@ export const landingConfig = {
   hero: {
     eyebrow: "Technology company in Kigali, Rwanda",
     headline: "Technology connecting people and possibilities.",
-    description: "Medicard builds NFC, manufacturing and data solutions that connect people, information and services across healthcare, education and business.",
+    description: "MedCard builds NFC, manufacturing and data solutions that connect people, information and services across healthcare, education and business.",
     primaryCta: {
       label: "Explore Services",
       href: "#services",
@@ -46,10 +46,10 @@ export const landingConfig = {
   },
   
   about: {
-    eyebrow: "About Medicard",
+    eyebrow: "About MedCard",
     headlinePart1: "One company.",
     headlinePart2: "Many ways to connect.",
-    description: "Medicard is a technology company. We design and deliver solutions that connect people, information and services, from healthcare identity to education, business and precision manufacturing.",
+    description: "MedCard is a technology company. We design and deliver solutions that connect people, information and services, from healthcare identity to education, business and precision manufacturing.",
   },
   
   services: {
@@ -140,7 +140,7 @@ export const landingConfig = {
     ],
   },
   
-  whyMedicard: [
+  whyMedCard: [
     {
       icon: "Cpu",
       title: "Technology",

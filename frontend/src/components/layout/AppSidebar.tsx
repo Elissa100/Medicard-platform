@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
-  Activity,
   LayoutDashboard,
   Users,
   Wifi,
@@ -151,9 +150,11 @@ export default function AppSidebar({
             className="flex items-center gap-3 cursor-pointer"
             onClick={() => handleNavigate("/dashboard")}
           >
-            <div className="w-10 h-10 bg-pale-cyan rounded-full flex items-center justify-center">
-              <Activity size={20} className="text-teal" />
-            </div>
+            <img
+              src="/medcard-logo.svg"
+              alt="MedCard"
+              className="h-10 w-auto"
+            />
             <div>
               <strong className="text-lg">MedCard</strong>
               <small className="block text-xs text-soft-text-on-navy">Digital Health Grid</small>

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Building2, LockKeyhole, MapPin, Mail, ShieldCheck, Eye, EyeOff, Activity, LoaderCircle } from "lucide-react";
+import { ArrowLeft, ArrowRight, Building2, LockKeyhole, MapPin, Mail, ShieldCheck, Eye, EyeOff, LoaderCircle } from "lucide-react";
 
 const FACILITY_KEY = "medcard_current_facility";
 const AUTH_TOKEN_KEY = "medcard_auth_token";
@@ -91,9 +91,11 @@ function FacilityLoginPage() {
     return (
       <div className="min-h-screen bg-section-tint flex items-center justify-center">
         <div className="max-w-md w-full px-5 text-center">
-          <div className="w-16 h-16 mx-auto mb-6 bg-pale-cyan rounded-full flex items-center justify-center">
-            <Activity size={32} className="text-teal" />
-          </div>
+          <img
+            src="/medcard-logo.svg"
+            alt="MedCard"
+            className="h-16 w-auto mx-auto mb-6"
+          />
           <h1 className="text-2xl font-bold text-navy mb-2">Verifying facility access</h1>
           <p className="text-body-text mb-8">
             Establishing your authorized facility session before opening the clinical workspace.
@@ -123,9 +125,11 @@ function FacilityLoginPage() {
         <div className="max-w-md mx-auto">
           <div className="bg-white rounded-[32px] shadow-card p-8 md:p-12">
             <div className="flex items-center gap-3 mb-8">
-              <div className="w-12 h-12 bg-pale-cyan rounded-full flex items-center justify-center">
-                <Activity size={24} className="text-teal" />
-              </div>
+              <img
+                src="/medcard-logo.svg"
+                alt="MedCard"
+                className="h-12 w-auto"
+              />
               <div>
                 <div className="text-navy font-bold text-xl">MedCard</div>
                 <div className="text-body-text text-sm">Healthcare facility portal</div>
