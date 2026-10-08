@@ -1,17 +1,23 @@
 import { useState } from "react";
-import { Check, X, ArrowRight, Lock, Smartphone, CheckCircle2 } from "lucide-react";
+import { Check, X, ArrowRight, Lock, Smartphone, CheckCircle2, LoaderCircle, ShieldCheck } from "lucide-react";
 import { landingConfig } from "../data/landing";
+
+const API_URL = "http://localhost:5000/api/v1";
+const AUTH_TOKEN_KEY = "medcard_auth_token";
+const USER_DATA_KEY = "medcard_user_data";
 
 type Step = "plans" | "account" | "payment" | "confirm";
 
 export default function PatientVaultPage() {
   const [step, setStep] = useState<Step>("plans");
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState("alice.mutoni@example.com");
   const [phone, setPhone] = useState("");
-  const [password, setPassword] = useState("");
+  const [password, setPassword] = useState("patient123");
   const [paymentMethod, setPaymentMethod] = useState<"airtel" | "mtn" | null>(null);
   const [showToast, setShowToast] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleSelectPlan = (planName: string) => {
     setSelectedPlan(planName);
@@ -30,12 +36,46 @@ export default function PatientVaultPage() {
     setStep("confirm");
   };
 
-  const handleConfirm = () => {
-    // Simulate payment and account creation
-    setShowToast(true);
-    setTimeout(() => {
-      window.location.href = "/vault-portal";
-    }, 2000);
+  const handleConfirm = async () => {
+    setIsLoading(true);
+    setError("");
+
+    try {
+      // For demo, we'll try to login with the provided credentials
+      // In production, this would create a new patient account
+      const response = await fetch(`${API_URL}/auth/patient/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: email || `${phone}@example.com`,
+          password: password || "patient123",
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!data.success) {
+        // If login fails, show error (in production, create account instead)
+        setError("Demo: Use alice.mutoni@example.com / patient123 to login");
+        setIsLoading(false);
+        return;
+      }
+
+      // Store auth data
+      localStorage.setItem(AUTH_TOKEN_KEY, data.data.token);
+      localStorage.setItem(USER_DATA_KEY, JSON.stringify(data.data.patient));
+      localStorage.setItem("medcard_authenticated", "true");
+
+      setShowToast(true);
+      setTimeout(() => {
+        window.location.href = "/vault-portal";
+      }, 2000);
+    } catch (err) {
+      setError("Failed to connect to server. Please try again.");
+      setIsLoading(false);
+    }
   };
 
   const goBack = () => {
@@ -296,6 +336,13 @@ export default function PatientVaultPage() {
                 <span>Secure payment powered by Rwanda National Payment Gateway</span>
               </div>
 
+              {error && (
+                <div className="flex items-center gap-2 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-red-700 mb-6">
+                  <ShieldCheck size={16} />
+                  <span className="text-sm">{error}</span>
+                </div>
+              )}
+
               <div className="flex gap-3">
                 <button
                   type="button"
@@ -306,9 +353,17 @@ export default function PatientVaultPage() {
                 </button>
                 <button
                   onClick={handleConfirm}
-                  className="flex-1 px-4 py-2 text-sm font-semibold text-white bg-teal rounded-lg hover:bg-teal/90 transition-colors"
+                  disabled={isLoading}
+                  className="flex-1 px-4 py-2 text-sm font-semibold text-white bg-teal rounded-lg hover:bg-teal/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Confirm & Pay
+                  {isLoading ? (
+                    <>
+                      <LoaderCircle size={16} className="animate-spin mr-2" />
+                      Processing...
+                    </>
+                  ) : (
+                    "Confirm & Pay"
+                  )}
                 </button>
               </div>
             </>

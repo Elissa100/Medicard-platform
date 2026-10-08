@@ -10,6 +10,7 @@ import {
   CreditCard,
   ShieldCheck,
   ArrowLeft,
+  LoaderCircle,
 } from "lucide-react";
 
 export type Role =
@@ -21,6 +22,10 @@ export type Role =
   | "Cashier";
 
 const CURRENT_ROLE_KEY = "medcard_current_role";
+const AUTH_TOKEN_KEY = "medcard_auth_token";
+const USER_DATA_KEY = "medcard_user_data";
+
+const API_URL = "http://localhost:5000/api/v1";
 
 const roles: {
   name: Role;
@@ -38,19 +43,52 @@ function LoginPage() {
   const navigate = useNavigate();
 
   const [selectedRole, setSelectedRole] = useState<Role>("Reception");
-  const [username, setUsername] = useState("staff.reception@kfh.rw");
-  const [password, setPassword] = useState("••••••••••••");
+  const [username, setUsername] = useState("reception@kfh.rw");
+  const [password, setPassword] = useState("password123");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleRoleSelect = (role: Role) => {
     setSelectedRole(role);
-    setUsername(`staff.${role.toLowerCase()}@kfh.rw`);
+    setUsername(`${role.toLowerCase()}@kfh.rw`);
   };
 
-  const handleLogin = (event: FormEvent) => {
+  const handleLogin = async (event: FormEvent) => {
     event.preventDefault();
-    localStorage.setItem(CURRENT_ROLE_KEY, selectedRole);
-    localStorage.setItem("medcard_authenticated", "true");
-    navigate("/dashboard");
+    setIsLoading(true);
+    setError("");
+
+    try {
+      const response = await fetch(`${API_URL}/auth/staff/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: username,
+          password: password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!data.success) {
+        setError(data.message || "Login failed");
+        setIsLoading(false);
+        return;
+      }
+
+      // Store auth data
+      localStorage.setItem(AUTH_TOKEN_KEY, data.data.token);
+      localStorage.setItem(USER_DATA_KEY, JSON.stringify(data.data.user));
+      localStorage.setItem(CURRENT_ROLE_KEY, data.data.user.role);
+      localStorage.setItem("medcard_authenticated", "true");
+
+      navigate("/dashboard");
+    } catch (err) {
+      setError("Failed to connect to server. Please try again.");
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -145,13 +183,6 @@ function LoginPage() {
                   <label htmlFor="password" className="block text-sm font-semibold text-navy">
                     Security PIN / Password
                   </label>
-                  <button
-                    type="button"
-                    onClick={() => alert("Demo Mode: Click Sign In directly!")}
-                    className="text-xs font-semibold text-teal hover:text-navy"
-                  >
-                    Demo auto-filled
-                  </button>
                 </div>
                 <input
                   id="password"
@@ -163,6 +194,13 @@ function LoginPage() {
                 />
               </div>
 
+              {error && (
+                <div className="flex items-center gap-2 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-red-700">
+                  <ShieldCheck size={16} />
+                  <span className="text-sm">{error}</span>
+                </div>
+              )}
+
               <div className="flex items-center gap-2 px-4 py-3 bg-pale-cyan rounded-xl">
                 <ShieldCheck size={16} className="text-teal" />
                 <span className="text-sm text-body-text">
@@ -172,9 +210,17 @@ function LoginPage() {
 
               <button
                 type="submit"
-                className="w-full inline-flex items-center justify-center h-14 px-6 text-base font-semibold text-white bg-navy rounded-full hover:bg-mid-blue transition-colors"
+                disabled={isLoading}
+                className="w-full inline-flex items-center justify-center h-14 px-6 text-base font-semibold text-white bg-navy rounded-full hover:bg-mid-blue transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Sign in as {selectedRole} →
+                {isLoading ? (
+                  <>
+                    <LoaderCircle size={20} className="animate-spin mr-2" />
+                    Signing in...
+                  </>
+                ) : (
+                  `Sign in as ${selectedRole} →`
+                )}
               </button>
             </form>
 

@@ -1,8 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Building2, LockKeyhole, MapPin, Mail, ShieldCheck, Eye, EyeOff, Activity } from "lucide-react";
+import { ArrowLeft, ArrowRight, Building2, LockKeyhole, MapPin, Mail, ShieldCheck, Eye, EyeOff, Activity, LoaderCircle } from "lucide-react";
 
 const FACILITY_KEY = "medcard_current_facility";
+const AUTH_TOKEN_KEY = "medcard_auth_token";
+const USER_DATA_KEY = "medcard_user_data";
+
+const API_URL = "http://localhost:5000/api/v1";
 
 type FacilityType = "Hospital" | "Clinic";
 
@@ -12,29 +16,25 @@ function FacilityLoginPage() {
   const [facilityType, setFacilityType] = useState<FacilityType>("Hospital");
   const [facilityName, setFacilityName] = useState("");
   const [location, setLocation] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("admin@kfh.rw");
+  const [password, setPassword] = useState("password123");
   const [showPassword, setShowPassword] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
   const handleBack = () => {
+    // Clear any existing auth
+    localStorage.removeItem(AUTH_TOKEN_KEY);
+    localStorage.removeItem(USER_DATA_KEY);
+    localStorage.removeItem("medcard_authenticated");
+    localStorage.removeItem(FACILITY_KEY);
     navigate("/");
   };
 
-  const handleFacilityLogin = (event: React.FormEvent) => {
+  const handleFacilityLogin = async (event: React.FormEvent) => {
     event.preventDefault();
     setError("");
-
-    if (!facilityName.trim()) {
-      setError("Please enter the facility name.");
-      return;
-    }
-
-    if (!location.trim()) {
-      setError("Please enter the facility location.");
-      return;
-    }
 
     if (!email.trim()) {
       setError("Please enter the authorized facility email.");
@@ -46,20 +46,45 @@ function FacilityLoginPage() {
       return;
     }
 
-    const facility = {
-      type: facilityType,
-      name: facilityName.trim(),
-      location: location.trim(),
-      email: email.trim(),
-    };
+    setIsLoading(true);
 
-    localStorage.setItem(FACILITY_KEY, JSON.stringify(facility));
+    try {
+      const response = await fetch(`${API_URL}/auth/facility/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: email.trim(),
+          password: password.trim(),
+          facilityName: facilityName.trim(),
+          location: location.trim(),
+        }),
+      });
 
-    setIsVerifying(true);
+      const data = await response.json();
 
-    setTimeout(() => {
-      navigate("/login");
-    }, 900);
+      if (!data.success) {
+        setError(data.message || "Facility login failed");
+        setIsLoading(false);
+        return;
+      }
+
+      // Store auth data
+      localStorage.setItem(AUTH_TOKEN_KEY, data.data.token);
+      localStorage.setItem(USER_DATA_KEY, JSON.stringify(data.data.user));
+      localStorage.setItem(FACILITY_KEY, JSON.stringify(data.data.facility));
+      localStorage.setItem("medcard_authenticated", "true");
+
+      setIsVerifying(true);
+
+      setTimeout(() => {
+        navigate("/login");
+      }, 900);
+    } catch (err) {
+      setError("Failed to connect to server. Please try again.");
+      setIsLoading(false);
+    }
   };
 
   if (isVerifying) {
@@ -227,11 +252,6 @@ function FacilityLoginPage() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 px-4 py-3 bg-pale-cyan rounded-xl">
-                <span className="w-2 h-2 rounded-full bg-teal" />
-                <span className="text-sm text-body-text">Facility access is simulated in this prototype.</span>
-              </div>
-
               {error && (
                 <div className="flex items-center gap-2 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-red-700">
                   <ShieldCheck size={16} />
@@ -241,10 +261,20 @@ function FacilityLoginPage() {
 
               <button
                 type="submit"
-                className="w-full inline-flex items-center justify-center h-14 px-6 text-base font-semibold text-white bg-navy rounded-full hover:bg-mid-blue transition-colors focus:outline-none focus:ring-2 focus:ring-teal focus:ring-offset-2"
+                disabled={isLoading}
+                className="w-full inline-flex items-center justify-center h-14 px-6 text-base font-semibold text-white bg-navy rounded-full hover:bg-mid-blue transition-colors focus:outline-none focus:ring-2 focus:ring-teal focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Enter Authorized Facility Portal
-                <ArrowRight size={18} className="ml-2" />
+                {isLoading ? (
+                  <>
+                    <LoaderCircle size={20} className="animate-spin mr-2" />
+                    Verifying facility...
+                  </>
+                ) : (
+                  <>
+                    Enter Authorized Facility Portal
+                    <ArrowRight size={18} className="ml-2" />
+                  </>
+                )}
               </button>
             </form>
 

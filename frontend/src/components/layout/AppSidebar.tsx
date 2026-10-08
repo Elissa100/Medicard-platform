@@ -124,6 +124,9 @@ export default function AppSidebar({
   const handleLogout = () => {
     localStorage.removeItem(CURRENT_ROLE_KEY);
     localStorage.removeItem("medcard_authenticated");
+    localStorage.removeItem("medcard_auth_token");
+    localStorage.removeItem("medcard_user_data");
+    localStorage.removeItem("medcard_current_facility");
     navigate("/login");
   };
 

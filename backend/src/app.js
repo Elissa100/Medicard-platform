@@ -26,6 +26,7 @@ import pharmacyRoutes from "./routes/pharmacy.routes.js";
 import dispensingRoutes from "./routes/dispensing.routes.js";
 import encounterRoutes from "./routes/encounter.routes.js";
 import paymentIntentRoutes from "./routes/payment-intent.routes.js";
+import authRoutes from "./routes/auth.routes.js";
 
 
 
@@ -117,6 +118,14 @@ app.get("/api/v1/health", (req, res) => {
     timestamp: new Date().toISOString(),
   });
 });
+
+/*
+|--------------------------------------------------------------------------
+| AUTH ROUTES
+|--------------------------------------------------------------------------
+*/
+
+app.use("/api/v1/auth", authRoutes);
 
 /*
 |--------------------------------------------------------------------------
