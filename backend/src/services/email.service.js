@@ -45,6 +45,14 @@ async function sendBrevoEmail(to, subject, htmlContent) {
     console.error('Brevo rejected the email request:', response.status, errorDetails);
     throw new Error('The email service rejected the message');
   }
+
+  const result = await response.json();
+  if (!result.messageId) {
+    console.error('Brevo accepted email without returning a message ID:', result);
+    throw new Error('The email service did not confirm message acceptance');
+  }
+
+  return result.messageId;
 }
 
 export async function sendVerificationEmail(email, code) {
@@ -67,9 +75,9 @@ export async function sendVerificationEmail(email, code) {
     </html>
   `;
 
-  await sendBrevoEmail(email, 'MedCard - Verify Your Email', htmlContent);
-  console.log(`Verification email accepted by Brevo for ${email}`);
-  return { success: true };
+  const messageId = await sendBrevoEmail(email, 'MedCard - Verify Your Email', htmlContent);
+  console.log(`Verification email accepted by Brevo: ${messageId}`);
+  return { success: true, messageId };
 }
 
 export async function sendWelcomeEmail(email, firstName, plan) {
@@ -108,9 +116,9 @@ export async function sendWelcomeEmail(email, firstName, plan) {
   `;
 
   try {
-    await sendBrevoEmail(email, 'Welcome to MedCard!', htmlContent);
-    console.log(`Welcome email accepted by Brevo for ${email}`);
-    return { success: true };
+    const messageId = await sendBrevoEmail(email, 'Welcome to MedCard!', htmlContent);
+    console.log(`Welcome email accepted by Brevo: ${messageId}`);
+    return { success: true, messageId };
   } catch (error) {
     console.error('Failed to send welcome email:', error);
     return { success: false };

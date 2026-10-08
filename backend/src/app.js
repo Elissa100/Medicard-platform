@@ -33,6 +33,9 @@ import registrationRoutes from "./routes/registration.routes.js";
 
 const app = express();
 
+// Render forwards requests through one proxy; trust its client IP for rate limiting.
+app.set("trust proxy", 1);
+
 /*
 |--------------------------------------------------------------------------
 | SECURITY

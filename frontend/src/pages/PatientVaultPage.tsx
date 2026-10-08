@@ -103,7 +103,7 @@ export default function PatientVaultPage() {
             return;
           }
           setStep("payment");
-          setError("");
+          setNotice("This email is already verified, so no new verification email was sent. Continue to payment.");
           return;
         }
         setNotice("A new verification code was sent to your email.");
@@ -191,7 +191,7 @@ export default function PatientVaultPage() {
           return;
         }
         setStep("payment");
-        setError("");
+        setNotice("This email is already verified, so no new verification email was sent. Continue to payment.");
         setIsLoading(false);
         return;
       }
@@ -398,6 +398,12 @@ export default function PatientVaultPage() {
             }`}>5</div>
           </div>
 
+          {notice && (
+            <div className="mb-6 px-4 py-3 bg-green-50 border border-green-200 rounded-xl text-green-700 text-sm" role="status">
+              {notice}
+            </div>
+          )}
+
           {step === "plans" && (
             <>
               <div className="text-center mb-8">
@@ -590,12 +596,6 @@ export default function PatientVaultPage() {
                     <span className="text-sm">{error}</span>
                   </div>
                 )}
-                {notice && (
-                  <div className="px-4 py-3 bg-green-50 border border-green-200 rounded-xl text-green-700 text-sm">
-                    {notice}
-                  </div>
-                )}
-
                 <div className="flex gap-3">
                   <button
                     type="button"
