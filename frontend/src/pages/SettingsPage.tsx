@@ -153,7 +153,7 @@ export default function SettingsPage() {
                   </div>
                   <div className="flex-1">
                     <span className="text-xs font-semibold text-teal block">WEBSOCKETS BRIDGE</span>
-                    <strong className="text-navy text-sm">ws://localhost:5000</strong>
+                    <strong className="text-navy text-sm">{import.meta.env.VITE_SOCKET_URL || "wss://medicard-platform.onrender.com"}</strong>
                   </div>
                 </div>
                 <small className="text-body-text text-xs">Subscribed to patient:identified channel</small>

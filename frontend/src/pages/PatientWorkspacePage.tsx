@@ -28,7 +28,7 @@ import {
 import LaboratoryOrderPanel from "../components/clinical/LaboratoryOrderPanel";
 import AppLayout from "../components/layout/AppLayout";
 
-const API_URL = "http://localhost:5000/api/v1";
+const API_URL = import.meta.env.VITE_API_URL || "https://medicard-platform.onrender.com/api/v1";
 
 const DEVELOPMENT_USER_ID =
   "ac844b2b-cc1b-45a4-9404-e059fdd6df0b";

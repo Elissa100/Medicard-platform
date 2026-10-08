@@ -6,7 +6,7 @@ const FACILITY_KEY = "medcard_current_facility";
 const AUTH_TOKEN_KEY = "medcard_auth_token";
 const USER_DATA_KEY = "medcard_user_data";
 
-const API_URL = "http://localhost:5000/api/v1";
+const API_URL = import.meta.env.VITE_API_URL || "https://medicard-platform.onrender.com/api/v1";
 
 type FacilityType = "Hospital" | "Clinic";
 

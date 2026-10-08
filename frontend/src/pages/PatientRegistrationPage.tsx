@@ -14,8 +14,8 @@ import axios from "axios";
 import { io } from "socket.io-client";
 import AppLayout from "../components/layout/AppLayout";
 
-const API_URL = "http://localhost:5000/api/v1";
-const SOCKET_URL = "http://localhost:5000";
+const API_URL = import.meta.env.VITE_API_URL || "https://medicard-platform.onrender.com/api/v1";
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "https://medicard-platform.onrender.com";
 const PENDING_CARD_KEY = "medcard_pending_card_uid";
 
 type Gender = "MALE" | "FEMALE" | "OTHER" | "UNKNOWN";

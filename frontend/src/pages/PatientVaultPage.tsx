@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Check, X, ArrowRight, Lock, Smartphone, CheckCircle2, LoaderCircle, ShieldCheck } from "lucide-react";
 import { landingConfig } from "../data/landing";
 
-const API_URL = "http://localhost:5000/api/v1";
+const API_URL = import.meta.env.VITE_API_URL || "https://medicard-platform.onrender.com/api/v1";
 const AUTH_TOKEN_KEY = "medcard_auth_token";
 const USER_DATA_KEY = "medcard_user_data";
 

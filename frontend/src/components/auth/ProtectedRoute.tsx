@@ -1,7 +1,7 @@
 import { Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 
-const API_URL = "http://localhost:5000/api/v1";
+const API_URL = import.meta.env.VITE_API_URL || "https://medicard-platform.onrender.com/api/v1";
 const AUTH_TOKEN_KEY = "medcard_auth_token";
 
 interface ProtectedRouteProps {
