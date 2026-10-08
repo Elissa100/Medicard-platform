@@ -16,7 +16,32 @@ export async function register(req, res) {
     if (!email || !phone || !password || !firstName || !lastName || !plan) {
       return res.status(400).json({
         success: false,
-        message: 'Missing required fields',
+        message: 'All fields are required. Please fill in all information.',
+      });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please enter a valid email address',
+      });
+    }
+
+    // Validate phone number
+    if (phone.length < 10) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please enter a valid phone number',
+      });
+    }
+
+    // Validate password
+    if (password.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password must be at least 6 characters',
       });
     }
 
@@ -40,9 +65,18 @@ export async function register(req, res) {
     res.status(201).json(result);
   } catch (error) {
     console.error('Registration error:', error);
-    res.status(400).json({
+    
+    // Handle specific errors
+    if (error.message.includes('Email already registered')) {
+      return res.status(409).json({
+        success: false,
+        message: 'This email is already registered. Please login instead.',
+      });
+    }
+    
+    res.status(500).json({
       success: false,
-      message: error.message || 'Registration failed',
+      message: 'Registration failed. Please try again later.',
     });
   }
 }
@@ -57,7 +91,14 @@ export async function verify(req, res) {
     if (!email || !code) {
       return res.status(400).json({
         success: false,
-        message: 'Email and code are required',
+        message: 'Email and verification code are required',
+      });
+    }
+
+    if (code.length !== 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'Verification code must be 6 digits',
       });
     }
 
@@ -66,9 +107,17 @@ export async function verify(req, res) {
     res.status(200).json(result);
   } catch (error) {
     console.error('Verification error:', error);
-    res.status(400).json({
+    
+    if (error.message.includes('Invalid or expired')) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid or expired verification code. Please request a new code.',
+      });
+    }
+    
+    res.status(500).json({
       success: false,
-      message: error.message || 'Verification failed',
+      message: 'Verification failed. Please try again.',
     });
   }
 }

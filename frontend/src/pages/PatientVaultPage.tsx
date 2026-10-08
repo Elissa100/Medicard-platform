@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Check, X, ArrowRight, Lock, Smartphone, CheckCircle2, LoaderCircle, ShieldCheck } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Check, X, ArrowRight, Lock, Smartphone, CheckCircle2, LoaderCircle, ShieldCheck, RefreshCw } from "lucide-react";
 import { landingConfig } from "../data/landing";
 
 const API_URL = import.meta.env.VITE_API_URL || "https://medicard-platform.onrender.com/api/v1";
@@ -20,6 +20,60 @@ export default function PatientVaultPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [patientId, setPatientId] = useState<string | null>(null);
+  const [resendDisabled, setResendDisabled] = useState(false);
+  const [resendCountdown, setResendCountdown] = useState(0);
+
+  // Countdown timer for resend button
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (resendCountdown > 0) {
+      interval = setInterval(() => {
+        setResendCountdown((prev) => prev - 1);
+      }, 1000);
+    } else if (resendCountdown === 0) {
+      setResendDisabled(false);
+    }
+    return () => clearInterval(interval);
+  }, [resendCountdown]);
+
+  const handleResendCode = async () => {
+    setResendDisabled(true);
+    setResendCountdown(60); // 60 seconds countdown
+    
+    try {
+      const response = await fetch(`${API_URL}/registration/register`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          phone,
+          password,
+          firstName: email?.split("@")[0] || "Patient",
+          lastName: "User",
+          plan: selectedPlan === "Premium Vault" ? "PREMIUM" : "BASIC",
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setError("");
+        // Show success message
+        setError("New verification code sent to your email");
+        setTimeout(() => setError(""), 3000);
+      } else {
+        setError(data.message || "Failed to resend code");
+        setResendDisabled(false);
+        setResendCountdown(0);
+      }
+    } catch (err) {
+      setError("Failed to connect to server. Please try again.");
+      setResendDisabled(false);
+      setResendCountdown(0);
+    }
+  };
 
   const handleSelectPlan = (planName: string) => {
     setSelectedPlan(planName);
@@ -30,6 +84,23 @@ export default function PatientVaultPage() {
     e.preventDefault();
     setIsLoading(true);
     setError("");
+
+    // Validate inputs
+    if (!email || !email.includes("@")) {
+      setError("Please enter a valid email address");
+      setIsLoading(false);
+      return;
+    }
+    if (!phone || phone.length < 10) {
+      setError("Please enter a valid phone number");
+      setIsLoading(false);
+      return;
+    }
+    if (!password || password.length < 6) {
+      setError("Password must be at least 6 characters");
+      setIsLoading(false);
+      return;
+    }
 
     try {
       const response = await fetch(`${API_URL}/registration/register`, {
@@ -50,7 +121,7 @@ export default function PatientVaultPage() {
       const data = await response.json();
 
       if (!data.success) {
-        setError(data.message || "Registration failed");
+        setError(data.message || "Registration failed. Please try again.");
         setIsLoading(false);
         return;
       }
@@ -59,7 +130,8 @@ export default function PatientVaultPage() {
       setStep("verify");
       setIsLoading(false);
     } catch (err) {
-      setError("Failed to connect to server. Please try again.");
+      console.error("Registration error:", err);
+      setError("Failed to connect to server. Please check your connection and try again.");
       setIsLoading(false);
     }
   };
@@ -68,6 +140,13 @@ export default function PatientVaultPage() {
     e.preventDefault();
     setIsLoading(true);
     setError("");
+
+    // Validate verification code
+    if (!verificationCode || verificationCode.length !== 6) {
+      setError("Please enter the 6-digit verification code");
+      setIsLoading(false);
+      return;
+    }
 
     try {
       const response = await fetch(`${API_URL}/registration/verify`, {
@@ -84,7 +163,7 @@ export default function PatientVaultPage() {
       const data = await response.json();
 
       if (!data.success) {
-        setError(data.message || "Verification failed");
+        setError(data.message || "Invalid verification code. Please check your email and try again.");
         setIsLoading(false);
         return;
       }
@@ -92,7 +171,8 @@ export default function PatientVaultPage() {
       setStep("payment");
       setIsLoading(false);
     } catch (err) {
-      setError("Failed to connect to server. Please try again.");
+      console.error("Verification error:", err);
+      setError("Failed to connect to server. Please check your connection and try again.");
       setIsLoading(false);
     }
   };
@@ -105,6 +185,12 @@ export default function PatientVaultPage() {
   const handleConfirm = async () => {
     setIsLoading(true);
     setError("");
+
+    if (!patientId) {
+      setError("Session expired. Please start over.");
+      setIsLoading(false);
+      return;
+    }
 
     try {
       const amount = selectedPlan === "Premium Vault" ? 5000 : 1000;
@@ -127,7 +213,7 @@ export default function PatientVaultPage() {
       const data = await response.json();
 
       if (!data.success) {
-        setError(data.message || "Payment processing failed");
+        setError(data.message || "Payment processing failed. Please try again.");
         setIsLoading(false);
         return;
       }
@@ -150,6 +236,10 @@ export default function PatientVaultPage() {
         localStorage.setItem(AUTH_TOKEN_KEY, loginData.data.token);
         localStorage.setItem(USER_DATA_KEY, JSON.stringify(loginData.data.patient));
         localStorage.setItem("medcard_authenticated", "true");
+      } else {
+        setError("Payment successful but login failed. Please login manually.");
+        setIsLoading(false);
+        return;
       }
 
       setShowToast(true);
@@ -157,7 +247,8 @@ export default function PatientVaultPage() {
         window.location.href = "/vault-portal";
       }, 2000);
     } catch (err) {
-      setError("Failed to connect to server. Please try again.");
+      console.error("Payment error:", err);
+      setError("Failed to connect to server. Please check your connection and try again.");
       setIsLoading(false);
     }
   };
@@ -324,6 +415,13 @@ export default function PatientVaultPage() {
                   />
                 </div>
 
+                {error && (
+                  <div className="flex items-center gap-2 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-red-700">
+                    <ShieldCheck size={16} />
+                    <span className="text-sm">{error}</span>
+                  </div>
+                )}
+
                 <div className="flex gap-3">
                   <button
                     type="button"
@@ -334,9 +432,17 @@ export default function PatientVaultPage() {
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 px-4 py-2 text-sm font-semibold text-white bg-navy rounded-lg hover:bg-mid-blue transition-colors"
+                    disabled={isLoading}
+                    className="flex-1 px-4 py-2 text-sm font-semibold text-white bg-navy rounded-lg hover:bg-mid-blue transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Continue
+                    {isLoading ? (
+                      <>
+                        <LoaderCircle size={16} className="animate-spin mr-2" />
+                        Creating...
+                      </>
+                    ) : (
+                      "Continue"
+                    )}
                   </button>
                 </div>
               </form>
@@ -348,6 +454,7 @@ export default function PatientVaultPage() {
               <div className="text-center mb-6">
                 <h2 className="text-xl font-bold text-navy mb-1">Verify Your Email</h2>
                 <p className="text-body-text text-sm">Enter the 6-digit code sent to {email}</p>
+                <p className="text-xs text-muted-text mt-1">Code expires in 10 minutes</p>
               </div>
 
               <form onSubmit={handleVerify} className="space-y-4">
@@ -361,6 +468,23 @@ export default function PatientVaultPage() {
                     maxLength={6}
                     className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:border-teal text-center tracking-widest text-2xl"
                   />
+                  <div className="mt-2 text-center">
+                    <button
+                      type="button"
+                      onClick={handleResendCode}
+                      disabled={resendDisabled}
+                      className="text-xs text-teal hover:text-navy disabled:text-muted-text disabled:cursor-not-allowed flex items-center gap-1 mx-auto"
+                    >
+                      {resendDisabled ? (
+                        <>
+                          <RefreshCw size={12} className="animate-spin" />
+                          Resend in {resendCountdown}s
+                        </>
+                      ) : (
+                        "Resend code"
+                      )}
+                    </button>
+                  </div>
                 </div>
 
                 {error && (
