@@ -69,6 +69,7 @@ export default function PatientVaultPage() {
         setResendCountdown(0);
       }
     } catch (err) {
+      console.error("Resend code error:", err);
       setError("Failed to connect to server. Please try again.");
       setResendDisabled(false);
       setResendCountdown(0);
@@ -132,7 +133,7 @@ export default function PatientVaultPage() {
         return;
       }
 
-      setPatientId(data.patientId);
+      // Don't set patientId yet - it will be set after verification
       setStep("verify");
       setIsLoading(false);
     } catch (err) {
@@ -172,6 +173,11 @@ export default function PatientVaultPage() {
         setError(data.message || "Invalid verification code. Please check your email and try again.");
         setIsLoading(false);
         return;
+      }
+
+      // Store patientId from verification response
+      if (data.patientId) {
+        setPatientId(data.patientId);
       }
 
       setStep("payment");

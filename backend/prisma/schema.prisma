@@ -1361,6 +1361,14 @@ model VerificationCode {
   code String
   expiresAt DateTime
   verified Boolean @default(false)
+  
+  // Store pending registration details
+  passwordHash String?
+  phone String?
+  firstName String?
+  lastName String?
+  plan String?
+  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

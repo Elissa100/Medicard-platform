@@ -27,12 +27,12 @@ function calculateExpiration() {
 }
 
 /**
- * Register a new patient
+ * Register a new patient (pending verification)
  */
 export async function registerPatient(data) {
   const { email, phone, password, firstName, lastName, plan } = data;
 
-  // Check if email already exists in Patient table
+  // Check if email already exists in Patient table (verified accounts)
   const existingPatient = await prisma.patient.findFirst({
     where: { email },
   });
@@ -41,34 +41,68 @@ export async function registerPatient(data) {
     throw new Error('Email already registered');
   }
 
-  // Hash password
-  const passwordHash = await bcrypt.hash(password, 10);
-
-  // Generate patient number
-  const patientNumber = `PAT${Date.now().toString().slice(-8)}`;
-
-  // Create patient
-  const patient = await prisma.patient.create({
-    data: {
-      patientNumber,
-      firstName,
-      lastName,
+  // Check if there's a pending registration for this email
+  const pendingRegistration = await prisma.verificationCode.findFirst({
+    where: {
       email,
-      phone,
-      passwordHash,
+      verified: false,
+      expiresAt: {
+        gte: new Date(),
+      },
     },
   });
+
+  if (pendingRegistration) {
+    // Update existing pending registration with new details
+    const code = generateVerificationCode();
+    const expiresAt = calculateExpiration();
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    await prisma.verificationCode.update({
+      where: { id: pendingRegistration.id },
+      data: {
+        code,
+        expiresAt,
+        passwordHash,
+        phone,
+        firstName,
+        lastName,
+        plan,
+      },
+    });
+
+    // Send verification email via Brevo
+    try {
+      await sendVerificationEmail(email, code);
+    } catch (emailError) {
+      console.error('Failed to send verification email:', emailError);
+    }
+
+    return {
+      success: true,
+      message: 'Verification code updated. Please check your email.',
+      email,
+    };
+  }
+
+  // Hash password
+  const passwordHash = await bcrypt.hash(password, 10);
 
   // Generate verification code
   const code = generateVerificationCode();
   const expiresAt = calculateExpiration();
 
-  // Store verification code
+  // Store verification code with registration details
   await prisma.verificationCode.create({
     data: {
       email,
       code,
       expiresAt,
+      passwordHash,
+      phone,
+      firstName,
+      lastName,
+      plan,
     },
   });
 
@@ -83,13 +117,12 @@ export async function registerPatient(data) {
   return {
     success: true,
     message: 'Registration successful. Please check your email for verification code.',
-    patientId: patient.id,
     email,
   };
 }
 
 /**
- * Verify email with code
+ * Verify email with code and create patient account
  */
 export async function verifyEmail(email, code) {
   // Find valid verification code
@@ -108,7 +141,40 @@ export async function verifyEmail(email, code) {
     throw new Error('Invalid or expired verification code');
   }
 
-  // Mark as verified
+  // Check if patient already exists (double verification)
+  const existingPatient = await prisma.patient.findFirst({
+    where: { email },
+  });
+
+  if (existingPatient) {
+    // Already verified, just mark code as verified
+    await prisma.verificationCode.update({
+      where: { id: verificationCode.id },
+      data: { verified: true },
+    });
+
+    return {
+      success: true,
+      message: 'Email already verified',
+      patientId: existingPatient.id,
+    };
+  }
+
+  // Create patient account after successful verification
+  const patientNumber = `PAT${Date.now().toString().slice(-8)}`;
+
+  const patient = await prisma.patient.create({
+    data: {
+      patientNumber,
+      firstName: verificationCode.firstName || 'Patient',
+      lastName: verificationCode.lastName || 'User',
+      email: verificationCode.email,
+      phone: verificationCode.phone,
+      passwordHash: verificationCode.passwordHash,
+    },
+  });
+
+  // Mark code as verified
   await prisma.verificationCode.update({
     where: { id: verificationCode.id },
     data: { verified: true },
@@ -117,6 +183,8 @@ export async function verifyEmail(email, code) {
   return {
     success: true,
     message: 'Email verified successfully',
+    patientId: patient.id,
+    email: patient.email,
   };
 }
 
