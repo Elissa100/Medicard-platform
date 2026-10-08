@@ -58,7 +58,7 @@ export default function NFCLandingPage() {
             <div className="hidden md:flex items-center gap-4">
               <button
                 type="button"
-                onClick={() => navigate("/dashboard")}
+                onClick={() => navigate("/login")}
                 className="inline-flex items-center justify-center px-4 py-2 text-base font-semibold text-navy border-2 border-navy rounded-full hover:bg-navy hover:text-white transition-colors"
               >
                 Live Dashboard
@@ -106,6 +106,16 @@ export default function NFCLandingPage() {
                 type="button"
                 onClick={() => {
                   setMenuOpen(false);
+                  navigate("/login");
+                }}
+                className="w-full py-3 text-base font-semibold text-navy border-2 border-navy rounded-full"
+              >
+                Live Dashboard
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpen(false);
                   goToFacilityPortal();
                 }}
                 className="w-full py-3 text-base font-semibold text-navy border-2 border-navy rounded-full"
@@ -143,7 +153,7 @@ export default function NFCLandingPage() {
                 <div className="flex flex-col sm:flex-row gap-4">
                   <button
                     type="button"
-                    onClick={() => navigate("/dashboard")}
+                    onClick={() => navigate("/login")}
                     className="inline-flex items-center justify-center h-14 px-6 text-base font-semibold text-white bg-navy rounded-full hover:bg-mid-blue transition-colors"
                   >
                     Launch Interactive Demo
@@ -151,7 +161,7 @@ export default function NFCLandingPage() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => navigate("/nfc/scan")}
+                    onClick={() => navigate("/login")}
                     className="inline-flex items-center justify-center h-14 px-6 text-base font-semibold text-navy border-2 border-navy rounded-full hover:bg-navy hover:text-white transition-colors"
                   >
                     <Wifi size={18} className="mr-2" />
