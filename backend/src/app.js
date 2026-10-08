@@ -33,7 +33,7 @@ import registrationRoutes from "./routes/registration.routes.js";
 
 const app = express();
 
-// Trust proxy for Render deployment
+// Trust proxy for Render deployment to fix express-rate-limit warnings
 app.set('trust proxy', true);
 
 /*
