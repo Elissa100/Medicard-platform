@@ -142,7 +142,7 @@ export async function facilityLogin(email, password) {
  * Patient login (for vault)
  */
 export async function patientLogin(email, password) {
-  const patient = await prisma.patient.findUnique({
+  const patient = await prisma.patient.findFirst({
     where: { email },
   });
 

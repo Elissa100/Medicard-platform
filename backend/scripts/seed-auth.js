@@ -112,10 +112,10 @@ async function main() {
   for (const patientData of patients) {
     const patient = await prisma.patient.upsert({
       where: { patientNumber: patientData.patientNumber },
-      update: { nationalId: patientPassword }, // Store password hash in nationalId for demo
+      update: { passwordHash: patientPassword },
       create: {
         ...patientData,
-        nationalId: patientPassword, // Store password hash in nationalId for demo
+        passwordHash: patientPassword,
       },
     });
 

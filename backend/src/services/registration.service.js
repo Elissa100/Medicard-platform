@@ -33,7 +33,7 @@ export async function registerPatient(data) {
   const { email, phone, password, firstName, lastName, plan } = data;
 
   // Check if email already exists in Patient table
-  const existingPatient = await prisma.patient.findUnique({
+  const existingPatient = await prisma.patient.findFirst({
     where: { email },
   });
 
