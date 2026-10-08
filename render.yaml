@@ -18,6 +18,12 @@ services:
         value: production
       - key: PORT
         value: 10000
+      - key: BREVO_SMTP_KEY
+        sync: false
+      - key: BREVO_API_KEY
+        sync: false
+      - key: BREVO_SENDER
+        sync: false
 
 databases:
   - name: medicard-db

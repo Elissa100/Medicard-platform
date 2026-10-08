@@ -2,6 +2,7 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
+import { sendVerificationEmail, sendWelcomeEmail } from './email.service.js';
 
 const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL,
@@ -71,9 +72,13 @@ export async function registerPatient(data) {
     },
   });
 
-  // TODO: Send email with verification code
-  // For now, log the code for development
-  console.log(`Verification code for ${email}: ${code}`);
+  // Send verification email via Brevo
+  try {
+    await sendVerificationEmail(email, code);
+  } catch (emailError) {
+    console.error('Failed to send verification email:', emailError);
+    // Continue even if email fails - user can request resend
+  }
 
   return {
     success: true,
@@ -136,6 +141,19 @@ export async function createSubscription(patientId, plan, amount, paymentMethod,
       status: 'ACTIVE',
     },
   });
+
+  // Get patient details for welcome email
+  const patient = await prisma.patient.findUnique({
+    where: { id: patientId },
+  });
+
+  if (patient && patient.email) {
+    try {
+      await sendWelcomeEmail(patient.email, patient.firstName, plan);
+    } catch (emailError) {
+      console.error('Failed to send welcome email:', emailError);
+    }
+  }
 
   return subscription;
 }
