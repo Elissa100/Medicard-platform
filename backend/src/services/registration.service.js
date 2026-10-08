@@ -227,6 +227,31 @@ export async function createSubscription(patientId, plan, amount, paymentMethod,
 }
 
 /**
+ * Get registration details by email (for payment plan info)
+ */
+export async function getRegistrationDetails(email) {
+  const verificationCode = await prisma.verificationCode.findFirst({
+    where: {
+      email,
+      verified: true,
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+  });
+
+  if (!verificationCode) {
+    return null;
+  }
+
+  return {
+    plan: verificationCode.plan,
+    firstName: verificationCode.firstName,
+    lastName: verificationCode.lastName,
+  };
+}
+
+/**
  * Get patient subscription
  */
 export async function getPatientSubscription(patientId) {
