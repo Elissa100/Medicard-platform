@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Check, X, ArrowRight, Lock, Smartphone, CheckCircle2, LoaderCircle, ShieldCheck, RefreshCw } from "lucide-react";
+import { Check, X, ArrowRight, Lock, CheckCircle2, LoaderCircle, ShieldCheck, RefreshCw } from "lucide-react";
 import { landingConfig } from "../data/landing";
 
 const API_URL = import.meta.env.VITE_API_URL || "https://medicard-platform.onrender.com/api/v1";
@@ -15,17 +15,49 @@ export default function PatientVaultPage() {
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [verificationCode, setVerificationCode] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<"airtel" | "mtn" | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<"momo" | null>(null);
   const [showToast, setShowToast] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const [patientId, setPatientId] = useState<string | null>(null);
+  const [paymentAttemptId, setPaymentAttemptId] = useState<string | null>(null);
+  const [paymentStatus, setPaymentStatus] = useState<string | null>(null);
   const [resendDisabled, setResendDisabled] = useState(false);
   const [resendCountdown, setResendCountdown] = useState(0);
 
+  const loginPatient = async (loginEmail: string, loginPassword: string) => {
+    const response = await fetch(`${API_URL}/auth/patient/login`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email: loginEmail,
+        password: loginPassword,
+      }),
+    });
+
+    const loginData = await response.json();
+    if (!response.ok || !loginData.success) {
+      throw new Error(loginData.message || "Unable to sign in to your patient vault.");
+    }
+
+    localStorage.setItem(AUTH_TOKEN_KEY, loginData.data.token);
+    localStorage.setItem(USER_DATA_KEY, JSON.stringify(loginData.data.patient));
+    localStorage.setItem("medcard_authenticated", "true");
+  };
+
+  const redirectToVault = () => {
+    setShowToast(true);
+    setTimeout(() => {
+      window.location.href = "/vault-portal";
+    }, 1500);
+  };
+
   // Countdown timer for resend button
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: ReturnType<typeof setInterval>;
     if (resendCountdown > 0) {
       interval = setInterval(() => {
         setResendCountdown((prev) => prev - 1);
@@ -39,6 +71,8 @@ export default function PatientVaultPage() {
   const handleResendCode = async () => {
     setResendDisabled(true);
     setResendCountdown(60); // 60 seconds countdown
+    setError("");
+    setNotice("");
     
     try {
       const response = await fetch(`${API_URL}/registration/register`, {
@@ -47,10 +81,10 @@ export default function PatientVaultPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          email,
-          phone,
+          email: email.trim().toLowerCase(),
+          phone: phone.trim(),
           password,
-          firstName: email?.split("@")[0] || "Patient",
+          firstName: email.trim().split("@")[0] || "Patient",
           lastName: "User",
           plan: selectedPlan === "Premium Vault" ? "PREMIUM" : "BASIC",
         }),
@@ -59,10 +93,19 @@ export default function PatientVaultPage() {
       const data = await response.json();
 
       if (data.success) {
-        setError("");
-        // Show success message
-        setError("New verification code sent to your email");
-        setTimeout(() => setError(""), 3000);
+        if (data.alreadyVerified) {
+          setPatientId(data.patientId);
+          setError("");
+          if (data.hasActiveSubscription) {
+            await loginPatient(email.trim().toLowerCase(), password);
+            redirectToVault();
+            return;
+          }
+          setStep("payment");
+          setError("");
+          return;
+        }
+        setNotice("A new verification code was sent to your email.");
       } else {
         setError(data.message || "Failed to resend code");
         setResendDisabled(false);
@@ -70,7 +113,7 @@ export default function PatientVaultPage() {
       }
     } catch (err) {
       console.error("Resend code error:", err);
-      setError("Failed to connect to server. Please try again.");
+      setError(err instanceof Error ? err.message : "Failed to connect to server. Please try again.");
       setResendDisabled(false);
       setResendCountdown(0);
     }
@@ -78,6 +121,8 @@ export default function PatientVaultPage() {
 
   const handleSelectPlan = (planName: string) => {
     setSelectedPlan(planName);
+    setPaymentAttemptId(null);
+    setPaymentStatus(null);
     setStep("account");
   };
 
@@ -85,14 +130,18 @@ export default function PatientVaultPage() {
     e.preventDefault();
     setIsLoading(true);
     setError("");
+    setNotice("");
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedPhone = phone.trim();
 
     // Validate inputs
-    if (!email || !email.includes("@")) {
+    if (!normalizedEmail || !normalizedEmail.includes("@")) {
       setError("Please enter a valid email address");
       setIsLoading(false);
       return;
     }
-    if (!phone || phone.length < 10) {
+    if (!normalizedPhone || normalizedPhone.replace(/\D/g, "").length < 10) {
       setError("Please enter a valid phone number");
       setIsLoading(false);
       return;
@@ -110,10 +159,10 @@ export default function PatientVaultPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          email,
-          phone,
+          email: normalizedEmail,
+          phone: normalizedPhone,
           password,
-          firstName: email?.split("@")[0] || "Patient",
+          firstName: normalizedEmail.split("@")[0] || "Patient",
           lastName: "User",
           plan: selectedPlan === "Premium Vault" ? "PREMIUM" : "BASIC",
         }),
@@ -123,12 +172,25 @@ export default function PatientVaultPage() {
 
       if (!data.success) {
         if (response.status === 409) {
-          setError(
-            data.message || "This email is already registered. Please login instead."
-          );
+          setError("This email is already registered. Enter the password for that account to continue, or use a different email.");
         } else {
           setError(data.message || "Registration failed. Please try again.");
         }
+        setIsLoading(false);
+        return;
+      }
+
+      setEmail(normalizedEmail);
+      setPhone(normalizedPhone);
+      if (data.alreadyVerified) {
+        setPatientId(data.patientId);
+        if (data.hasActiveSubscription) {
+          await loginPatient(normalizedEmail, password);
+          redirectToVault();
+          return;
+        }
+        setStep("payment");
+        setError("");
         setIsLoading(false);
         return;
       }
@@ -147,6 +209,7 @@ export default function PatientVaultPage() {
     e.preventDefault();
     setIsLoading(true);
     setError("");
+    setNotice("");
 
     // Validate verification code
     if (!verificationCode || verificationCode.length !== 6) {
@@ -162,7 +225,7 @@ export default function PatientVaultPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          email,
+          email: email.trim().toLowerCase(),
           code: verificationCode,
         }),
       });
@@ -189,8 +252,10 @@ export default function PatientVaultPage() {
     }
   };
 
-  const handlePaymentSelect = (method: "airtel" | "mtn") => {
-    setPaymentMethod(method);
+  const handlePaymentSelect = () => {
+    setPaymentMethod("momo");
+    setPaymentAttemptId(null);
+    setPaymentStatus(null);
     setStep("confirm");
   };
 
@@ -198,71 +263,75 @@ export default function PatientVaultPage() {
     setIsLoading(true);
     setError("");
 
-    if (!patientId) {
+    if (!patientId || !paymentMethod) {
       setError("Session expired. Please start over.");
       setIsLoading(false);
       return;
     }
 
     try {
-      const amount = selectedPlan === "Premium Vault" ? 5000 : 1000;
-      const paymentReference = `XENTRI-${Date.now()}`;
+      let activePaymentId = paymentAttemptId;
+      if (!activePaymentId) {
+        const initiationResponse = await fetch(`${API_URL}/registration/payment/initiate`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            patientId,
+            plan: selectedPlan === "Premium Vault" ? "PREMIUM" : "BASIC",
+            paymentMethod: "MOBILE_MONEY",
+            phone,
+          }),
+        });
+        const initiationData = await initiationResponse.json();
+        if (!initiationResponse.ok || !initiationData.success) {
+          throw new Error(initiationData.message || "Could not start your payment.");
+        }
 
-      const response = await fetch(`${API_URL}/registration/payment`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          patientId,
-          plan: selectedPlan === "Premium Vault" ? "PREMIUM" : "BASIC",
-          amount,
-          paymentMethod: paymentMethod === "mtn" ? "MTN" : "AIRTEL",
-          paymentReference,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!data.success) {
-        setError(data.message || "Payment processing failed. Please try again.");
-        setIsLoading(false);
-        return;
+        activePaymentId = initiationData.paymentId;
+        setPaymentAttemptId(activePaymentId);
+        setPaymentStatus(initiationData.status);
+        if (initiationData.phone) setPhone(initiationData.phone);
+        if (!activePaymentId) {
+          throw new Error("Payment started, but no payment ID was returned. Please try again.");
+        }
       }
 
-      // Auto-login after successful payment
-      const loginResponse = await fetch(`${API_URL}/auth/patient/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email,
-          password,
-        }),
-      });
+      for (let attempt = 0; attempt < 36; attempt += 1) {
+        if (attempt > 0) {
+          await new Promise((resolve) => window.setTimeout(resolve, 5000));
+        }
+        const statusResponse = await fetch(
+          `${API_URL}/registration/payment/${encodeURIComponent(activePaymentId)}/status`
+        );
+        const statusData = await statusResponse.json();
+        if (!statusResponse.ok || !statusData.success) {
+          throw new Error(statusData.message || "Could not check payment status.");
+        }
 
-      const loginData = await loginResponse.json();
-
-      if (loginData.success) {
-        localStorage.setItem(AUTH_TOKEN_KEY, loginData.data.token);
-        localStorage.setItem(USER_DATA_KEY, JSON.stringify(loginData.data.patient));
-        localStorage.setItem("medcard_authenticated", "true");
-      } else {
-        setError("Payment successful but login failed. Please login manually.");
-        setIsLoading(false);
-        return;
+        setPaymentStatus(statusData.status);
+        if (statusData.status === "FAILED") {
+          setPaymentAttemptId(null);
+          throw new Error("The payment was declined or timed out. Please try again.");
+        }
+        if (statusData.status === "SUCCESS") {
+          await loginPatient(email.trim().toLowerCase(), password);
+          setIsLoading(false);
+          setShowToast(true);
+          setTimeout(() => {
+            window.location.href = "/vault-portal";
+          }, 2000);
+          return;
+        }
       }
 
-      setShowToast(true);
-      setTimeout(() => {
-        window.location.href = "/vault-portal";
-      }, 2000);
+      setError("Payment is still pending. Approve the prompt on your phone, then check again.");
     } catch (err) {
       console.error("Payment error:", err);
-      setError("Failed to connect to server. Please check your connection and try again.");
-      setIsLoading(false);
+      setError(err instanceof Error ? err.message : "Failed to connect to server. Please check your connection and try again.");
     }
+    setIsLoading(false);
   };
 
   const goBack = () => {
@@ -290,7 +359,7 @@ export default function PatientVaultPage() {
               <CheckCircle2 size={20} className="text-green-600" />
             </div>
             <div>
-              <p className="font-semibold text-navy text-sm">Account Created!</p>
+              <p className="font-semibold text-navy text-sm">Vault ready!</p>
               <p className="text-body-text text-xs">Redirecting to vault portal...</p>
             </div>
           </div>
@@ -430,15 +499,7 @@ export default function PatientVaultPage() {
                 {error && (
                   <div className="flex items-center gap-2 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-red-700">
                     <ShieldCheck size={16} />
-                    <span className="text-sm flex-1">{error}</span>
-                    {error.includes("already registered") && (
-                      <button
-                        onClick={() => window.location.href = "/login"}
-                        className="text-xs font-semibold text-teal hover:text-navy underline"
-                      >
-                        Login
-                      </button>
-                    )}
+                    <span className="text-sm">{error}</span>
                   </div>
                 )}
 
@@ -484,7 +545,8 @@ export default function PatientVaultPage() {
                     type="text"
                     placeholder="123456"
                     value={verificationCode}
-                    onChange={(e) => setVerificationCode(e.target.value)}
+                    onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ""))}
+                    inputMode="numeric"
                     maxLength={6}
                     className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:border-teal text-center tracking-widest text-2xl"
                   />
@@ -511,6 +573,11 @@ export default function PatientVaultPage() {
                   <div className="flex items-center gap-2 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-red-700">
                     <ShieldCheck size={16} />
                     <span className="text-sm">{error}</span>
+                  </div>
+                )}
+                {notice && (
+                  <div className="px-4 py-3 bg-green-50 border border-green-200 rounded-xl text-green-700 text-sm">
+                    {notice}
                   </div>
                 )}
 
@@ -544,52 +611,29 @@ export default function PatientVaultPage() {
           {step === "payment" && (
             <>
               <div className="text-center mb-6">
-                <h2 className="text-xl font-bold text-navy mb-1">Choose Payment Method</h2>
-                <p className="text-body-text text-sm">Powered by Xentripay</p>
+                <h2 className="text-xl font-bold text-navy mb-1">Pay with Mobile Money</h2>
+                <p className="text-body-text text-sm">Powered by XentriPay</p>
               </div>
 
-              <div className="grid sm:grid-cols-2 gap-4 mb-6">
-                <button
-                  onClick={() => handlePaymentSelect("airtel")}
-                  className={`p-6 rounded-xl border-2 transition-all ${
-                    paymentMethod === "airtel"
-                      ? "border-red-500 bg-red-50"
-                      : "border-border hover:border-red-300"
-                  }`}
-                >
-                  <div className="flex items-center justify-center gap-3">
-                    <Smartphone size={24} className="text-red-500" />
-                    <span className="font-bold text-navy">Airtel Money</span>
-                  </div>
-                </button>
-
-                <button
-                  onClick={() => handlePaymentSelect("mtn")}
-                  className={`p-6 rounded-xl border-2 transition-all ${
-                    paymentMethod === "mtn"
-                      ? "border-yellow-500 bg-yellow-50"
-                      : "border-border hover:border-yellow-300"
-                  }`}
-                >
-                  <div className="flex items-center justify-center gap-3">
-                    <Smartphone size={24} className="text-yellow-500" />
-                    <span className="font-bold text-navy">MTN Mobile Money</span>
-                  </div>
-                </button>
+              <div className="mb-6 rounded-xl border border-border bg-section-tint p-5 text-center">
+                <p className="font-semibold text-navy">Payment prompt goes to {phone}</p>
+                <p className="mt-2 text-sm text-body-text">
+                  XentriPay routes Mobile Money using the phone number you provided. Approve the prompt on that phone to activate your plan.
+                </p>
               </div>
 
               <div className="flex items-center gap-2 px-3 py-2 bg-pale-cyan rounded-lg text-xs text-teal mb-6">
                 <Lock size={12} />
-                <span>Secure payment powered by Xentripay</span>
+                <span>Secure payment powered by XentriPay</span>
               </div>
 
               <div className="flex gap-3">
                 <button
                   type="button"
-                  onClick={goBack}
+                  onClick={() => handlePaymentSelect()}
                   className="flex-1 px-4 py-2 text-sm font-semibold text-navy border border-border rounded-lg hover:bg-section-tint transition-colors"
                 >
-                  Back
+                  Continue
                 </button>
               </div>
             </>
@@ -609,11 +653,11 @@ export default function PatientVaultPage() {
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-body-text">Payment Method</span>
-                  <span className="font-semibold text-navy capitalize">{paymentMethod} Money</span>
+                  <span className="font-semibold text-navy">Mobile Money</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-body-text">Email/Phone</span>
-                  <span className="font-semibold text-navy">{email || phone}</span>
+                  <span className="text-body-text">Payment phone</span>
+                  <span className="font-semibold text-navy">{phone}</span>
                 </div>
                 <div className="border-t border-border pt-3 flex justify-between">
                   <span className="font-semibold text-navy">Total</span>
@@ -625,8 +669,16 @@ export default function PatientVaultPage() {
 
               <div className="flex items-center gap-2 px-3 py-2 bg-pale-cyan rounded-lg text-xs text-teal mb-6">
                 <Lock size={12} />
-                <span>Secure payment powered by Xentripay</span>
+                <span>XentriPay will send a Mobile Money approval prompt to {phone}.</span>
               </div>
+
+              {paymentStatus && (
+                <div className="px-4 py-3 bg-pale-cyan rounded-xl text-sm text-navy mb-6" role="status">
+                  {paymentStatus === "PENDING" || paymentStatus === "INITIATING"
+                    ? "Waiting for you to approve the payment on your phone..."
+                    : `Payment status: ${paymentStatus.toLowerCase()}`}
+                </div>
+              )}
 
               {error && (
                 <div className="flex items-center gap-2 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-red-700 mb-6">
@@ -654,7 +706,7 @@ export default function PatientVaultPage() {
                       Processing...
                     </>
                   ) : (
-                    "Confirm & Pay"
+                    paymentAttemptId ? "Check Payment Status" : "Send Payment Prompt"
                   )}
                 </button>
               </div>

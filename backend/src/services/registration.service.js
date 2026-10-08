@@ -4,6 +4,15 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { sendVerificationEmail, sendWelcomeEmail } from './email.service.js';
 
+const XENTRIPAY_API_KEY = process.env.XENTRIPAY_API_KEY;
+const XENTRIPAY_BASE_URL = (
+  process.env.XENTRIPAY_BASE_URL || 'https://merchant.test.xentripay.com'
+).replace(/\/+$/, '');
+const VAULT_PLAN_PRICES = {
+  BASIC: 1000,
+  PREMIUM: 5000,
+};
+
 const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL,
 });
@@ -12,55 +21,72 @@ const prisma = new PrismaClient({
   adapter,
 });
 
-/**
- * Generate a 6-digit verification code
- */
 function generateVerificationCode() {
   return crypto.randomInt(100000, 999999).toString();
 }
 
-/**
- * Calculate expiration time (10 minutes from now)
- */
 function calculateExpiration() {
-  return new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+  return new Date(Date.now() + 10 * 60 * 1000);
 }
 
 /**
- * Register a new patient (pending verification)
+ * Register a patient or resume checkout for a previously verified account.
  */
 export async function registerPatient(data) {
-  const { email, phone, password, firstName, lastName, plan } = data;
+  const { phone, password, firstName, lastName, plan } = data;
+  const email = data.email.trim().toLowerCase();
 
-  // Check if email already exists in Patient table (verified accounts)
   const existingPatient = await prisma.patient.findFirst({
     where: { email },
   });
 
   if (existingPatient) {
-    throw new Error('Email already registered');
+    const passwordMatches =
+      existingPatient.passwordHash &&
+      await bcrypt.compare(password, existingPatient.passwordHash);
+
+    if (!passwordMatches) {
+      throw new Error('Email already registered');
+    }
+
+    const activeSubscription = await getPatientSubscription(existingPatient.id);
+    return {
+      success: true,
+      alreadyVerified: true,
+      hasActiveSubscription: Boolean(activeSubscription),
+      patientId: existingPatient.id,
+      message: activeSubscription
+        ? 'Email already verified and subscription is active.'
+        : 'Email already verified. Continue to payment.',
+    };
   }
 
-  // Check if there's a pending registration for this email
-  const pendingRegistration = await prisma.verificationCode.findFirst({
-    where: {
-      email,
-      verified: false,
-      expiresAt: {
-        gte: new Date(),
-      },
-    },
+  const pendingRegistration = await prisma.verificationCode.findUnique({
+    where: { email },
   });
 
-  if (pendingRegistration) {
-    // Update existing pending registration with new details
-    const code = generateVerificationCode();
-    const expiresAt = calculateExpiration();
-    const passwordHash = await bcrypt.hash(password, 10);
+  const code = generateVerificationCode();
+  const expiresAt = calculateExpiration();
+  const passwordHash = await bcrypt.hash(password, 10);
 
+  if (pendingRegistration) {
     await prisma.verificationCode.update({
       where: { id: pendingRegistration.id },
       data: {
+        code,
+        expiresAt,
+        verified: false,
+        passwordHash,
+        phone,
+        firstName,
+        lastName,
+        plan,
+      },
+    });
+  } else {
+    await prisma.verificationCode.create({
+      data: {
+        email,
         code,
         expiresAt,
         passwordHash,
@@ -70,49 +96,9 @@ export async function registerPatient(data) {
         plan,
       },
     });
-
-    // Send verification email via Brevo
-    try {
-      await sendVerificationEmail(email, code);
-    } catch (emailError) {
-      console.error('Failed to send verification email:', emailError);
-    }
-
-    return {
-      success: true,
-      message: 'Verification code updated. Please check your email.',
-      email,
-    };
   }
 
-  // Hash password
-  const passwordHash = await bcrypt.hash(password, 10);
-
-  // Generate verification code
-  const code = generateVerificationCode();
-  const expiresAt = calculateExpiration();
-
-  // Store verification code with registration details
-  await prisma.verificationCode.create({
-    data: {
-      email,
-      code,
-      expiresAt,
-      passwordHash,
-      phone,
-      firstName,
-      lastName,
-      plan,
-    },
-  });
-
-  // Send verification email via Brevo
-  try {
-    await sendVerificationEmail(email, code);
-  } catch (emailError) {
-    console.error('Failed to send verification email:', emailError);
-    // Continue even if email fails - user can request resend
-  }
+  await sendVerificationEmail(email, code);
 
   return {
     success: true,
@@ -122,18 +108,16 @@ export async function registerPatient(data) {
 }
 
 /**
- * Verify email with code and create patient account
+ * Verify email with code and create patient account.
  */
 export async function verifyEmail(email, code) {
-  // Find valid verification code
+  email = email.trim().toLowerCase();
   const verificationCode = await prisma.verificationCode.findFirst({
     where: {
       email,
       code,
       verified: false,
-      expiresAt: {
-        gte: new Date(),
-      },
+      expiresAt: { gte: new Date() },
     },
   });
 
@@ -141,18 +125,15 @@ export async function verifyEmail(email, code) {
     throw new Error('Invalid or expired verification code');
   }
 
-  // Check if patient already exists (double verification)
   const existingPatient = await prisma.patient.findFirst({
     where: { email },
   });
 
   if (existingPatient) {
-    // Already verified, just mark code as verified
     await prisma.verificationCode.update({
       where: { id: verificationCode.id },
       data: { verified: true },
     });
-
     return {
       success: true,
       message: 'Email already verified',
@@ -160,12 +141,9 @@ export async function verifyEmail(email, code) {
     };
   }
 
-  // Create patient account after successful verification
-  const patientNumber = `PAT${Date.now().toString().slice(-8)}`;
-
   const patient = await prisma.patient.create({
     data: {
-      patientNumber,
+      patientNumber: `PAT${Date.now().toString().slice(-8)}`,
       firstName: verificationCode.firstName || 'Patient',
       lastName: verificationCode.lastName || 'User',
       email: verificationCode.email,
@@ -174,7 +152,6 @@ export async function verifyEmail(email, code) {
     },
   });
 
-  // Mark code as verified
   await prisma.verificationCode.update({
     where: { id: verificationCode.id },
     data: { verified: true },
@@ -188,62 +165,266 @@ export async function verifyEmail(email, code) {
   };
 }
 
-/**
- * Create subscription after payment
- */
-export async function createSubscription(patientId, plan, amount, paymentMethod, paymentReference) {
-  // Calculate end date (1 month from now)
-  const endDate = new Date();
-  endDate.setMonth(endDate.getMonth() + 1);
-
-  const subscription = await prisma.patientSubscription.create({
-    data: {
-      patientId,
-      plan,
-      amount: parseInt(amount),
-      currency: 'RWF',
-      paymentMethod,
-      paymentReference,
-      startDate: new Date(),
-      endDate,
-      status: 'ACTIVE',
-    },
-  });
-
-  // Get patient details for welcome email
-  const patient = await prisma.patient.findUnique({
-    where: { id: patientId },
-  });
-
-  if (patient && patient.email) {
-    try {
-      await sendWelcomeEmail(patient.email, patient.firstName, plan);
-    } catch (emailError) {
-      console.error('Failed to send welcome email:', emailError);
-    }
+function formatRwandaPhone(phone) {
+  let digits = phone.replace(/\D/g, '');
+  if (digits.startsWith('250')) {
+    digits = `0${digits.slice(3)}`;
+  } else if (digits.length === 9) {
+    digits = `0${digits}`;
   }
 
-  return subscription;
+  if (!/^0\d{9}$/.test(digits)) {
+    throw new Error('Enter a valid Rwanda mobile number to receive the payment prompt');
+  }
+
+  return {
+    local: digits,
+    international: `250${digits.slice(1)}`,
+  };
+}
+
+async function callXentriPay(path, options = {}) {
+  if (!XENTRIPAY_API_KEY) {
+    throw new Error('XENTRIPAY_API_KEY is not configured');
+  }
+
+  let response;
+  try {
+    response = await fetch(`${XENTRIPAY_BASE_URL}${path}`, {
+      ...options,
+      signal: AbortSignal.timeout(15000),
+      headers: {
+        'X-XENTRIPAY-KEY': XENTRIPAY_API_KEY,
+        ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+        ...options.headers,
+      },
+    });
+  } catch (error) {
+    console.error('XentriPay request failed:', error);
+    throw new Error('Unable to reach XentriPay. Please try again.');
+  }
+
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    console.error('XentriPay returned an error:', response.status, result);
+    throw new Error(`XentriPay request failed: ${result.message || response.statusText}`);
+  }
+  return result;
 }
 
 /**
- * Get registration details by email (for payment plan info)
+ * Start a real XentriPay Mobile Money collection for a verified patient.
+ */
+export async function initiateVaultPayment(patientId, plan, paymentMethod, paymentPhone) {
+  const amount = VAULT_PLAN_PRICES[plan];
+  if (!amount) throw new Error('Invalid vault plan');
+  if (paymentMethod !== 'MOBILE_MONEY') {
+    throw new Error('Invalid payment method');
+  }
+
+  const patient = await prisma.patient.findUnique({
+    where: { id: patientId },
+  });
+  if (!patient || !patient.email) {
+    throw new Error('Verified patient account not found');
+  }
+  if (typeof paymentPhone !== 'string' || !paymentPhone.trim()) {
+    throw new Error('A phone number is required for Mobile Money payment');
+  }
+  const phone = formatRwandaPhone(paymentPhone);
+  const customerReference = `MC-${crypto.randomUUID()}`;
+  const result = await prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT "id" FROM "Patient" WHERE "id" = ${patientId} FOR UPDATE`;
+
+    const activeSubscription = await tx.patientSubscription.findFirst({
+      where: {
+        patientId,
+        status: 'ACTIVE',
+        endDate: { gte: new Date() },
+      },
+    });
+    if (activeSubscription) {
+      throw new Error('An active vault subscription already exists');
+    }
+
+    const pendingPayment = await tx.patientVaultPayment.findFirst({
+      where: {
+        patientId,
+        status: { in: ['INITIATING', 'PENDING', 'PROCESSING'] },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (pendingPayment) return { payment: pendingPayment, reused: true };
+
+    const payment = await tx.patientVaultPayment.create({
+      data: {
+        patientId,
+        plan,
+        amount,
+        paymentMethod,
+        phone: paymentPhone.trim(),
+        customerReference,
+        status: 'INITIATING',
+      },
+    });
+    return { payment, reused: false };
+  });
+
+  if (result.reused) {
+    return {
+      paymentId: result.payment.id,
+      status: result.payment.status,
+      phone: result.payment.phone,
+      message: 'A payment is already in progress for this account.',
+    };
+  }
+
+  const attempt = result.payment;
+
+  try {
+    const result = await callXentriPay('/api/collections/initiate', {
+      method: 'POST',
+      body: JSON.stringify({
+        email: patient.email,
+        cname: `${patient.firstName} ${patient.lastName}`,
+        amount,
+        cnumber: phone.local,
+        msisdn: phone.international,
+        currency: 'RWF',
+        pmethod: 'momo',
+        customerRef: customerReference,
+        chargesIncluded: true,
+        details: `MedCard ${plan} Patient Vault subscription`,
+      }),
+    });
+
+    if (result.success !== 1 || !result.refid) {
+      throw new Error(`XentriPay did not accept the payment request: ${result.reply || 'unknown response'}`);
+    }
+
+    const payment = await prisma.patientVaultPayment.update({
+      where: { id: attempt.id },
+      data: {
+        gatewayReference: String(result.refid),
+        status: 'PENDING',
+      },
+    });
+
+    return {
+      paymentId: payment.id,
+      status: payment.status,
+      phone: payment.phone,
+      message: 'Payment prompt sent. Approve it on your phone.',
+    };
+  } catch (error) {
+    await prisma.patientVaultPayment.update({
+      where: { id: attempt.id },
+      data: { status: 'FAILED' },
+    });
+    throw error;
+  }
+}
+
+/**
+ * Poll XentriPay and activate the subscription only after confirmed success.
+ */
+export async function getVaultPaymentStatus(paymentId) {
+  const attempt = await prisma.patientVaultPayment.findUnique({
+    where: { id: paymentId },
+    include: { patient: true },
+  });
+  if (!attempt) throw new Error('Payment attempt not found');
+  if (attempt.status === 'SUCCESS' || attempt.status === 'FAILED') {
+    return { status: attempt.status };
+  }
+  if (attempt.status === 'PROCESSING') return { status: 'PENDING' };
+  if (!attempt.gatewayReference) return { status: attempt.status };
+
+  const result = await callXentriPay(
+    `/api/collections/status/${encodeURIComponent(attempt.customerReference)}`
+  );
+  const gatewayStatus = String(result.status || '').toUpperCase();
+
+  if (gatewayStatus === 'SUCCESS') {
+    const subscription = await prisma.$transaction(async (tx) => {
+      const claim = await tx.patientVaultPayment.updateMany({
+        where: {
+          id: attempt.id,
+          status: { in: ['PENDING', 'INITIATING'] },
+        },
+        data: { status: 'PROCESSING' },
+      });
+
+      if (claim.count === 0) {
+        const current = await tx.patientVaultPayment.findUnique({
+          where: { id: attempt.id },
+        });
+        if (current?.status === 'SUCCESS') return null;
+        throw new Error('Payment status is being updated. Please check again shortly.');
+      }
+
+      const existingSubscription = await tx.patientSubscription.findFirst({
+        where: { paymentReference: attempt.customerReference },
+      });
+      const created = existingSubscription || await tx.patientSubscription.create({
+        data: {
+          patientId: attempt.patientId,
+          plan: attempt.plan,
+          amount: attempt.amount,
+          currency: 'RWF',
+          paymentMethod: attempt.paymentMethod,
+          paymentReference: attempt.customerReference,
+          startDate: new Date(),
+          endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          status: 'ACTIVE',
+        },
+      });
+
+      await tx.patientVaultPayment.update({
+        where: { id: attempt.id },
+        data: { status: 'SUCCESS' },
+      });
+      return created;
+    });
+
+    if (subscription && attempt.patient.email) {
+      try {
+        await sendWelcomeEmail(attempt.patient.email, attempt.patient.firstName, attempt.plan);
+      } catch (emailError) {
+        console.error('Failed to send welcome email:', emailError);
+      }
+    }
+    return { status: 'SUCCESS' };
+  }
+
+  if (gatewayStatus === 'FAILED') {
+    await prisma.patientVaultPayment.updateMany({
+      where: { id: attempt.id, status: 'PENDING' },
+      data: { status: 'FAILED' },
+    });
+    return { status: 'FAILED' };
+  }
+
+  await prisma.patientVaultPayment.updateMany({
+    where: { id: attempt.id, status: 'INITIATING' },
+    data: { status: 'PENDING' },
+  });
+  return { status: 'PENDING' };
+}
+
+/**
+ * Get registration details by email (for payment plan info).
  */
 export async function getRegistrationDetails(email) {
   const verificationCode = await prisma.verificationCode.findFirst({
     where: {
-      email,
+      email: email.trim().toLowerCase(),
       verified: true,
     },
-    orderBy: {
-      createdAt: 'desc',
-    },
+    orderBy: { createdAt: 'desc' },
   });
 
-  if (!verificationCode) {
-    return null;
-  }
-
+  if (!verificationCode) return null;
   return {
     plan: verificationCode.plan,
     firstName: verificationCode.firstName,
@@ -251,22 +432,13 @@ export async function getRegistrationDetails(email) {
   };
 }
 
-/**
- * Get patient subscription
- */
 export async function getPatientSubscription(patientId) {
-  const subscription = await prisma.patientSubscription.findFirst({
+  return prisma.patientSubscription.findFirst({
     where: {
       patientId,
       status: 'ACTIVE',
-      endDate: {
-        gte: new Date(),
-      },
+      endDate: { gte: new Date() },
     },
-    orderBy: {
-      createdAt: 'desc',
-    },
+    orderBy: { createdAt: 'desc' },
   });
-
-  return subscription;
 }

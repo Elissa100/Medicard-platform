@@ -24,6 +24,10 @@ services:
         sync: false
       - key: BREVO_SENDER
         sync: false
+      - key: XENTRIPAY_API_KEY
+        sync: false
+      - key: XENTRIPAY_BASE_URL
+        value: https://merchant.test.xentripay.com
 
 databases:
   - name: medicard-db

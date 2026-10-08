@@ -335,6 +335,7 @@ model Patient {
   patientInsurances PatientInsurance[]
   paymentIntents    PaymentIntent[]
   subscriptions      PatientSubscription[]
+  vaultPayments      PatientVaultPayment[]
 
   allergies         Allergy[]
   medicalConditions MedicalCondition[]
@@ -1407,4 +1408,22 @@ model PatientSubscription {
   @@index([patientId])
   @@index([status])
   @@index([plan])
+}
+
+model PatientVaultPayment {
+  id                String   @id @default(uuid())
+  patientId         String
+  patient           Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  plan              String
+  amount            Int
+  currency          String   @default("RWF")
+  paymentMethod     String
+  phone             String
+  customerReference String   @unique
+  gatewayReference  String?
+  status            String   @default("INITIATING")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([patientId, status])
 }

@@ -1,8 +1,10 @@
 import {
   registerPatient,
   verifyEmail,
-  createSubscription,
+  initiateVaultPayment,
+  getVaultPaymentStatus,
   getPatientSubscription,
+  getRegistrationDetails as lookupRegistrationDetails,
 } from '../services/registration.service.js';
 
 /**
@@ -13,16 +15,30 @@ export async function register(req, res) {
     const { email, phone, password, firstName, lastName, plan } = req.body;
 
     // Validate required fields
-    if (!email || !phone || !password || !firstName || !lastName || !plan) {
+    if (
+      typeof email !== 'string' ||
+      typeof phone !== 'string' ||
+      typeof password !== 'string' ||
+      typeof firstName !== 'string' ||
+      typeof lastName !== 'string' ||
+      typeof plan !== 'string' ||
+      !email.trim() ||
+      !phone.trim() ||
+      !password ||
+      !firstName.trim() ||
+      !lastName.trim()
+    ) {
       return res.status(400).json({
         success: false,
         message: 'All fields are required. Please fill in all information.',
       });
     }
 
+    const normalizedEmail = email.trim().toLowerCase();
+
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    if (!emailRegex.test(normalizedEmail)) {
       return res.status(400).json({
         success: false,
         message: 'Please enter a valid email address',
@@ -30,7 +46,7 @@ export async function register(req, res) {
     }
 
     // Validate phone number
-    if (phone.length < 10) {
+    if (phone.trim().replace(/\D/g, '').length < 10) {
       return res.status(400).json({
         success: false,
         message: 'Please enter a valid phone number',
@@ -54,15 +70,15 @@ export async function register(req, res) {
     }
 
     const result = await registerPatient({
-      email,
-      phone,
+      email: normalizedEmail,
+      phone: phone.trim(),
       password,
-      firstName,
-      lastName,
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
       plan,
     });
 
-    res.status(201).json(result);
+    res.status(result.alreadyVerified ? 200 : 201).json(result);
   } catch (error) {
     console.error('Registration error:', error);
     
@@ -70,7 +86,14 @@ export async function register(req, res) {
     if (error.message.includes('Email already registered')) {
       return res.status(409).json({
         success: false,
-        message: 'This email is already registered. Please login instead.',
+        message: 'This email is already registered. Enter the password for that account to continue, or use a different email.',
+      });
+    }
+
+    if (error.message.includes('Failed to send verification email')) {
+      return res.status(502).json({
+        success: false,
+        message: 'We could not send the verification email. Please try again.',
       });
     }
     
@@ -88,21 +111,21 @@ export async function verify(req, res) {
   try {
     const { email, code } = req.body;
 
-    if (!email || !code) {
+    if (typeof email !== 'string' || !email.trim() || !code) {
       return res.status(400).json({
         success: false,
         message: 'Email and verification code are required',
       });
     }
 
-    if (code.length !== 6) {
+    if (typeof code !== 'string' || !/^\d{6}$/.test(code)) {
       return res.status(400).json({
         success: false,
         message: 'Verification code must be 6 digits',
       });
     }
 
-    const result = await verifyEmail(email, code);
+    const result = await verifyEmail(email.trim().toLowerCase(), code);
 
     res.status(200).json(result);
   } catch (error) {
@@ -125,46 +148,49 @@ export async function verify(req, res) {
 /**
  * Process payment and create subscription
  */
-export async function processPayment(req, res) {
+export async function initiatePayment(req, res) {
   try {
-    const { patientId, plan, amount, paymentMethod, paymentReference } = req.body;
+    const { patientId, plan, paymentMethod, phone } = req.body;
 
-    if (!patientId || !plan || !amount || !paymentMethod || !paymentReference) {
+    if (!patientId || !plan || !paymentMethod || !phone) {
       return res.status(400).json({
         success: false,
         message: 'Missing required fields',
       });
     }
 
-    // TODO: Verify payment with Xentripay
-    // For now, we'll assume payment is successful if reference is provided
-    const isPaymentValid = paymentReference && paymentReference.length > 0;
-
-    if (!isPaymentValid) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid payment reference',
-      });
-    }
-
-    const subscription = await createSubscription(
-      patientId,
-      plan,
-      amount,
-      paymentMethod,
-      paymentReference
-    );
-
-    res.status(201).json({
+    const payment = await initiateVaultPayment(patientId, plan, paymentMethod, phone);
+    res.status(payment.status === 'PENDING' ? 200 : 201).json({
       success: true,
-      message: 'Payment processed successfully',
-      subscription,
+      ...payment,
     });
   } catch (error) {
-    console.error('Payment processing error:', error);
-    res.status(400).json({
+    console.error('Payment initiation error:', error);
+    const status = error.message.includes('XENTRIPAY_API_KEY') ? 503
+      : error.message.includes('XentriPay') || error.message.includes('reach XentriPay') ? 502
+        : 400;
+    res.status(status).json({
       success: false,
       message: error.message || 'Payment processing failed',
+    });
+  }
+}
+
+export async function getPaymentStatus(req, res) {
+  try {
+    const result = await getVaultPaymentStatus(req.params.paymentId);
+    res.status(200).json({
+      success: true,
+      ...result,
+    });
+  } catch (error) {
+    console.error('Payment status error:', error);
+    const status = error.message.includes('XENTRIPAY_API_KEY') ? 503
+      : error.message.includes('XentriPay') || error.message.includes('reach XentriPay') ? 502
+        : error.message.includes('not found') ? 404 : 500;
+    res.status(status).json({
+      success: false,
+      message: error.message || 'Payment status check failed',
     });
   }
 }
@@ -201,6 +227,42 @@ export async function getSubscription(req, res) {
     res.status(500).json({
       success: false,
       message: error.message || 'Failed to get subscription',
+    });
+  }
+}
+
+/**
+ * Get registration details by email
+ */
+export async function getRegistrationDetails(req, res) {
+  try {
+    const { email } = req.params;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email is required',
+      });
+    }
+
+    const details = await lookupRegistrationDetails(email);
+
+    if (!details) {
+      return res.status(404).json({
+        success: false,
+        message: 'No registration found',
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      details,
+    });
+  } catch (error) {
+    console.error('Get registration details error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to get registration details',
     });
   }
 }
