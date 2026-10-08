@@ -85,24 +85,26 @@ export async function staffLogin(email, password) {
  * Facility login
  */
 export async function facilityLogin(email, password) {
-  const facility = await prisma.facility.findUnique({
-    where: { email },
-    include: { users: true },
+  // Find admin user by email (facility login uses admin credentials)
+  const adminUser = await prisma.user.findFirst({
+    where: {
+      email,
+      role: "HOSPITAL_ADMIN",
+      isActive: true,
+    },
+    include: { facility: true },
   });
-
-  if (!facility) {
-    throw new Error("Invalid facility credentials");
-  }
-
-  if (facility.status !== "ACTIVE") {
-    throw new Error("Facility is not active");
-  }
-
-  // For facility login, we check if there's an admin user with this email
-  const adminUser = facility.users.find((u) => u.email === email && u.role === "HOSPITAL_ADMIN");
 
   if (!adminUser) {
     throw new Error("Invalid facility credentials");
+  }
+
+  if (!adminUser.facility) {
+    throw new Error("Facility not found");
+  }
+
+  if (adminUser.facility.status !== "ACTIVE") {
+    throw new Error("Facility is not active");
   }
 
   const isPasswordValid = await comparePassword(password, adminUser.passwordHash);
@@ -115,16 +117,16 @@ export async function facilityLogin(email, password) {
     userId: adminUser.id,
     email: adminUser.email,
     role: adminUser.role,
-    facilityId: facility.id,
+    facilityId: adminUser.facility.id,
   });
 
   return {
     token,
     facility: {
-      id: facility.id,
-      name: facility.name,
-      code: facility.code,
-      email: facility.email,
+      id: adminUser.facility.id,
+      name: adminUser.facility.name,
+      code: adminUser.facility.code,
+      email: adminUser.facility.email,
     },
     user: {
       id: adminUser.id,
