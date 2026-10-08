@@ -22,23 +22,17 @@ async function hashPassword(password) {
 }
 
 async function main() {
+  console.log("🌱 Checking if database needs seeding...");
+
+  // Check if users already exist
+  const existingUsers = await prisma.user.count();
+
+  if (existingUsers > 0) {
+    console.log(`✅ Database already has ${existingUsers} users. Skipping seed.`);
+    return;
+  }
+
   console.log("🌱 Starting seed...");
-
-  // Create facility
-  const facility = await prisma.facility.upsert({
-    where: { code: "KFH" },
-    update: {},
-    create: {
-      code: "KFH",
-      name: "King Faisal Hospital",
-      email: "admin@kfh.rw",
-      phone: "+250 788 123 456",
-      address: "Kigali, Rwanda",
-      status: "ACTIVE",
-    },
-  });
-
-  console.log(`✅ Facility created: ${facility.name}`);
 
   // Hash password for all users
   const password = await hashPassword("password123");
