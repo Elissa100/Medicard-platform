@@ -27,11 +27,14 @@ import dispensingRoutes from "./routes/dispensing.routes.js";
 import encounterRoutes from "./routes/encounter.routes.js";
 import paymentIntentRoutes from "./routes/payment-intent.routes.js";
 import authRoutes from "./routes/auth.routes.js";
-
+import registrationRoutes from "./routes/registration.routes.js";
 
 
 
 const app = express();
+
+// Trust proxy for Render deployment
+app.set('trust proxy', true);
 
 /*
 |--------------------------------------------------------------------------
@@ -126,6 +129,14 @@ app.get("/api/v1/health", (req, res) => {
 */
 
 app.use("/api/v1/auth", authRoutes);
+
+/*
+|--------------------------------------------------------------------------
+| REGISTRATION ROUTES
+|--------------------------------------------------------------------------
+*/
+
+app.use("/api/v1/registration", registrationRoutes);
 
 /*
 |--------------------------------------------------------------------------

@@ -313,6 +313,7 @@ model Patient {
   gender      PatientGender @default(UNKNOWN)
   phone       String?
   email       String?
+  passwordHash String?
   wallet      Wallet?
 
   /**
@@ -333,6 +334,7 @@ model Patient {
   patientSessions   PatientSession[]
   patientInsurances PatientInsurance[]
   paymentIntents    PaymentIntent[]
+  subscriptions      PatientSubscription[]
 
   allergies         Allergy[]
   medicalConditions MedicalCondition[]
@@ -1346,4 +1348,55 @@ model PaymentAuditLog {
   @@index([action])
   @@index([actorId])
   @@index([createdAt])
+}
+/**
+|--------------------------------------------------------------------------
+| VERIFICATION CODE
+|--------------------------------------------------------------------------
+*/
+
+model VerificationCode {
+  id String @id @default(uuid())
+  email String @unique
+  code String
+  expiresAt DateTime
+  verified Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([email])
+  @@index([code])
+  @@index([expiresAt])
+}
+
+/**
+|--------------------------------------------------------------------------
+| PATIENT SUBSCRIPTION
+|--------------------------------------------------------------------------
+*/
+
+model PatientSubscription {
+  id String @id @default(uuid())
+  
+  patientId String
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  
+  plan String // "BASIC" or "PREMIUM"
+  status String @default("ACTIVE") // "ACTIVE", "CANCELLED", "EXPIRED"
+  
+  startDate DateTime @default(now())
+  endDate DateTime?
+  
+  amount Number
+  currency String @default("RWF")
+  
+  paymentMethod String?
+  paymentReference String?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([patientId])
+  @@index([status])
+  @@index([plan])
 }

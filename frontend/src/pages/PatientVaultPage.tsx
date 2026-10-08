@@ -6,7 +6,7 @@ const API_URL = import.meta.env.VITE_API_URL || "https://medicard-platform.onren
 const AUTH_TOKEN_KEY = "medcard_auth_token";
 const USER_DATA_KEY = "medcard_user_data";
 
-type Step = "plans" | "account" | "payment" | "confirm";
+type Step = "plans" | "account" | "verify" | "payment" | "confirm";
 
 export default function PatientVaultPage() {
   const [step, setStep] = useState<Step>("plans");
@@ -14,20 +14,86 @@ export default function PatientVaultPage() {
   const [email, setEmail] = useState("alice.mutoni@example.com");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("patient123");
+  const [verificationCode, setVerificationCode] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<"airtel" | "mtn" | null>(null);
   const [showToast, setShowToast] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [patientId, setPatientId] = useState<string | null>(null);
 
   const handleSelectPlan = (planName: string) => {
     setSelectedPlan(planName);
     setStep("account");
   };
 
-  const handleAccountSubmit = (e: React.FormEvent) => {
+  const handleAccountSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (email || phone) {
+    setIsLoading(true);
+    setError("");
+
+    try {
+      const response = await fetch(`${API_URL}/registration/register`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          phone,
+          password,
+          firstName: email?.split("@")[0] || "Patient",
+          lastName: "User",
+          plan: selectedPlan === "Premium Vault" ? "PREMIUM" : "BASIC",
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!data.success) {
+        setError(data.message || "Registration failed");
+        setIsLoading(false);
+        return;
+      }
+
+      setPatientId(data.patientId);
+      setStep("verify");
+      setIsLoading(false);
+    } catch (err) {
+      setError("Failed to connect to server. Please try again.");
+      setIsLoading(false);
+    }
+  };
+
+  const handleVerify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError("");
+
+    try {
+      const response = await fetch(`${API_URL}/registration/verify`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          code: verificationCode,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!data.success) {
+        setError(data.message || "Verification failed");
+        setIsLoading(false);
+        return;
+      }
+
       setStep("payment");
+      setIsLoading(false);
+    } catch (err) {
+      setError("Failed to connect to server. Please try again.");
+      setIsLoading(false);
     }
   };
 
@@ -41,32 +107,50 @@ export default function PatientVaultPage() {
     setError("");
 
     try {
-      // For demo, we'll try to login with the provided credentials
-      // In production, this would create a new patient account
-      const response = await fetch(`${API_URL}/auth/patient/login`, {
+      const amount = selectedPlan === "Premium Vault" ? 5000 : 1000;
+      const paymentReference = `XENTRI-${Date.now()}`;
+
+      const response = await fetch(`${API_URL}/registration/payment`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          email: email || `${phone}@example.com`,
-          password: password || "patient123",
+          patientId,
+          plan: selectedPlan === "Premium Vault" ? "PREMIUM" : "BASIC",
+          amount,
+          paymentMethod: paymentMethod === "mtn" ? "MTN" : "AIRTEL",
+          paymentReference,
         }),
       });
 
       const data = await response.json();
 
       if (!data.success) {
-        // If login fails, show error (in production, create account instead)
-        setError("Demo: Use alice.mutoni@example.com / patient123 to login");
+        setError(data.message || "Payment processing failed");
         setIsLoading(false);
         return;
       }
 
-      // Store auth data
-      localStorage.setItem(AUTH_TOKEN_KEY, data.data.token);
-      localStorage.setItem(USER_DATA_KEY, JSON.stringify(data.data.patient));
-      localStorage.setItem("medcard_authenticated", "true");
+      // Auto-login after successful payment
+      const loginResponse = await fetch(`${API_URL}/auth/patient/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          password,
+        }),
+      });
+
+      const loginData = await loginResponse.json();
+
+      if (loginData.success) {
+        localStorage.setItem(AUTH_TOKEN_KEY, loginData.data.token);
+        localStorage.setItem(USER_DATA_KEY, JSON.stringify(loginData.data.patient));
+        localStorage.setItem("medcard_authenticated", "true");
+      }
 
       setShowToast(true);
       setTimeout(() => {
@@ -79,7 +163,8 @@ export default function PatientVaultPage() {
   };
 
   const goBack = () => {
-    if (step === "payment") setStep("account");
+    if (step === "payment") setStep("verify");
+    else if (step === "verify") setStep("account");
     else if (step === "confirm") setStep("payment");
     else if (step === "account") setStep("plans");
   };
@@ -116,16 +201,20 @@ export default function PatientVaultPage() {
             }`}>1</div>
             <div className={`h-0.5 w-8 ${step === "plans" ? "bg-border" : "bg-teal"}`} />
             <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
-              step === "account" || step === "payment" || step === "confirm" ? "bg-teal text-white" : "bg-border text-body-text"
+              step === "account" || step === "verify" || step === "payment" || step === "confirm" ? "bg-teal text-white" : "bg-border text-body-text"
             }`}>2</div>
+            <div className={`h-0.5 w-8 ${step === "verify" || step === "payment" || step === "confirm" ? "bg-teal" : "bg-border"}`} />
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
+              step === "verify" || step === "payment" || step === "confirm" ? "bg-teal text-white" : "bg-border text-body-text"
+            }`}>3</div>
             <div className={`h-0.5 w-8 ${step === "payment" || step === "confirm" ? "bg-teal" : "bg-border"}`} />
             <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
               step === "payment" || step === "confirm" ? "bg-teal text-white" : "bg-border text-body-text"
-            }`}>3</div>
+            }`}>4</div>
             <div className={`h-0.5 w-8 ${step === "confirm" ? "bg-teal" : "bg-border"}`} />
             <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
               step === "confirm" ? "bg-teal text-white" : "bg-border text-body-text"
-            }`}>4</div>
+            }`}>5</div>
           </div>
 
           {step === "plans" && (
@@ -254,11 +343,65 @@ export default function PatientVaultPage() {
             </>
           )}
 
+          {step === "verify" && (
+            <>
+              <div className="text-center mb-6">
+                <h2 className="text-xl font-bold text-navy mb-1">Verify Your Email</h2>
+                <p className="text-body-text text-sm">Enter the 6-digit code sent to {email}</p>
+              </div>
+
+              <form onSubmit={handleVerify} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-navy mb-1">Verification Code</label>
+                  <input
+                    type="text"
+                    placeholder="123456"
+                    value={verificationCode}
+                    onChange={(e) => setVerificationCode(e.target.value)}
+                    maxLength={6}
+                    className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:border-teal text-center tracking-widest text-2xl"
+                  />
+                </div>
+
+                {error && (
+                  <div className="flex items-center gap-2 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-red-700">
+                    <ShieldCheck size={16} />
+                    <span className="text-sm">{error}</span>
+                  </div>
+                )}
+
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={goBack}
+                    className="flex-1 px-4 py-2 text-sm font-semibold text-navy border border-border rounded-lg hover:bg-section-tint transition-colors"
+                  >
+                    Back
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="flex-1 px-4 py-2 text-sm font-semibold text-white bg-teal rounded-lg hover:bg-teal/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isLoading ? (
+                      <>
+                        <LoaderCircle size={16} className="animate-spin mr-2" />
+                        Verifying...
+                      </>
+                    ) : (
+                      "Verify"
+                    )}
+                  </button>
+                </div>
+              </form>
+            </>
+          )}
+
           {step === "payment" && (
             <>
               <div className="text-center mb-6">
                 <h2 className="text-xl font-bold text-navy mb-1">Choose Payment Method</h2>
-                <p className="text-body-text text-sm">Select your mobile money provider</p>
+                <p className="text-body-text text-sm">Powered by Xentripay</p>
               </div>
 
               <div className="grid sm:grid-cols-2 gap-4 mb-6">
@@ -289,6 +432,11 @@ export default function PatientVaultPage() {
                     <span className="font-bold text-navy">MTN Mobile Money</span>
                   </div>
                 </button>
+              </div>
+
+              <div className="flex items-center gap-2 px-3 py-2 bg-pale-cyan rounded-lg text-xs text-teal mb-6">
+                <Lock size={12} />
+                <span>Secure payment powered by Xentripay</span>
               </div>
 
               <div className="flex gap-3">
@@ -333,7 +481,7 @@ export default function PatientVaultPage() {
 
               <div className="flex items-center gap-2 px-3 py-2 bg-pale-cyan rounded-lg text-xs text-teal mb-6">
                 <Lock size={12} />
-                <span>Secure payment powered by Rwanda National Payment Gateway</span>
+                <span>Secure payment powered by Xentripay</span>
               </div>
 
               {error && (

@@ -150,10 +150,11 @@ export async function patientLogin(email, password) {
     throw new Error("Patient not found");
   }
 
-  // For patients, we'll use a simple hash of the password stored in a separate field
-  // For now, we'll use the patient's nationalId as a password reference
-  // In production, you'd want a proper patient.auth table
-  const isPasswordValid = await comparePassword(password, patient.nationalId || "");
+  if (!patient.passwordHash) {
+    throw new Error("Patient account not properly configured");
+  }
+
+  const isPasswordValid = await comparePassword(password, patient.passwordHash);
 
   if (!isPasswordValid) {
     throw new Error("Invalid credentials");
