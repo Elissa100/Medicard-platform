@@ -1387,7 +1387,7 @@ model PatientSubscription {
   startDate DateTime @default(now())
   endDate DateTime?
   
-  amount Number
+  amount Int
   currency String @default("RWF")
   
   paymentMethod String?

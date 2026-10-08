@@ -132,7 +132,7 @@ export async function createSubscription(patientId, plan, amount, paymentMethod,
     data: {
       patientId,
       plan,
-      amount,
+      amount: parseInt(amount),
       currency: 'RWF',
       paymentMethod,
       paymentReference,

@@ -32,7 +32,7 @@ router.post('/payment', processPayment);
 /**
  * @route   GET /api/v1/registration/subscription/:patientId
  * @desc    Get patient subscription
- * @access  Private
+ * @access  Public (token required in header)
  */
 router.get('/subscription/:patientId', getSubscription);
 
