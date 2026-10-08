@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { Check, X, ArrowRight, Lock, CheckCircle2, LoaderCircle, ShieldCheck, RefreshCw } from "lucide-react";
 import { landingConfig } from "../data/landing";
 
@@ -344,13 +345,21 @@ export default function PatientVaultPage() {
   return (
     <div className="min-h-screen bg-section-tint py-8 md:py-16">
       <div className="max-w-4xl mx-auto px-4">
-        <button
-          onClick={() => window.location.href = "/"}
-          className="text-sm text-body-text hover:text-navy mb-6 inline-flex items-center gap-1"
-        >
-          <ArrowRight size={14} className="rotate-180" />
-          Back to Home
-        </button>
+        <div className="flex items-center justify-between mb-6">
+          <button
+            onClick={() => window.location.href = "/"}
+            className="text-sm text-body-text hover:text-navy inline-flex items-center gap-1"
+          >
+            <ArrowRight size={14} className="rotate-180" />
+            Back to Home
+          </button>
+          <Link
+            to="/patient-vault/login"
+            className="text-sm font-semibold text-teal hover:text-navy"
+          >
+            Already have an account? Sign in
+          </Link>
+        </div>
 
         {/* Toast Notification */}
         {showToast && (
@@ -526,6 +535,12 @@ export default function PatientVaultPage() {
                     )}
                   </button>
                 </div>
+                <p className="text-center text-sm text-body-text">
+                  Already registered?{" "}
+                  <Link to="/patient-vault/login" className="font-semibold text-teal hover:text-navy">
+                    Sign in to your Patient Vault
+                  </Link>
+                </p>
               </form>
             </>
           )}

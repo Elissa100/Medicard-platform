@@ -8,6 +8,7 @@ import {
 import CompanyLandingPage from "./pages/CompanyLandingPage";
 import NFCLandingPage from "./pages/NFCLandingPage";
 import PatientVaultPage from "./pages/PatientVaultPage";
+import PatientVaultLoginPage from "./pages/PatientVaultLoginPage";
 import VaultPortalPage from "./pages/VaultPortalPage";
 import FacilityLoginPage from "./pages/FacilityLoginPage";
 import LoginPage from "./pages/LoginPage";
@@ -44,6 +45,7 @@ function App() {
             PATIENT VAULT
         ====================================================== */}
         <Route path="/patient-vault" element={<PatientVaultPage />} />
+        <Route path="/patient-vault/login" element={<PatientVaultLoginPage />} />
 
         {/* =====================================================
             VAULT PORTAL

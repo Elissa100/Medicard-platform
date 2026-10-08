@@ -98,7 +98,12 @@ export async function registerPatient(data) {
     });
   }
 
-  await sendVerificationEmail(email, code);
+  try {
+    await sendVerificationEmail(email, code);
+  } catch (error) {
+    console.error('Verification email delivery failed:', error);
+    throw new Error('Failed to send verification email');
+  }
 
   return {
     success: true,

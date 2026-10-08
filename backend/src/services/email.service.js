@@ -1,225 +1,118 @@
-import nodemailer from 'nodemailer';
-
-const BREVO_SMTP_KEY = process.env.BREVO_SMTP_KEY;
 const BREVO_API_KEY = process.env.BREVO_API_KEY;
 const BREVO_SENDER = process.env.BREVO_SENDER || 'Medcard<noreply@medcard.rw>';
 
-/**
- * Create Brevo transporter
- */
-function createTransporter() {
-  return nodemailer.createTransport({
-    host: 'smtp-relay.brevo.com',
-    port: 587,
-    secure: false,
-    auth: {
-      user: BREVO_API_KEY,
-      pass: BREVO_SMTP_KEY,
-    },
-  });
+function getSender() {
+  const match = BREVO_SENDER.match(/^\s*(.*?)\s*<([^<>]+)>\s*$/);
+  const email = match ? match[2].trim() : BREVO_SENDER.trim();
+  const name = match?.[1]?.trim() || 'MedCard';
+
+  if (!email.includes('@')) {
+    throw new Error('BREVO_SENDER must be a valid email address or "Name <email>"');
+  }
+
+  return { name, email };
 }
 
-/**
- * Send verification email
- */
-export async function sendVerificationEmail(email, code) {
-  const transporter = createTransporter();
+async function sendBrevoEmail(to, subject, htmlContent) {
+  if (!BREVO_API_KEY) {
+    throw new Error('BREVO_API_KEY is not configured');
+  }
 
-  const mailOptions = {
-    from: BREVO_SENDER,
-    to: email,
-    subject: 'MedCard - Verify Your Email',
-    html: `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Verify Your Email</title>
-        <style>
-          body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-          }
-          .header {
-            background: linear-gradient(135deg, #1e3a8a 0%, #0d9488 100%);
-            color: white;
-            padding: 30px;
-            text-align: center;
-            border-radius: 10px 10px 0 0;
-          }
-          .content {
-            background: #f9fafb;
-            padding: 30px;
-            border-radius: 0 0 10px 10px;
-          }
-          .code {
-            background: #1e3a8a;
-            color: white;
-            font-size: 32px;
-            font-weight: bold;
-            letter-spacing: 8px;
-            padding: 20px;
-            text-align: center;
-            border-radius: 8px;
-            margin: 20px 0;
-          }
-          .button {
-            display: inline-block;
-            background: #0d9488;
-            color: white;
-            padding: 12px 30px;
-            text-decoration: none;
-            border-radius: 5px;
-            margin-top: 20px;
-          }
-          .footer {
-            text-align: center;
-            margin-top: 30px;
-            font-size: 12px;
-            color: #666;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="header">
-          <h1>MedCard</h1>
-          <p>Your Personal Health Vault</p>
-        </div>
-        <div class="content">
-          <h2>Verify Your Email Address</h2>
-          <p>Thank you for registering with MedCard. To complete your registration, please use the following verification code:</p>
-          
-          <div class="code">${code}</div>
-          
-          <p>This code will expire in 10 minutes. If you didn't request this verification, please ignore this email.</p>
-          
-          <p>If you have any questions, please contact our support team.</p>
-        </div>
-        <div class="footer">
-          <p>&copy; 2025 MedCard. All rights reserved.</p>
-          <p>This is an automated email, please do not reply.</p>
-        </div>
-      </body>
-      </html>
-    `,
-  };
-
+  let response;
   try {
-    await transporter.sendMail(mailOptions);
-    console.log(`Verification email sent to ${email}`);
-    return { success: true };
+    response = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      signal: AbortSignal.timeout(15000),
+      headers: {
+        'api-key': BREVO_API_KEY,
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify({
+        sender: getSender(),
+        to: [{ email: to }],
+        subject,
+        htmlContent,
+      }),
+    });
   } catch (error) {
-    console.error('Error sending email:', error);
-    throw new Error('Failed to send verification email');
+    console.error('Brevo email API request failed:', error);
+    throw new Error('Could not connect to the email service');
+  }
+
+  if (!response.ok) {
+    const errorDetails = await response.text();
+    console.error('Brevo rejected the email request:', response.status, errorDetails);
+    throw new Error('The email service rejected the message');
   }
 }
 
-/**
- * Send welcome email after successful registration
- */
-export async function sendWelcomeEmail(email, firstName, plan) {
-  const transporter = createTransporter();
-
-  const mailOptions = {
-    from: BREVO_SENDER,
-    to: email,
-    subject: 'Welcome to MedCard!',
-    html: `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Welcome to MedCard</title>
-        <style>
-          body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-          }
-          .header {
-            background: linear-gradient(135deg, #1e3a8a 0%, #0d9488 100%);
-            color: white;
-            padding: 30px;
-            text-align: center;
-            border-radius: 10px 10px 0 0;
-          }
-          .content {
-            background: #f9fafb;
-            padding: 30px;
-            border-radius: 0 0 10px 10px;
-          }
-          .plan-badge {
-            background: #0d9488;
-            color: white;
-            padding: 5px 15px;
-            border-radius: 20px;
-            display: inline-block;
-            margin: 10px 0;
-          }
-          .button {
-            display: inline-block;
-            background: #0d9488;
-            color: white;
-            padding: 12px 30px;
-            text-decoration: none;
-            border-radius: 5px;
-            margin-top: 20px;
-          }
-          .footer {
-            text-align: center;
-            margin-top: 30px;
-            font-size: 12px;
-            color: #666;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="header">
-          <h1>MedCard</h1>
-          <p>Your Personal Health Vault</p>
+export async function sendVerificationEmail(email, code) {
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+      <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+      <body style="font-family:Arial,sans-serif;line-height:1.6;color:#333;max-width:600px;margin:0 auto;padding:20px">
+        <div style="background:linear-gradient(135deg,#1e3a8a 0%,#0d9488 100%);color:white;padding:30px;text-align:center;border-radius:10px 10px 0 0">
+          <h1>MedCard</h1><p>Your Personal Health Vault</p>
         </div>
-        <div class="content">
-          <h2>Welcome, ${firstName}!</h2>
+        <div style="background:#f9fafb;padding:30px;border-radius:0 0 10px 10px">
+          <h2>Verify Your Email Address</h2>
+          <p>Use this verification code to continue creating your Patient Vault account:</p>
+          <div style="background:#1e3a8a;color:white;font-size:32px;font-weight:bold;letter-spacing:8px;padding:20px;text-align:center;border-radius:8px;margin:20px 0">${code}</div>
+          <p>This code expires in 10 minutes. If you did not request it, you can ignore this email.</p>
+        </div>
+        <p style="text-align:center;margin-top:30px;font-size:12px;color:#666">This is an automated email. Please do not reply.</p>
+      </body>
+    </html>
+  `;
+
+  await sendBrevoEmail(email, 'MedCard - Verify Your Email', htmlContent);
+  console.log(`Verification email accepted by Brevo for ${email}`);
+  return { success: true };
+}
+
+export async function sendWelcomeEmail(email, firstName, plan) {
+  const safeFirstName = String(firstName).replace(/[&<>"']/g, (character) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+  })[character]);
+  const premiumBenefits = plan === 'PREMIUM'
+    ? '<li>Unlimited document uploads</li><li>Multi-sector linkage</li><li>Priority data backup</li>'
+    : '';
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+      <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+      <body style="font-family:Arial,sans-serif;line-height:1.6;color:#333;max-width:600px;margin:0 auto;padding:20px">
+        <div style="background:linear-gradient(135deg,#1e3a8a 0%,#0d9488 100%);color:white;padding:30px;text-align:center;border-radius:10px 10px 0 0">
+          <h1>MedCard</h1><p>Your Personal Health Vault</p>
+        </div>
+        <div style="background:#f9fafb;padding:30px;border-radius:0 0 10px 10px">
+          <h2>Welcome, ${safeFirstName}!</h2>
           <p>Your MedCard account has been successfully created.</p>
-          
-          <p><strong>Your Plan:</strong> <span class="plan-badge">${plan}</span></p>
-          
-          <p>You can now access your personal health vault and enjoy the benefits of your subscription.</p>
-          
+          <p><strong>Your plan:</strong> ${plan}</p>
           <ul>
             <li>Secure storage of your medical records</li>
             <li>Instant NFC data retrieval</li>
             <li>Access to clinical history</li>
-            ${plan === 'PREMIUM' ? '<li>Unlimited document uploads</li><li>Multi-sector linkage</li><li>Priority data backup</li>' : ''}
+            ${premiumBenefits}
           </ul>
-          
-          <p>To access your vault, simply log in to your account.</p>
         </div>
-        <div class="footer">
-          <p>&copy; 2025 MedCard. All rights reserved.</p>
-          <p>This is an automated email, please do not reply.</p>
-        </div>
+        <p style="text-align:center;margin-top:30px;font-size:12px;color:#666">This is an automated email. Please do not reply.</p>
       </body>
-      </html>
-    `,
-  };
+    </html>
+  `;
 
   try {
-    await transporter.sendMail(mailOptions);
-    console.log(`Welcome email sent to ${email}`);
+    await sendBrevoEmail(email, 'Welcome to MedCard!', htmlContent);
+    console.log(`Welcome email accepted by Brevo for ${email}`);
     return { success: true };
   } catch (error) {
-    console.error('Error sending welcome email:', error);
-    // Don't throw error for welcome email - it's not critical
+    console.error('Failed to send welcome email:', error);
     return { success: false };
   }
 }
