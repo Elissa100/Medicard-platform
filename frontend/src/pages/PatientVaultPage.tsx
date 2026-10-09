@@ -677,7 +677,7 @@ export default function PatientVaultPage() {
                 <div className="border-t border-border pt-3 flex justify-between">
                   <span className="font-semibold text-navy">Total</span>
                   <span className="font-bold text-navy">
-                    {selectedPlan === "Premium Vault" ? "5,000 RWF" : "1,000 RWF"}
+                    {selectedPlan === "Premium Vault" ? "150 RWF" : "100 RWF"}
                   </span>
                 </div>
               </div>

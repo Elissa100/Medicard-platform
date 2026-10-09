@@ -110,7 +110,7 @@ export const landingConfig = {
       {
         name: "Basic Vault",
         subtitle: "For essential record retrieval",
-        price: "1,000",
+        price: "100",
         period: "RWF /mo",
         description: null,
         features: [
@@ -125,7 +125,7 @@ export const landingConfig = {
       {
         name: "Premium Vault",
         subtitle: "For complete data storage and linkage",
-        price: "5,000",
+        price: "150",
         period: "RWF /mo",
         description: null,
         features: [
