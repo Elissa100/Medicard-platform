@@ -193,9 +193,10 @@ async function callXentriPay(path, options = {}) {
     throw new Error('XENTRIPAY_API_KEY is not configured');
   }
 
+  const endpoint = new URL(path, `${XENTRIPAY_BASE_URL}/`);
   let response;
   try {
-    response = await fetch(`${XENTRIPAY_BASE_URL}${path}`, {
+    response = await fetch(endpoint, {
       ...options,
       signal: AbortSignal.timeout(15000),
       headers: {
@@ -205,14 +206,30 @@ async function callXentriPay(path, options = {}) {
       },
     });
   } catch (error) {
-    console.error('XentriPay request failed:', error);
+    console.error('XentriPay request failed:', {
+      hostname: endpoint.hostname,
+      path: endpoint.pathname,
+      cause: error.cause?.code || error.name,
+    });
     throw new Error('Unable to reach XentriPay. Please try again.');
   }
 
-  const result = await response.json().catch(() => ({}));
+  const responseText = await response.text();
+  let result;
+  try {
+    result = JSON.parse(responseText);
+  } catch {
+    console.error('XentriPay returned a non-JSON response:', {
+      status: response.status,
+      contentType: response.headers.get('content-type'),
+      body: responseText.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 240),
+    });
+    throw new Error(`XentriPay returned an unexpected response (HTTP ${response.status})`);
+  }
+
   if (!response.ok) {
     console.error('XentriPay returned an error:', response.status, result);
-    throw new Error(`XentriPay request failed: ${result.message || response.statusText}`);
+    throw new Error(`XentriPay request failed (HTTP ${response.status}): ${result.message || result.error || response.statusText}`);
   }
   return result;
 }
@@ -287,7 +304,7 @@ export async function initiateVaultPayment(patientId, plan, paymentMethod, payme
   const attempt = result.payment;
 
   try {
-    const result = await callXentriPay('/api/collections/initiate', {
+    const gatewayResult = await callXentriPay('/api/collections/initiate', {
       method: 'POST',
       body: JSON.stringify({
         email: patient.email,
@@ -303,14 +320,14 @@ export async function initiateVaultPayment(patientId, plan, paymentMethod, payme
       }),
     });
 
-    if (result.success !== 1 || !result.refid) {
-      throw new Error(`XentriPay did not accept the payment request: ${result.reply || 'unknown response'}`);
+    if (gatewayResult.success !== 1 || gatewayResult.retcode !== 0 || !gatewayResult.refid) {
+      throw new Error(`XentriPay did not accept the payment request: ${gatewayResult.reply || 'unknown response'}`);
     }
 
     const payment = await prisma.patientVaultPayment.update({
       where: { id: attempt.id },
       data: {
-        gatewayReference: String(result.refid),
+        gatewayReference: String(gatewayResult.refid),
         status: 'PENDING',
       },
     });
