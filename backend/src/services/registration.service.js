@@ -265,8 +265,12 @@ export async function initiateVaultPayment(patientId, plan, paymentMethod, payme
         endDate: { gte: new Date() },
       },
     });
-    if (activeSubscription) {
-      throw new Error('An active vault subscription already exists');
+    if (activeSubscription && !(activeSubscription.plan === 'BASIC' && plan === 'PREMIUM')) {
+      throw new Error(
+        activeSubscription.plan === 'PREMIUM'
+          ? 'Your Premium vault is already active'
+          : 'Only Basic-to-Premium upgrades are available while a plan is active',
+      );
     }
 
     const pendingPayment = await tx.patientVaultPayment.findFirst({
@@ -276,7 +280,12 @@ export async function initiateVaultPayment(patientId, plan, paymentMethod, payme
       },
       orderBy: { createdAt: 'desc' },
     });
-    if (pendingPayment) return { payment: pendingPayment, reused: true };
+    if (pendingPayment) {
+      if (pendingPayment.plan !== plan) {
+        throw new Error('A different vault payment is already in progress');
+      }
+      return { payment: pendingPayment, reused: true };
+    }
 
     const payment = await tx.patientVaultPayment.create({
       data: {
@@ -350,12 +359,13 @@ export async function initiateVaultPayment(patientId, plan, paymentMethod, payme
 /**
  * Poll XentriPay and activate the subscription only after confirmed success.
  */
-export async function getVaultPaymentStatus(paymentId) {
+export async function getVaultPaymentStatus(paymentId, ownerId) {
   const attempt = await prisma.patientVaultPayment.findUnique({
     where: { id: paymentId },
     include: { patient: true },
   });
   if (!attempt) throw new Error('Payment attempt not found');
+  if (ownerId && attempt.patientId !== ownerId) throw new Error('Payment attempt not found');
   if (attempt.status === 'SUCCESS' || attempt.status === 'FAILED') {
     return { status: attempt.status };
   }
@@ -388,7 +398,32 @@ export async function getVaultPaymentStatus(paymentId) {
       const existingSubscription = await tx.patientSubscription.findFirst({
         where: { paymentReference: attempt.customerReference },
       });
-      const created = existingSubscription || await tx.patientSubscription.create({
+      if (existingSubscription) {
+        await tx.patientVaultPayment.update({
+          where: { id: attempt.id },
+          data: { status: 'SUCCESS' },
+        });
+        return existingSubscription;
+      }
+
+      const activeSubscription = await tx.patientSubscription.findFirst({
+        where: {
+          patientId: attempt.patientId,
+          status: 'ACTIVE',
+          endDate: { gte: new Date() },
+        },
+      });
+      if (activeSubscription) {
+        if (activeSubscription.plan !== 'BASIC' || attempt.plan !== 'PREMIUM') {
+          throw new Error('The active vault plan cannot be changed by this payment');
+        }
+        await tx.patientSubscription.update({
+          where: { id: activeSubscription.id },
+          data: { status: 'UPGRADED' },
+        });
+      }
+
+      const created = await tx.patientSubscription.create({
         data: {
           patientId: attempt.patientId,
           plan: attempt.plan,

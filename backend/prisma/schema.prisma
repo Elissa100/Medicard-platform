@@ -321,6 +321,12 @@ model Patient {
    */
 
   nationalId String?
+  emergencyContactName  String?
+  emergencyContactPhone String?
+  insuranceProvider     String?
+  guardianId            String?
+  guardian              Patient?  @relation("PatientDependents", fields: [guardianId], references: [id], onDelete: Cascade)
+  dependents            Patient[] @relation("PatientDependents")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -349,6 +355,7 @@ model Patient {
   @@index([lastName, firstName])
   @@index([phone])
   @@index([nationalId])
+  @@index([guardianId])
 }
 
 /**

@@ -123,7 +123,7 @@ function LoginPage() {
               />
               <div>
                 <h1 className="text-navy font-bold text-xl">MedCard</h1>
-                <p className="text-body-text text-sm">Rwanda Digital Health Grid</p>
+                <p className="text-body-text text-sm">Patient and clinical services</p>
               </div>
             </div>
 

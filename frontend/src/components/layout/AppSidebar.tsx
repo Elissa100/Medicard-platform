@@ -157,7 +157,7 @@ export default function AppSidebar({
             />
             <div>
               <strong className="text-lg">MedCard</strong>
-              <small className="block text-xs text-soft-text-on-navy">Digital Health Grid</small>
+              <small className="block text-xs text-soft-text-on-navy">Healthcare Technology</small>
             </div>
           </div>
 
