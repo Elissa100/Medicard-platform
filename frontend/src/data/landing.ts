@@ -2,10 +2,11 @@ export const landingConfig = {
   slogan: "Technology Connecting People and Possibilities",
   
   contact: {
-    phone: "0790 280 727",
-    email: "",
-    location: "Kigali, Rwanda",
-    district: "Remera",
+    phone: "+250 792 807 274",
+    email: "wilsonceo@medicard.org.rw",
+    location: "Remera, Kigali, Rwanda",
+    mapUrl: "https://maps.app.goo.gl/rU7VK8AcM9bBZALD7",
+    linkedInUrl: "https://www.linkedin.com/in/byiringiro-shyaka-wilson-10a458407?utm_source=share_via&utm_content=profile&utm_medium=member_android",
   },
   
   nav: {

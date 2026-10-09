@@ -14,7 +14,7 @@ function getSender() {
   return { name, email };
 }
 
-async function sendBrevoEmail(to, subject, htmlContent) {
+async function sendBrevoEmail(to, subject, htmlContent, replyTo) {
   if (!BREVO_API_KEY) {
     throw new Error('BREVO_API_KEY is not configured');
   }
@@ -34,6 +34,7 @@ async function sendBrevoEmail(to, subject, htmlContent) {
         to: [{ email: to }],
         subject,
         htmlContent,
+        ...(replyTo ? { replyTo: { email: replyTo } } : {}),
       }),
     });
   } catch (error) {
@@ -54,6 +55,45 @@ async function sendBrevoEmail(to, subject, htmlContent) {
   }
 
   return result.messageId;
+}
+
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, (character) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  })[character]);
+}
+
+export async function sendContactMessage({ name, email, subject, message }) {
+  const safeName = escapeHtml(name);
+  const safeEmail = escapeHtml(email);
+  const safeSubject = escapeHtml(subject);
+  const safeMessage = escapeHtml(message).replace(/\r?\n/g, "<br>");
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+      <body style="font-family:Arial,sans-serif;line-height:1.6;color:#1f2937;max-width:640px;margin:0 auto;padding:24px">
+        <h2>New message from the MedCard website</h2>
+        <p><strong>Name:</strong> ${safeName}</p>
+        <p><strong>Email:</strong> ${safeEmail}</p>
+        <p><strong>Subject:</strong> ${safeSubject}</p>
+        <hr>
+        <p>${safeMessage}</p>
+      </body>
+    </html>
+  `;
+
+  const messageId = await sendBrevoEmail(
+    "wilsonceo@medicard.org.rw",
+    `Website contact: ${subject}`,
+    htmlContent,
+    email,
+  );
+  console.log(`Contact message accepted by Brevo: ${messageId}`);
+  return { success: true, messageId };
 }
 
 export async function sendVerificationEmail(email, code) {

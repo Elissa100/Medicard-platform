@@ -16,8 +16,8 @@ function FacilityLoginPage() {
   const [facilityType, setFacilityType] = useState<FacilityType>("Hospital");
   const [facilityName, setFacilityName] = useState("");
   const [location, setLocation] = useState("");
-  const [email, setEmail] = useState("admin@kfh.rw");
-  const [password, setPassword] = useState("password123");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -81,7 +81,7 @@ function FacilityLoginPage() {
       setTimeout(() => {
         navigate("/login");
       }, 900);
-    } catch (err) {
+    } catch {
       setError("Failed to connect to server. Please try again.");
       setIsLoading(false);
     }

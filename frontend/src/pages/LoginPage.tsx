@@ -42,14 +42,13 @@ function LoginPage() {
   const navigate = useNavigate();
 
   const [selectedRole, setSelectedRole] = useState<Role>("Reception");
-  const [username, setUsername] = useState("reception@kfh.rw");
-  const [password, setPassword] = useState("password123");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
   const handleRoleSelect = (role: Role) => {
     setSelectedRole(role);
-    setUsername(`${role.toLowerCase()}@kfh.rw`);
   };
 
   const handleLogin = async (event: FormEvent) => {
@@ -84,16 +83,16 @@ function LoginPage() {
       localStorage.setItem("medcard_authenticated", "true");
 
       navigate("/dashboard");
-    } catch (err) {
+    } catch {
       setError("Failed to connect to server. Please try again.");
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-section-tint">
-      <div className="max-w-[1280px] mx-auto px-5 md:px-10 lg:px-20 py-12 md:py-16">
-        <div className="flex items-center justify-between mb-8">
+    <div className="min-h-screen bg-section-tint lg:flex lg:h-screen lg:flex-col lg:overflow-hidden">
+      <div className="mx-auto w-full max-w-[1440px] px-5 py-5 md:px-10 lg:px-16">
+        <div className="flex items-center justify-between">
           <button
             type="button"
             onClick={() => navigate("/")}
@@ -112,34 +111,56 @@ function LoginPage() {
           </button>
         </div>
 
-        <div className="max-w-md mx-auto">
-          <div className="bg-white rounded-[32px] shadow-card p-8 md:p-12">
-            <div className="flex items-center gap-3 mb-8">
+      </div>
+
+      <div className="mx-auto flex w-full max-w-[1440px] flex-1 items-center px-5 pb-5 md:px-10 lg:min-h-0 lg:px-16 lg:pb-8">
+        <div className="mx-auto grid w-full max-w-6xl overflow-hidden rounded-[28px] bg-white shadow-card lg:grid-cols-[0.9fr_1.1fr]">
+          <aside className="hidden flex-col justify-between bg-navy p-10 text-white lg:flex">
+            <div>
+              <div className="flex items-center gap-3">
+                <img src="/medcard-logo.svg" alt="MedCard" className="h-12 w-auto brightness-0 invert" />
+                <div>
+                  <h1 className="text-xl font-bold">MedCard</h1>
+                  <p className="text-sm text-soft-text-on-navy">Clinical workspace</p>
+                </div>
+              </div>
+              <div className="mt-16">
+                <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-teal/15 text-teal">
+                  <ShieldCheck size={28} />
+                </div>
+                <h2 className="text-3xl font-bold leading-tight">Secure access for your care team.</h2>
+                <p className="mt-4 max-w-sm text-sm leading-6 text-soft-text-on-navy">
+                  Sign in to the clinical workspace assigned to your role. Contact your facility administrator if you need account access.
+                </p>
+              </div>
+            </div>
+            <p className="text-xs text-soft-text-on-navy">MedCard Health Systems · Rwanda</p>
+          </aside>
+
+          <div className="p-6 sm:p-8 lg:px-10 lg:py-7">
+            <div className="mb-5 flex items-center gap-3 lg:hidden">
               <img
                 src="/medcard-logo.svg"
                 alt="MedCard"
-                className="h-12 w-auto cursor-pointer"
+                className="h-10 w-auto cursor-pointer"
                 onClick={() => navigate("/")}
               />
               <div>
                 <h1 className="text-navy font-bold text-xl">MedCard</h1>
-                <p className="text-body-text text-sm">Patient and clinical services</p>
+                <p className="text-body-text text-sm">Clinical workspace</p>
               </div>
             </div>
 
-            <div className="flex items-start gap-4 mb-8">
-              <div className="w-12 h-12 bg-pale-cyan rounded-full flex items-center justify-center flex-shrink-0">
-                <ShieldCheck size={24} className="text-teal" />
-              </div>
+            <div className="mb-5">
               <div>
-                <h2 className="text-xl font-bold text-navy mb-1">Welcome to MedCard</h2>
-                <p className="text-body-text text-sm">Select your staff workspace role to access clinical tools.</p>
+                <h2 className="text-2xl font-bold text-navy">Welcome to MedCard</h2>
+                <p className="mt-1 text-sm text-body-text">Select your role and enter your staff credentials.</p>
               </div>
             </div>
 
-            <div className="mb-6">
-              <label className="block text-sm font-semibold text-navy mb-3">Select Clinical Workspace Role</label>
-              <div className="grid grid-cols-3 gap-3">
+            <div className="mb-5">
+              <label className="mb-2 block text-sm font-semibold text-navy">Clinical workspace role</label>
+              <div className="grid grid-cols-3 gap-2 sm:gap-3">
                 {roles.map((role) => {
                   const Icon = role.icon;
                   const selected = selectedRole === role.name;
@@ -149,7 +170,7 @@ function LoginPage() {
                       key={role.name}
                       type="button"
                       onClick={() => handleRoleSelect(role.name)}
-                      className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
+                      className={`flex flex-col items-center gap-1.5 rounded-xl border-2 px-2 py-2.5 transition-all sm:gap-2 sm:py-3 ${
                         selected
                           ? "border-teal bg-pale-cyan"
                           : "border-border hover:border-teal"
@@ -165,15 +186,17 @@ function LoginPage() {
               </div>
             </div>
 
-            <form onSubmit={handleLogin} className="space-y-6">
+            <form onSubmit={handleLogin} className="space-y-4">
               <div>
                 <label htmlFor="username" className="block text-sm font-semibold text-navy mb-2">
                   Clinical Workstation Username / Email
                 </label>
                 <input
                   id="username"
-                  type="text"
-                  placeholder="e.g. staff.doctor@kfh.rw"
+                  type="email"
+                  autoComplete="username"
+                  required
+                  placeholder="Enter your work email"
                   value={username}
                   onChange={(event) => setUsername(event.target.value)}
                   className="w-full px-4 py-3 border border-border rounded-xl bg-white text-navy focus:outline-none focus:ring-2 focus:ring-teal focus:ring-offset-2"
@@ -189,7 +212,9 @@ function LoginPage() {
                 <input
                   id="password"
                   type="password"
-                  placeholder="Enter password"
+                  autoComplete="current-password"
+                  required
+                  placeholder="Enter your password"
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
                   className="w-full px-4 py-3 border border-border rounded-xl bg-white text-navy focus:outline-none focus:ring-2 focus:ring-teal focus:ring-offset-2"
@@ -203,17 +228,17 @@ function LoginPage() {
                 </div>
               )}
 
-              <div className="flex items-center gap-2 px-4 py-3 bg-pale-cyan rounded-xl">
+              <div className="flex items-center gap-2 rounded-xl bg-pale-cyan px-3 py-2.5">
                 <ShieldCheck size={16} className="text-teal" />
-                <span className="text-sm text-body-text">
-                  Encrypted via Rwanda MoH E-Health Standards. Smart MedCard contactless token authentication active.
+                <span className="text-xs leading-5 text-body-text">
+                  Sign-in is protected. Your role determines which clinical tools you can access.
                 </span>
               </div>
 
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full inline-flex items-center justify-center h-14 px-6 text-base font-semibold text-white bg-navy rounded-full hover:bg-mid-blue transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full inline-flex h-12 items-center justify-center rounded-full bg-navy px-6 text-base font-semibold text-white transition-colors hover:bg-mid-blue disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isLoading ? (
                   <>
@@ -226,10 +251,8 @@ function LoginPage() {
               </button>
             </form>
 
-            <div className="flex items-center gap-2 pt-6 border-t border-border text-center justify-center text-body-text text-sm">
-              <span>MedCard Health Systems</span>
-              <span>•</span>
-              <span>King Faisal Hospital Kigali</span>
+            <div className="mt-4 border-t border-border pt-3 text-center text-xs text-body-text">
+              MedCard Health Systems · Rwanda
             </div>
           </div>
         </div>

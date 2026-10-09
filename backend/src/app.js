@@ -29,6 +29,7 @@ import paymentIntentRoutes from "./routes/payment-intent.routes.js";
 import authRoutes from "./routes/auth.routes.js";
 import registrationRoutes from "./routes/registration.routes.js";
 import patientVaultRoutes from "./routes/patient-vault.routes.js";
+import contactRoutes from "./routes/contact.routes.js";
 
 
 
@@ -145,6 +146,7 @@ app.use("/api/v1/auth", authRoutes);
 
 app.use("/api/v1/registration", registrationRoutes);
 app.use("/api/v1/vault", patientVaultRoutes);
+app.use("/api/v1/contact", contactRoutes);
 
 /*
 |--------------------------------------------------------------------------
