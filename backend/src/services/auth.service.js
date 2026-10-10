@@ -227,11 +227,16 @@ export async function getUserByToken(token) {
  * Platform admin login
  */
 export async function platformAdminLogin(email, password, { ipAddress, userAgent } = {}) {
-  const user = await prisma.user.findUnique({ where: { email } });
+  const normalizedEmail = (email || "").trim().toLowerCase();
+  const user = await prisma.user.findFirst({
+    where: {
+      email: { equals: normalizedEmail, mode: "insensitive" },
+    },
+  });
 
   const logEvent = async (action, userId) => {
     await prisma.securityAuditLog.create({
-      data: { userId: userId ?? null, email, action, ipAddress, userAgent },
+      data: { userId: userId ?? null, email: normalizedEmail, action, ipAddress, userAgent },
     });
   };
 

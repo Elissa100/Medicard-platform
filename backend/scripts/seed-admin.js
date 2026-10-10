@@ -6,7 +6,9 @@ import bcrypt from "bcryptjs";
 const connectionString = process.env.DATABASE_URL;
 const adminEmail = process.env.ADMIN_EMAIL;
 const adminPassword = process.env.ADMIN_PASSWORD;
-const resetPassword = process.argv.includes("--reset-password");
+const resetPassword =
+  process.argv.includes("--reset-password") ||
+  process.env.RESET_ADMIN_PASSWORD === "true";
 
 if (!connectionString) {
   console.error("error: DATABASE_URL is not set in environment");
@@ -22,8 +24,10 @@ const adapter = new PrismaPg({ connectionString });
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
-  const existing = await prisma.user.findUnique({
-    where: { email: adminEmail },
+  const cleanEmail = adminEmail.trim().toLowerCase();
+
+  const existing = await prisma.user.findFirst({
+    where: { email: { equals: cleanEmail, mode: "insensitive" } },
   });
 
   if (existing) {
@@ -36,16 +40,21 @@ async function main() {
 
     if (!resetPassword) {
       console.log("platform admin already exists. nothing to do.");
-      console.log("pass --reset-password to overwrite the password.");
+      console.log("set RESET_ADMIN_PASSWORD=true or pass --reset-password to sync password.");
       return;
     }
 
     const newHash = await bcrypt.hash(adminPassword, 10);
     await prisma.user.update({
-      where: { email: adminEmail },
-      data: { passwordHash: newHash, mustChangePassword: true },
+      where: { id: existing.id },
+      data: {
+        email: cleanEmail,
+        passwordHash: newHash,
+        mustChangePassword: false,
+        isActive: true,
+      },
     });
-    console.log("platform admin password reset. mustChangePassword set to true.");
+    console.log("platform admin password reset to match ADMIN_PASSWORD.");
     return;
   }
 
