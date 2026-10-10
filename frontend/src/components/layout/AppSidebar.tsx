@@ -1,23 +1,20 @@
 import { useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
-  LayoutDashboard,
-  Users,
-  Wifi,
-  CalendarDays,
-  FileText,
-  FlaskConical,
-  Pill,
-  CreditCard,
-  Settings,
   LogOut,
   X,
   ChevronDown,
   ArrowRightLeft,
-  ShieldCheck,
 } from "lucide-react";
+import {
+  PATIENT_NAV_GROUPS,
+  CLINICAL_NAV_GROUPS,
+  type NavGroupConfig,
+  type NavItemConfig,
+} from "../../config/navigation";
 
 export type Role =
+  | "patient"
   | "Reception"
   | "Doctor"
   | "Nurse"
@@ -26,10 +23,14 @@ export type Role =
   | "Cashier";
 
 interface AppSidebarProps {
-  currentRole?: Role;
+  currentRole?: Role | string;
   onRoleChange?: (role: Role) => void;
   isOpenMobile?: boolean;
   onCloseMobile?: () => void;
+  activeNavId?: string;
+  onNavSelect?: (id: string) => void;
+  userDisplayName?: string;
+  userEmail?: string;
 }
 
 export const CURRENT_ROLE_KEY = "medcard_current_role";
@@ -39,12 +40,15 @@ export default function AppSidebar({
   onRoleChange,
   isOpenMobile = false,
   onCloseMobile,
+  activeNavId,
+  onNavSelect,
+  userDisplayName,
+  userEmail,
 }: AppSidebarProps) {
   const navigate = useNavigate();
-  const location = useLocation();
   const [roleDropdownOpen, setRoleDropdownOpen] = useState(false);
 
-  const roles: Role[] = [
+  const clinicalRoles: Role[] = [
     "Reception",
     "Doctor",
     "Nurse",
@@ -52,6 +56,12 @@ export default function AppSidebar({
     "Pharmacy",
     "Cashier",
   ];
+
+  const isPatient = currentRole === "patient";
+
+  const navGroups: NavGroupConfig[] = isPatient
+    ? PATIENT_NAV_GROUPS
+    : CLINICAL_NAV_GROUPS[currentRole] || CLINICAL_NAV_GROUPS.default;
 
   const handleRoleSelect = (role: Role) => {
     localStorage.setItem(CURRENT_ROLE_KEY, role);
@@ -61,152 +71,100 @@ export default function AppSidebar({
     setRoleDropdownOpen(false);
   };
 
-  const navItems = [
-    {
-      label: "Dashboard",
-      path: "/dashboard",
-      icon: LayoutDashboard,
-      badge: undefined,
-    },
-    {
-      label: "Patients",
-      path: "/patients",
-      icon: Users,
-      badge: "12 Today",
-    },
-    {
-      label: "NFC Scanner",
-      path: "/nfc/scan",
-      icon: Wifi,
-      badge: "Live",
-      badgeClass: "animate-pulse",
-    },
-    {
-      label: "Appointments",
-      path: "/appointments",
-      icon: CalendarDays,
-      badge: "8 Queue",
-    },
-    {
-      label: "Medical Records",
-      path: "/medical-records",
-      icon: FileText,
-      badge: undefined,
-    },
-    {
-      label: "Laboratory",
-      path: "/laboratory",
-      icon: FlaskConical,
-      badge: "4 Pending",
-    },
-    {
-      label: "Pharmacy",
-      path: "/pharmacy",
-      icon: Pill,
-      badge: undefined,
-    },
-    {
-      label: "Payments",
-      path: "/payment",
-      icon: CreditCard,
-      badge: undefined,
-    },
-  ];
-
-  const handleNavigate = (path: string) => {
-    navigate(path);
+  const handleItemClick = (item: NavItemConfig) => {
+    if (onNavSelect) {
+      onNavSelect(item.id);
+    }
+    if (item.path) {
+      navigate(item.path);
+    }
     if (onCloseMobile) {
       onCloseMobile();
     }
   };
 
   const handleLogout = () => {
-    localStorage.removeItem(CURRENT_ROLE_KEY);
-    localStorage.removeItem("medcard_authenticated");
-    localStorage.removeItem("medcard_auth_token");
-    localStorage.removeItem("medcard_user_data");
-    localStorage.removeItem("medcard_current_facility");
-    navigate("/login");
+    if (isPatient) {
+      localStorage.removeItem("medcard_auth_token");
+      localStorage.removeItem("medcard_user_data");
+      localStorage.removeItem("medcard_authenticated");
+      navigate("/patient-vault/login");
+    } else {
+      localStorage.removeItem(CURRENT_ROLE_KEY);
+      localStorage.removeItem("medcard_authenticated");
+      localStorage.removeItem("medcard_auth_token");
+      localStorage.removeItem("medcard_user_data");
+      localStorage.removeItem("medcard_current_facility");
+      navigate("/login");
+    }
   };
 
-  return (
-    <>
-      {isOpenMobile && (
-        <div
-          className="fixed inset-0 bg-black/50 z-40 md:hidden"
-          onClick={onCloseMobile}
-          aria-hidden="true"
-        />
-      )}
-
-      <aside
-        className={`fixed md:sticky top-0 left-0 z-50 h-screen w-72 bg-navy text-white flex flex-col transition-transform duration-300 ${
-          isOpenMobile ? "translate-x-0" : "-translate-x-full md:translate-x-0"
-        }`}
-        aria-label="Application navigation"
-      >
-        <div className="p-4 border-b border-white/10">
-          <div
-            className="flex items-center gap-3 cursor-pointer"
-            onClick={() => handleNavigate("/dashboard")}
+  const sidebarContent = (
+    <div className="h-dvh flex flex-col w-[248px] bg-white border-r border-[#E4EBF0] select-none">
+      {/* 56px Logo Row (shrink-0) */}
+      <div className="h-14 shrink-0 px-4 flex items-center justify-between border-b border-[#E4EBF0]">
+        <a href="/" className="flex items-center gap-2 outline-none">
+          <img
+            src="/medcard-logo.svg"
+            alt="MedCard"
+            className="h-7 w-auto object-contain"
+          />
+        </a>
+        {onCloseMobile && (
+          <button
+            type="button"
+            className="lg:hidden p-1 text-[#7A8D9B] hover:text-[#0F2942] rounded-md transition-colors"
+            onClick={onCloseMobile}
+            aria-label="Close sidebar"
           >
-            <img
-              src="/medcard-logo.svg"
-              alt="MedCard"
-              className="h-10 w-auto"
-            />
-            <div>
-              <strong className="text-lg">MedCard</strong>
-              <small className="block text-xs text-soft-text-on-navy">Healthcare Technology</small>
-            </div>
-          </div>
+            <X size={18} />
+          </button>
+        )}
+      </div>
 
-          {onCloseMobile && (
-            <button
-              type="button"
-              className="absolute top-4 right-4 p-2 hover:bg-white/10 rounded-full transition-colors"
-              onClick={onCloseMobile}
-              aria-label="Close sidebar"
-            >
-              <X size={20} />
-            </button>
-          )}
-        </div>
-
-        <div className="p-4 border-b border-white/10">
-          <div
-            className="flex items-center gap-3 p-3 bg-white/5 rounded-xl cursor-pointer hover:bg-white/10 transition-colors"
+      {/* Clinical Role Switcher (Staff Only) */}
+      {!isPatient && (
+        <div className="p-3 border-b border-[#E4EBF0]">
+          <button
+            type="button"
             onClick={() => setRoleDropdownOpen(!roleDropdownOpen)}
+            className="w-full flex items-center justify-between p-2 rounded-lg bg-[#F6F8FA] border border-[#E4EBF0] hover:bg-[#F0F4F8] transition-colors text-left"
           >
-            <div className="w-10 h-10 bg-teal rounded-full flex items-center justify-center font-bold">
-              {currentRole.charAt(0).toUpperCase()}
-            </div>
-            <div className="flex-1">
-              <span className="text-xs font-semibold text-teal block">WORKSPACE ROLE</span>
-              <strong className="text-sm">{currentRole}</strong>
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-7 h-7 rounded-md bg-[#00A3B8]/15 text-[#00A3B8] font-semibold text-xs flex items-center justify-center shrink-0">
+                {String(currentRole).charAt(0)}
+              </div>
+              <div className="min-w-0">
+                <span className="block text-[10px] font-medium text-[#7A8D9B] truncate leading-tight">
+                  Role
+                </span>
+                <span className="block text-xs font-semibold text-[#0F2942] truncate leading-tight">
+                  {currentRole}
+                </span>
+              </div>
             </div>
             <ChevronDown
-              size={16}
-              className={`transition-transform ${roleDropdownOpen ? "rotate-180" : ""}`}
+              size={14}
+              className={`text-[#7A8D9B] transition-transform ${roleDropdownOpen ? "rotate-180" : ""}`}
             />
-          </div>
+          </button>
 
           {roleDropdownOpen && (
-            <div className="mt-2 p-3 bg-white/5 rounded-xl">
-              <div className="flex items-center gap-2 text-xs text-soft-text-on-navy mb-3">
+            <div className="mt-2 p-1.5 rounded-lg bg-white border border-[#E4EBF0] shadow-sm space-y-0.5">
+              <div className="px-2 py-1 text-[11px] font-medium text-[#7A8D9B] flex items-center gap-1.5">
                 <ArrowRightLeft size={11} />
-                <span>Switch Workspace View</span>
+                <span>Switch role</span>
               </div>
-              {roles.map((r) => (
+              {clinicalRoles.map((r) => (
                 <button
                   key={r}
                   type="button"
-                  className={`w-full text-left px-3 py-2 rounded-lg text-sm font-semibold transition-colors ${
-                    currentRole === r
-                      ? "bg-teal text-navy"
-                      : "hover:bg-white/10"
-                  }`}
                   onClick={() => handleRoleSelect(r)}
+                  className={`w-full text-left px-2 py-1.5 rounded-md text-xs transition-colors ${
+                    currentRole === r
+                      ? "bg-[#F0F4F8] text-[#0F2942] font-semibold"
+                      : "text-[#475B6B] hover:bg-[#F6F8FA]"
+                  }`}
                 >
                   {r}
                 </button>
@@ -214,79 +172,109 @@ export default function AppSidebar({
             </div>
           )}
         </div>
+      )}
 
-        <div className="flex-1 overflow-y-auto p-4">
-          <span className="text-xs font-semibold text-soft-text-on-navy block mb-3">CLINICAL WORKSPACES</span>
+      {/* Navigation List (Scrollable flex-1) */}
+      <nav className="flex-1 min-h-0 overflow-y-auto px-3 py-3 space-y-4">
+        {navGroups.map((group, groupIdx) => (
+          <div key={groupIdx} className="space-y-1">
+            {group.groupLabel && (
+              <div className="px-2.5 py-1 text-[11px] font-medium text-[#7A8D9B]">
+                {group.groupLabel}
+              </div>
+            )}
+            <div className="space-y-0.5">
+              {group.items.map((item) => {
+                const Icon = item.icon;
+                const isActive = activeNavId
+                  ? activeNavId === item.id
+                  : window.location.pathname === item.path;
 
-          <nav className="space-y-1">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive =
-                location.pathname === item.path ||
-                (item.path !== "/dashboard" &&
-                  location.pathname.startsWith(item.path));
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => handleItemClick(item)}
+                    className={`w-full h-9 px-2.5 rounded-lg flex items-center justify-between text-[13px] font-medium transition-colors ${
+                      isActive
+                        ? "bg-[#F0F4F8] text-[#0F2942] font-semibold"
+                        : "text-[#475B6B] hover:bg-[#F6F8FA] hover:text-[#0F2942]"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <Icon
+                        size={16}
+                        className={isActive ? "text-[#00A3B8]" : "text-[#7A8D9B]"}
+                      />
+                      <span className="truncate">{item.label}</span>
+                    </div>
+                    {item.badge !== undefined && (
+                      <span
+                        className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${
+                          isActive
+                            ? "bg-[#00A3B8]/15 text-[#00A3B8]"
+                            : "bg-[#F0F4F8] text-[#7A8D9B]"
+                        } ${item.badgeClass || ""}`}
+                      >
+                        {item.badge}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </nav>
 
-              return (
-                <button
-                  key={item.path}
-                  type="button"
-                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
-                    isActive
-                      ? "bg-teal text-navy"
-                      : "hover:bg-white/10"
-                  }`}
-                  onClick={() => handleNavigate(item.path)}
-                >
-                  <div className="flex items-center gap-3">
-                    <Icon size={18} />
-                    <span>{item.label}</span>
-                  </div>
-                  {item.badge && (
-                    <span
-                      className={`px-2 py-0.5 text-xs font-semibold rounded-full ${
-                        isActive
-                          ? "bg-navy text-white"
-                          : "bg-pale-cyan text-teal"
-                      } ${item.badgeClass || ""}`}
-                    >
-                      {item.badge}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </nav>
-        </div>
-
-        <div className="p-4 border-t border-white/10 space-y-1">
-          <button
-            type="button"
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
-              location.pathname === "/settings"
-                ? "bg-teal text-navy"
-                : "hover:bg-white/10"
-            }`}
-            onClick={() => handleNavigate("/settings")}
-          >
-            <Settings size={18} />
-            <span>Settings & Diagnostics</span>
-          </button>
-
-          <button
-            type="button"
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold hover:bg-white/10 transition-colors text-red-300"
-            onClick={handleLogout}
-          >
-            <LogOut size={18} />
-            <span>Sign Out</span>
-          </button>
-
-          <div className="flex items-center gap-2 px-3 py-2 text-xs text-soft-text-on-navy">
-            <ShieldCheck size={14} />
-            <span>King Faisal Hospital • Kigali</span>
+      {/* 56px Account & Logout Row (shrink-0) */}
+      <div className="h-14 shrink-0 px-3 border-t border-[#E4EBF0] flex items-center justify-between bg-white">
+        <div className="flex items-center gap-2 min-w-0 pr-2">
+          <div className="w-8 h-8 rounded-full bg-[#F0F4F8] border border-[#E4EBF0] text-[#0F2942] font-semibold text-xs flex items-center justify-center shrink-0">
+            {userDisplayName ? userDisplayName.charAt(0).toUpperCase() : "M"}
+          </div>
+          <div className="min-w-0">
+            <span className="block text-xs font-semibold text-[#0F2942] truncate leading-tight">
+              {userDisplayName || (isPatient ? "Patient Vault" : "Clinical Staff")}
+            </span>
+            <span className="block text-[11px] text-[#7A8D9B] truncate leading-tight">
+              {userEmail || (isPatient ? "Personal account" : "Clinic portal")}
+            </span>
           </div>
         </div>
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="p-1.5 text-[#7A8D9B] hover:text-red-600 hover:bg-red-50 rounded-md transition-colors shrink-0"
+          title="Sign out"
+          aria-label="Sign out"
+        >
+          <LogOut size={16} />
+        </button>
+      </div>
+    </div>
+  );
+
+  return (
+    <>
+      {/* Desktop Fixed Aside */}
+      <aside className="hidden lg:block h-dvh shrink-0">
+        {sidebarContent}
       </aside>
+
+      {/* Mobile Drawer (Below lg) */}
+      {isOpenMobile && (
+        <div className="fixed inset-0 z-50 lg:hidden flex">
+          <div
+            className="fixed inset-0 bg-[#0F2942]/40 transition-opacity backdrop-blur-xs"
+            onClick={onCloseMobile}
+            aria-hidden="true"
+          />
+          <div className="relative z-50 h-dvh">
+            {sidebarContent}
+          </div>
+        </div>
+      )}
     </>
   );
 }

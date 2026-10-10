@@ -280,7 +280,7 @@ export default function PatientVaultPage() {
           },
           body: JSON.stringify({
             patientId,
-            plan: selectedPlan === "Premium Vault" ? "PREMIUM" : "BASIC",
+            plan: selectedPlan === "Premium" || selectedPlan === "Premium Vault" ? "PREMIUM" : "BASIC",
             paymentMethod: "MOBILE_MONEY",
             phone,
           }),

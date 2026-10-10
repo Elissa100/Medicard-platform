@@ -1,43 +1,39 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import {
-  Activity,
   AlertCircle,
   AlertTriangle,
   Calendar,
   CheckCircle2,
   ChevronRight,
+  Clock,
   CreditCard,
   FileText,
-  HeartPulse,
-  Home,
   LoaderCircle,
-  LockKeyhole,
-  LogOut,
-  Menu,
-  Pill,
+  MapPin,
   Plus,
+  Search,
   ShieldAlert,
   ShieldCheck,
   Stethoscope,
-  TestTube,
-  UserRound,
-  UsersRound,
   X,
 } from "lucide-react";
+import AppLayout from "../components/layout/AppLayout";
+import { VAULT_PLANS } from "../config/plans";
 
 const API_URL = import.meta.env.VITE_API_URL || "https://medicard-platform.onrender.com/api/v1";
 const AUTH_TOKEN_KEY = "medcard_auth_token";
-const USER_DATA_KEY = "medcard_user_data";
 
 type TabId =
   | "overview"
+  | "appointments"
   | "history"
   | "consultations"
   | "prescriptions"
-  | "family"
   | "documents"
-  | "billing"
-  | "profile";
+  | "notifications"
+  | "family"
+  | "profile"
+  | "billing";
 
 type HealthRecord = {
   id: string;
@@ -174,6 +170,40 @@ type LabResultItem = {
   }>;
 };
 
+type ParticipatingClinic = {
+  id: string;
+  name: string;
+  code: string;
+  address: string | null;
+  phone: string | null;
+  email: string | null;
+  services: string[];
+  operatingHours: string;
+};
+
+type PatientAppointment = {
+  id: string;
+  patientId: string;
+  facilityId: string;
+  appointmentType: string;
+  status: "SCHEDULED" | "CONFIRMED" | "CHECKED_IN" | "COMPLETED" | "CANCELLED" | "NO_SHOW";
+  scheduledAt: string;
+  reason: string | null;
+  notes: string | null;
+  createdAt: string;
+  facility: {
+    id: string;
+    name: string;
+    phone: string | null;
+    address: string | null;
+  };
+  provider?: {
+    firstName: string;
+    lastName: string;
+    role: string;
+  } | null;
+};
+
 const emptyDependent = {
   firstName: "",
   lastName: "",
@@ -192,232 +222,448 @@ function formatDate(value: string | null | undefined) {
   }
 }
 
-async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const token = localStorage.getItem(AUTH_TOKEN_KEY);
-  if (!token) {
-    window.location.assign("/patient-vault/login");
-    throw new Error("Please sign in to access your Patient Vault.");
+function formatDateTime(value: string | null | undefined) {
+  if (!value) return "Not scheduled";
+  try {
+    return new Intl.DateTimeFormat("en-RW", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    }).format(new Date(value));
+  } catch {
+    return String(value);
   }
-  const response = await fetch(`${API_URL}${path}`, {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      ...(init.body ? { "Content-Type": "application/json" } : {}),
-      ...init.headers,
-    },
-  });
-  const data = await response.json();
-  if (!response.ok || !data.success) {
-    throw new Error(data.message || "The request could not be completed.");
-  }
-  return data as T;
 }
 
 export default function VaultPortalPage() {
   const [activeTab, setActiveTab] = useState<TabId>("overview");
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [appointmentSubTab, setAppointmentSubTab] = useState<"upcoming" | "past" | "find">("upcoming");
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
-  const [selectedProfileId, setSelectedProfileId] = useState("");
+  const [selectedProfileId, setSelectedProfileId] = useState<string>("");
   const [profileForm, setProfileForm] = useState<EditableProfile | null>(null);
-  const [dependentForm, setDependentForm] = useState(emptyDependent);
-  const [allergy, setAllergy] = useState({ allergen: "", reaction: "", severity: "MILD" });
-  const [condition, setCondition] = useState({ name: "", description: "" });
-  const [paymentPhone, setPaymentPhone] = useState("");
-  const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-  const [isAddingDependent, setIsAddingDependent] = useState(false);
-  const [isPaying, setIsPaying] = useState(false);
 
-  // Clinical records fetched for patient
+  // Clinical records
   const [consultations, setConsultations] = useState<Consultation[]>([]);
   const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
   const [labResults, setLabResults] = useState<LabResultItem[]>([]);
 
-  // Appointment booking modal state
+  // Clinic Directory & Appointments state
+  const [clinics, setClinics] = useState<ParticipatingClinic[]>([]);
+  const [appointments, setAppointments] = useState<PatientAppointment[]>([]);
+  const [clinicSearch, setClinicSearch] = useState("");
   const [showBookingModal, setShowBookingModal] = useState(false);
-  const [bookingClinic, setBookingClinic] = useState("Remera Community Clinic");
+  const [bookingFacilityId, setBookingFacilityId] = useState("");
   const [bookingService, setBookingService] = useState("General Consultation");
   const [bookingDate, setBookingDate] = useState("");
   const [bookingTime, setBookingTime] = useState("09:00");
   const [bookingReason, setBookingReason] = useState("");
-  const [bookingSuccess, setBookingSuccess] = useState(false);
+  const [bookingNotes, setBookingNotes] = useState("");
+  const [isSubmittingBooking, setIsSubmittingBooking] = useState(false);
+  const [cancellingAppointmentId, setCancellingAppointmentId] = useState<string | null>(null);
 
-  const loadDashboard = useCallback(async () => {
-    const result = await request<{ success: boolean; data: DashboardData }>("/vault/me");
-    if (!result.data.subscription) {
-      window.location.assign("/patient-vault");
-      throw new Error("Choose a plan to continue to your Patient Vault.");
-    }
-    setDashboard(result.data);
-    setSelectedProfileId((current) => current || result.data.patient.id);
-    setPaymentPhone((current) => current || result.data.patient.phone || "");
-    localStorage.setItem(USER_DATA_KEY, JSON.stringify(result.data.patient));
-  }, []);
+  // Health record addition modal/forms
+  const [showAllergyModal, setShowAllergyModal] = useState(false);
+  const [allergyName, setAllergyName] = useState("");
+  const [allergyReaction, setAllergyReaction] = useState("");
+  const allergySeverity = "MILD";
 
-  const loadClinicalData = useCallback(async (profileId: string) => {
+  const [showConditionModal, setShowConditionModal] = useState(false);
+  const [conditionName, setConditionName] = useState("");
+  const [conditionDescription, setConditionDescription] = useState("");
+
+  const [showDependentModal, setShowDependentModal] = useState(false);
+  const [dependentForm, setDependentForm] = useState(emptyDependent);
+
+  // Loading & notification states
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isPaying, setIsPaying] = useState(false);
+  const [paymentPhone, setPaymentPhone] = useState("");
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+
+  const token = localStorage.getItem(AUTH_TOKEN_KEY);
+
+  const getHeaders = useCallback(
+    () => ({
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    }),
+    [token]
+  );
+
+  const fetchClinicalRecords = useCallback(
+    async (profileId: string) => {
+      if (!token) return;
+      try {
+        const [cRes, pRes, lRes] = await Promise.all([
+          fetch(`${API_URL}/vault/consultations?profileId=${profileId}`, { headers: getHeaders() }),
+          fetch(`${API_URL}/vault/prescriptions?profileId=${profileId}`, { headers: getHeaders() }),
+          fetch(`${API_URL}/vault/lab-results?profileId=${profileId}`, { headers: getHeaders() }),
+        ]);
+
+        if (cRes.ok) {
+          const cData = await cRes.json();
+          if (cData.success) setConsultations(cData.data);
+        }
+        if (pRes.ok) {
+          const pData = await pRes.json();
+          if (pData.success) setPrescriptions(pData.data);
+        }
+        if (lRes.ok) {
+          const lData = await lRes.json();
+          if (lData.success) setLabResults(lData.data);
+        }
+      } catch (err) {
+        console.error("Failed to load clinical records:", err);
+      }
+    },
+    [token, getHeaders]
+  );
+
+  const fetchClinicsAndAppointments = useCallback(async () => {
+    if (!token) return;
     try {
-      const [consRes, prescRes, labRes] = await Promise.allSettled([
-        request<{ success: boolean; data: Consultation[] }>(`/vault/consultations?profileId=${profileId}`),
-        request<{ success: boolean; data: Prescription[] }>(`/vault/prescriptions?profileId=${profileId}`),
-        request<{ success: boolean; data: LabResultItem[] }>(`/vault/lab-results?profileId=${profileId}`),
+      const [clinicsRes, apptRes] = await Promise.all([
+        fetch(`${API_URL}/vault/clinics`, { headers: getHeaders() }),
+        fetch(`${API_URL}/vault/appointments`, { headers: getHeaders() }),
       ]);
 
-      if (consRes.status === "fulfilled") setConsultations(consRes.value.data || []);
-      if (prescRes.status === "fulfilled") setPrescriptions(prescRes.value.data || []);
-      if (labRes.status === "fulfilled") setLabResults(labRes.value.data || []);
-    } catch {
-      // Clinical records might be empty or loading
+      if (clinicsRes.ok) {
+        const cData = await clinicsRes.json();
+        if (cData.success) setClinics(cData.data);
+      }
+      if (apptRes.ok) {
+        const aData = await apptRes.json();
+        if (aData.success) setAppointments(aData.data);
+      }
+    } catch (err) {
+      console.error("Failed to load clinics or appointments:", err);
     }
-  }, []);
+  }, [token, getHeaders]);
+
+  const fetchDashboard = useCallback(async () => {
+    if (!token) {
+      window.location.assign("/patient-vault/login");
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      setError("");
+
+      const response = await fetch(`${API_URL}/vault/dashboard`, {
+        headers: getHeaders(),
+      });
+
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || "Failed to load patient dashboard.");
+      }
+
+      setDashboard(result.data);
+      setSelectedProfileId((prev) => prev || result.data.patient.id);
+      await fetchClinicsAndAppointments();
+    } catch (caughtError) {
+      setError(caughtError instanceof Error ? caughtError.message : "An error occurred.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [token, getHeaders, fetchClinicsAndAppointments]);
 
   useEffect(() => {
-    loadDashboard()
-      .catch((caughtError: unknown) => {
-        setError(caughtError instanceof Error ? caughtError.message : "Unable to load your vault.");
-        if (!localStorage.getItem(AUTH_TOKEN_KEY)) window.location.assign("/patient-vault/login");
-      })
-      .finally(() => setIsLoading(false));
-  }, [loadDashboard]);
+    fetchDashboard();
+  }, [fetchDashboard]);
 
-  useEffect(() => {
-    if (selectedProfileId) {
-      loadClinicalData(selectedProfileId);
-    }
-  }, [selectedProfileId, loadClinicalData]);
-
-  const selectedProfile = useMemo(() => {
+  const selectedProfile = useMemo<VaultProfile | null>(() => {
     if (!dashboard) return null;
     if (dashboard.patient.id === selectedProfileId) return dashboard.patient;
-    return dashboard.patient.dependents?.find((dependent) => dependent.id === selectedProfileId) || null;
+    return dashboard.patient.dependents?.find((d) => d.id === selectedProfileId) || dashboard.patient;
   }, [dashboard, selectedProfileId]);
 
   useEffect(() => {
-    if (!selectedProfile) return;
-    setProfileForm({
-      firstName: selectedProfile.firstName,
-      lastName: selectedProfile.lastName,
-      dateOfBirth: selectedProfile.dateOfBirth?.slice(0, 10) || "",
-      gender: selectedProfile.gender,
-      phone: selectedProfile.phone || "",
-      nationalId: selectedProfile.nationalId || "",
-      emergencyContactName: selectedProfile.emergencyContactName || "",
-      emergencyContactPhone: selectedProfile.emergencyContactPhone || "",
-      insuranceProvider: selectedProfile.insuranceProvider || "",
-    });
-  }, [selectedProfile]);
+    if (selectedProfile) {
+      setProfileForm({
+        firstName: selectedProfile.firstName || "",
+        lastName: selectedProfile.lastName || "",
+        dateOfBirth: selectedProfile.dateOfBirth ? selectedProfile.dateOfBirth.slice(0, 10) : "",
+        gender: selectedProfile.gender || "UNKNOWN",
+        phone: selectedProfile.phone || "",
+        nationalId: selectedProfile.nationalId || "",
+        emergencyContactName: selectedProfile.emergencyContactName || "",
+        emergencyContactPhone: selectedProfile.emergencyContactPhone || "",
+        insuranceProvider: selectedProfile.insuranceProvider || "",
+      });
 
-  const saveProfile = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!selectedProfile || !profileForm) return;
+      fetchClinicalRecords(selectedProfile.id);
+    }
+  }, [selectedProfile, fetchClinicalRecords]);
+
+  // Appointment actions
+  const handleBookAppointment = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!bookingFacilityId || !bookingDate || !bookingTime) {
+      setError("Please select a clinic, appointment date, and time slot.");
+      return;
+    }
+
+    setIsSubmittingBooking(true);
     setError("");
-    setNotice("");
-    setIsSaving(true);
+
     try {
-      await request(`/vault/profiles/${encodeURIComponent(selectedProfile.id)}`, {
+      const scheduledAtIso = new Date(`${bookingDate}T${bookingTime}:00`).toISOString();
+      const response = await fetch(`${API_URL}/vault/appointments`, {
+        method: "POST",
+        headers: getHeaders(),
+        body: JSON.stringify({
+          profileId: selectedProfile?.id,
+          facilityId: bookingFacilityId,
+          appointmentType: bookingService,
+          scheduledAt: scheduledAtIso,
+          reason: bookingReason,
+          notes: bookingNotes,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || "Failed to book appointment.");
+      }
+
+      setNotice("Appointment request submitted successfully. You will receive clinic confirmation.");
+      setShowBookingModal(false);
+      setBookingReason("");
+      setBookingNotes("");
+      await fetchClinicsAndAppointments();
+      setActiveTab("appointments");
+      setAppointmentSubTab("upcoming");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to complete appointment booking.");
+    } finally {
+      setIsSubmittingBooking(false);
+    }
+  };
+
+  const handleCancelAppointment = async (appointmentId: string) => {
+    if (!window.confirm("Are you sure you want to cancel this scheduled appointment?")) return;
+
+    setCancellingAppointmentId(appointmentId);
+    setError("");
+
+    try {
+      const response = await fetch(`${API_URL}/vault/appointments/${appointmentId}/cancel`, {
         method: "PATCH",
+        headers: getHeaders(),
+      });
+
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || "Could not cancel appointment.");
+      }
+
+      setNotice("Appointment cancelled successfully.");
+      await fetchClinicsAndAppointments();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to cancel appointment.");
+    } finally {
+      setCancellingAppointmentId(null);
+    }
+  };
+
+  // Profile save
+  const saveProfile = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!selectedProfile || !profileForm) return;
+
+    try {
+      setIsSaving(true);
+      setError("");
+      setNotice("");
+
+      const response = await fetch(`${API_URL}/vault/profiles/${selectedProfile.id}`, {
+        method: "PATCH",
+        headers: getHeaders(),
         body: JSON.stringify(profileForm),
       });
-      await loadDashboard();
-      setNotice("Profile details saved successfully.");
+
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || "Failed to save profile changes.");
+      }
+
+      setNotice("Personal profile details updated successfully.");
+      await fetchDashboard();
     } catch (caughtError) {
-      setError(caughtError instanceof Error ? caughtError.message : "Could not save profile.");
+      setError(caughtError instanceof Error ? caughtError.message : "Save failed.");
     } finally {
       setIsSaving(false);
     }
   };
 
-  const addDependent = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setError("");
-    setNotice("");
-    setIsAddingDependent(true);
-    try {
-      await request("/vault/dependents", {
-        method: "POST",
-        body: JSON.stringify(dependentForm),
-      });
-      setDependentForm(emptyDependent);
-      await loadDashboard();
-      setNotice("Family member profile created and linked to your MedCard account.");
-    } catch (caughtError) {
-      setError(caughtError instanceof Error ? caughtError.message : "Could not add dependent.");
-    } finally {
-      setIsAddingDependent(false);
-    }
-  };
+  // Health records add/delete
+  const addAllergy = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!selectedProfile || !allergyName.trim()) return;
 
-  const addHealthRecord = async (kind: "allergies" | "conditions", event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!selectedProfile) return;
-    setError("");
-    setNotice("");
-    const isAllergy = kind === "allergies";
-    const body = isAllergy ? allergy : condition;
     try {
-      await request(`/vault/profiles/${encodeURIComponent(selectedProfile.id)}/${kind}`, {
+      setIsSaving(true);
+      setError("");
+      const response = await fetch(`${API_URL}/vault/profiles/${selectedProfile.id}/allergies`, {
         method: "POST",
-        body: JSON.stringify(body),
-      });
-      if (isAllergy) setAllergy({ allergen: "", reaction: "", severity: "MILD" });
-      else setCondition({ name: "", description: "" });
-      await loadDashboard();
-      setNotice(isAllergy ? "Allergy added to medical record." : "Medical condition recorded.");
-    } catch (caughtError) {
-      setError(caughtError instanceof Error ? caughtError.message : "Could not save health record.");
-    }
-  };
-
-  const removeHealthRecord = async (kind: "allergies" | "conditions", id: string) => {
-    if (!selectedProfile) return;
-    setError("");
-    setNotice("");
-    try {
-      await request(`/vault/profiles/${encodeURIComponent(selectedProfile.id)}/health/${kind}/${encodeURIComponent(id)}`, {
-        method: "DELETE",
-      });
-      await loadDashboard();
-      setNotice("Record removed.");
-    } catch (caughtError) {
-      setError(caughtError instanceof Error ? caughtError.message : "Could not remove health record.");
-    }
-  };
-
-  const upgradePlan = async () => {
-    setError("");
-    setNotice("");
-    setIsPaying(true);
-    try {
-      const initiated = await request<{
-        paymentId: string;
-        status: string;
-        message?: string;
-      }>("/vault/payment/initiate", {
-        method: "POST",
+        headers: getHeaders(),
         body: JSON.stringify({
-          plan: "PREMIUM",
-          paymentMethod: "MOBILE_MONEY",
-          phone: paymentPhone,
+          allergen: allergyName.trim(),
+          reaction: allergyReaction.trim() || undefined,
+          severity: allergySeverity,
         }),
       });
-      setNotice(initiated.message || "Approve the Mobile Money prompt on your phone.");
 
-      for (let attempt = 0; attempt < 36; attempt += 1) {
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.message || "Failed to add allergy.");
+
+      setAllergyName("");
+      setAllergyReaction("");
+      setShowAllergyModal(false);
+      setNotice("Allergy recorded successfully.");
+      await fetchDashboard();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not add allergy.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const deleteAllergy = async (allergyId: string) => {
+    if (!selectedProfile) return;
+    try {
+      setIsSaving(true);
+      const res = await fetch(`${API_URL}/vault/profiles/${selectedProfile.id}/allergies/${allergyId}`, {
+        method: "DELETE",
+        headers: getHeaders(),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.message || "Could not delete allergy.");
+      setNotice("Allergy record removed.");
+      await fetchDashboard();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error deleting allergy.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const addCondition = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!selectedProfile || !conditionName.trim()) return;
+
+    try {
+      setIsSaving(true);
+      setError("");
+      const response = await fetch(`${API_URL}/vault/profiles/${selectedProfile.id}/conditions`, {
+        method: "POST",
+        headers: getHeaders(),
+        body: JSON.stringify({
+          name: conditionName.trim(),
+          description: conditionDescription.trim() || undefined,
+        }),
+      });
+
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.message || "Failed to add condition.");
+
+      setConditionName("");
+      setConditionDescription("");
+      setShowConditionModal(false);
+      setNotice("Medical condition saved successfully.");
+      await fetchDashboard();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not add condition.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const deleteCondition = async (conditionId: string) => {
+    if (!selectedProfile) return;
+    try {
+      setIsSaving(true);
+      const res = await fetch(`${API_URL}/vault/profiles/${selectedProfile.id}/conditions/${conditionId}`, {
+        method: "DELETE",
+        headers: getHeaders(),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.message || "Could not delete condition.");
+      setNotice("Condition record removed.");
+      await fetchDashboard();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error deleting condition.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Add dependent
+  const addDependent = async (e: FormEvent) => {
+    e.preventDefault();
+    try {
+      setIsSaving(true);
+      setError("");
+      const response = await fetch(`${API_URL}/vault/dependents`, {
+        method: "POST",
+        headers: getHeaders(),
+        body: JSON.stringify(dependentForm),
+      });
+
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.message || "Failed to add family member.");
+
+      setDependentForm(emptyDependent);
+      setShowDependentModal(false);
+      setNotice("Family member profile created successfully.");
+      await fetchDashboard();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not add family profile.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Upgrade plan
+  const upgradePlan = async () => {
+    if (!paymentPhone.trim()) {
+      setError("Please enter your Mobile Money phone number.");
+      return;
+    }
+
+    try {
+      setIsPaying(true);
+      setError("");
+      setNotice("");
+
+      const response = await fetch(`${API_URL}/vault/payment/initiate`, {
+        method: "POST",
+        headers: getHeaders(),
+        body: JSON.stringify({
+          plan: "PREMIUM",
+          phone: paymentPhone.trim(),
+        }),
+      });
+
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.message || "Payment initiation failed.");
+
+      const paymentId = result.data.paymentId;
+      for (let i = 0; i < 6; i++) {
         await new Promise((resolve) => window.setTimeout(resolve, 5000));
-        const status = await request<{ status: string }>(
-          `/vault/payment/${encodeURIComponent(initiated.paymentId)}/status`,
-        );
-        if (status.status === "SUCCESS") {
-          await loadDashboard();
+        const check = await fetch(`${API_URL}/vault/payment/status/${paymentId}`, { headers: getHeaders() });
+        const checkResult = await check.json();
+        if (checkResult.success && checkResult.data.status === "SUCCESS") {
           setNotice("Payment confirmed! Your Premium Vault is now active.");
-          return;
-        }
-        if (status.status === "FAILED") {
-          setNotice("The payment was not completed by the provider. Please try again.");
+          await fetchDashboard();
+          setIsPaying(false);
           return;
         }
       }
+
       setNotice("Payment is still processing. Check your plan again shortly.");
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "Unable to process plan payment.");
@@ -426,29 +672,54 @@ export default function VaultPortalPage() {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem(AUTH_TOKEN_KEY);
-    localStorage.removeItem(USER_DATA_KEY);
-    localStorage.removeItem("medcard_authenticated");
-    window.location.assign("/patient-vault/login");
-  };
+  const filteredClinics = useMemo(() => {
+    if (!clinicSearch.trim()) return clinics;
+    const q = clinicSearch.toLowerCase();
+    return clinics.filter(
+      (c) =>
+        c.name.toLowerCase().includes(q) ||
+        (c.address && c.address.toLowerCase().includes(q)) ||
+        c.services.some((s) => s.toLowerCase().includes(q))
+    );
+  }, [clinics, clinicSearch]);
 
-  const handleBookAppointment = (e: FormEvent) => {
-    e.preventDefault();
-    setBookingSuccess(true);
-    setTimeout(() => {
-      setBookingSuccess(false);
-      setShowBookingModal(false);
-      setNotice(`Appointment request submitted to ${bookingClinic} for ${bookingDate} at ${bookingTime}. Status: Pending Clinic Confirmation.`);
-    }, 1500);
-  };
+  const upcomingAppointments = useMemo(
+    () => appointments.filter((a) => a.status === "SCHEDULED" || a.status === "CONFIRMED"),
+    [appointments]
+  );
+
+  const pastAppointments = useMemo(
+    () => appointments.filter((a) => a.status === "COMPLETED" || a.status === "CANCELLED" || a.status === "NO_SHOW"),
+    [appointments]
+  );
+
+  const profileOptions = useMemo(() => {
+    if (!dashboard) return [];
+    const list = [
+      {
+        id: dashboard.patient.id,
+        name: `${dashboard.patient.firstName} ${dashboard.patient.lastName}`,
+        isDependent: false,
+      },
+    ];
+    if (dashboard.patient.dependents) {
+      dashboard.patient.dependents.forEach((d) => {
+        list.push({
+          id: d.id,
+          name: `${d.firstName} ${d.lastName}`,
+          isDependent: true,
+        });
+      });
+    }
+    return list;
+  }, [dashboard]);
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-section-tint flex items-center justify-center">
+      <div className="h-dvh flex items-center justify-center bg-[#F6F8FA]">
         <div className="text-center">
-          <LoaderCircle className="animate-spin text-teal mx-auto mb-3" size={40} />
-          <p className="text-navy font-semibold">Loading your Patient Vault...</p>
+          <LoaderCircle className="animate-spin text-[#00A3B8] mx-auto mb-3" size={36} />
+          <p className="text-[#0F2942] text-sm font-medium">Loading your Patient Vault...</p>
         </div>
       </div>
     );
@@ -456,13 +727,16 @@ export default function VaultPortalPage() {
 
   if (!dashboard || !selectedProfile || !profileForm) {
     return (
-      <main className="min-h-screen bg-section-tint px-4 py-16 flex items-center justify-center">
-        <div className="max-w-md w-full rounded-2xl border border-border bg-white p-8 text-center shadow-lift">
-          <AlertCircle size={44} className="text-red-500 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-navy">Patient Vault Unavailable</h1>
-          <p className="mt-2 text-sm text-body-text">{error || "We could not load your account session."}</p>
-          <button onClick={() => window.location.assign("/patient-vault/login")} className="mt-6 w-full rounded-lg bg-teal px-5 py-3 font-semibold text-white hover:bg-teal/90 transition-colors">
-            Sign In Again
+      <main className="h-dvh bg-[#F6F8FA] px-4 flex items-center justify-center">
+        <div className="max-w-md w-full rounded-xl border border-[#E4EBF0] bg-white p-6 text-center">
+          <AlertCircle size={40} className="text-red-500 mx-auto mb-3" />
+          <h1 className="text-lg font-semibold text-[#0F2942]">Patient Vault Unavailable</h1>
+          <p className="mt-1.5 text-xs text-[#475B6B]">{error || "We could not load your account session."}</p>
+          <button
+            onClick={() => window.location.assign("/patient-vault/login")}
+            className="mt-5 w-full rounded-lg bg-[#0F2942] px-4 py-2.5 text-xs font-semibold text-white hover:bg-[#183a5c] transition-colors"
+          >
+            Sign in again
           </button>
         </div>
       </main>
@@ -471,1372 +745,1322 @@ export default function VaultPortalPage() {
 
   const subscription = dashboard.subscription;
   const isPremium = subscription?.plan === "PREMIUM";
-  const isDependent = selectedProfile.id !== dashboard.patient.id;
-
-  const navItems = [
-    { id: "overview" as TabId, label: "Overview", icon: Home },
-    { id: "history" as TabId, label: "Medical History", icon: HeartPulse, badge: selectedProfile.allergies.length + selectedProfile.medicalConditions.length },
-    { id: "consultations" as TabId, label: "Consultations", icon: Stethoscope, badge: consultations.length },
-    { id: "prescriptions" as TabId, label: "Prescriptions & Labs", icon: Pill, badge: prescriptions.length + labResults.length },
-    { id: "family" as TabId, label: "Family Profiles", icon: UsersRound, badge: dashboard.patient.dependents?.length || 0 },
-    { id: "documents" as TabId, label: "Documents & Insurance", icon: FileText, badge: selectedProfile.medicalDocuments.length },
-    { id: "billing" as TabId, label: "Plan & Billing", icon: CreditCard },
-    { id: "profile" as TabId, label: "Personal Details", icon: UserRound },
-  ];
 
   return (
-    <div className="min-h-screen bg-[#F5F8FA] flex">
-      {/* ============================================================== */}
-      {/* SIDEBAR NAVIGATION (Desktop & Mobile drawer)                   */}
-      {/* ============================================================== */}
-      <aside
-        className={`fixed inset-y-0 left-0 z-40 w-72 bg-navy text-white flex flex-col justify-between transition-transform duration-300 lg:static lg:translate-x-0 ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-0 max-lg:-translate-x-full"
-        }`}
-      >
-        <div className="flex flex-col h-full">
-          {/* Logo / Header */}
-          <div className="p-6 border-b border-white/10 flex items-center justify-between">
-            <a href="/" className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-teal/20 border border-teal/40 flex items-center justify-center text-teal">
-                <HeartPulse size={22} className="text-white" />
-              </div>
-              <div>
-                <h1 className="font-bold text-lg leading-tight text-white">MedCard</h1>
-                <span className="text-xs text-accent-on-navy font-medium">Patient Vault</span>
-              </div>
-            </a>
-            <button
-              onClick={() => setSidebarOpen(false)}
-              className="lg:hidden p-1 text-soft-text-on-navy hover:text-white"
-            >
-              <X size={20} />
-            </button>
-          </div>
-
-          {/* Profile Switcher Quick Widget */}
-          <div className="p-4 mx-4 my-3 rounded-xl bg-white/[0.07] border border-white/10">
-            <div className="flex items-center justify-between text-xs text-soft-text-on-navy mb-1.5">
-              <span>ACTIVE RECORD</span>
-              <span className="font-mono text-teal font-semibold">{isDependent ? "DEPENDENT" : "OWNER"}</span>
-            </div>
-            <select
-              value={selectedProfileId}
-              onChange={(e) => setSelectedProfileId(e.target.value)}
-              className="w-full bg-navy/90 text-white text-sm font-semibold rounded-lg px-2.5 py-2 border border-white/20 focus:outline-none focus:ring-1 focus:ring-teal"
-            >
-              <option value={dashboard.patient.id}>
-                {dashboard.patient.firstName} {dashboard.patient.lastName} (Me)
-              </option>
-              {dashboard.patient.dependents?.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.firstName} {d.lastName} (Dependent)
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Nav links */}
-          <nav className="flex-1 px-3 py-2 space-y-1 overflow-y-auto">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = activeTab === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => {
-                    setActiveTab(item.id);
-                    setSidebarOpen(false);
-                  }}
-                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                    isActive
-                      ? "bg-teal text-white shadow-sm font-semibold"
-                      : "text-soft-text-on-navy hover:bg-white/10 hover:text-white"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <Icon size={18} className={isActive ? "text-white" : "text-accent-on-navy"} />
-                    <span>{item.label}</span>
-                  </div>
-                  {typeof item.badge === "number" && item.badge > 0 && (
-                    <span
-                      className={`text-xs px-2 py-0.5 rounded-full font-bold ${
-                        isActive ? "bg-white/20 text-white" : "bg-white/10 text-soft-text-on-navy"
-                      }`}
-                    >
-                      {item.badge}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </nav>
-
-          {/* User footer & logout */}
-          <div className="p-4 border-t border-white/10">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-9 h-9 rounded-full bg-teal text-white flex items-center justify-center font-bold text-sm shrink-0">
-                  {dashboard.patient.firstName[0]}
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold truncate text-white">
-                    {dashboard.patient.firstName} {dashboard.patient.lastName}
-                  </p>
-                  <p className="text-xs text-soft-text-on-navy truncate font-mono">
-                    {dashboard.patient.patientNumber}
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={handleLogout}
-                title="Sign out"
-                className="p-2 text-soft-text-on-navy hover:text-red-300 hover:bg-white/5 rounded-lg transition-colors"
-              >
-                <LogOut size={18} />
-              </button>
-            </div>
-          </div>
-        </div>
-      </aside>
-
-      {/* Backdrop for mobile sidebar */}
-      {sidebarOpen && (
-        <div
-          onClick={() => setSidebarOpen(false)}
-          className="fixed inset-0 bg-black/50 z-30 lg:hidden"
-        />
-      )}
-
-      {/* ============================================================== */}
-      {/* MAIN CONTENT AREA                                              */}
-      {/* ============================================================== */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
-        {/* Top Navbar */}
-        <header className="sticky top-0 z-20 bg-white border-b border-border px-5 py-3.5 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setSidebarOpen(true)}
-              className="lg:hidden p-2 text-navy hover:bg-section-tint rounded-lg"
-            >
-              <Menu size={22} />
-            </button>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-lg font-bold text-navy capitalize">
-                  {navItems.find((n) => n.id === activeTab)?.label}
-                </h2>
-                <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-pale-cyan text-navy">
-                  {selectedProfile.firstName} {selectedProfile.lastName}
-                </span>
-              </div>
-              <p className="text-xs text-muted-text hidden sm:block">
-                MedCard Patient Vault · Secure Health Portal
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            {/* Quick Action: Book Appointment */}
-            <button
-              onClick={() => setShowBookingModal(true)}
-              className="inline-flex items-center gap-2 bg-navy text-white text-xs sm:text-sm font-semibold px-3.5 py-2 rounded-lg hover:bg-mid-blue transition-colors shadow-sm"
-            >
-              <Calendar size={15} />
-              <span>Book Appointment</span>
-            </button>
-
-            {/* Back to MedCard site */}
-            <a
-              href="/"
-              className="hidden md:inline-flex items-center gap-1.5 text-xs text-body-text hover:text-navy px-3 py-2 rounded-lg border border-border bg-white"
-            >
-              <Home size={14} />
-              <span>MedCard Site</span>
-            </a>
-
-            {/* Profile Avatar Pill */}
-            <div className="flex items-center gap-2 pl-2 border-l border-border">
-              <div className="w-8 h-8 rounded-full bg-teal text-white flex items-center justify-center font-bold text-xs">
-                {selectedProfile.firstName[0]}
-              </div>
-            </div>
-          </div>
-        </header>
-
-        {/* Status / Notice messages */}
+    <AppLayout
+      currentRole="patient"
+      activeNavId={activeTab}
+      onNavSelect={(id) => setActiveTab(id as TabId)}
+      userDisplayName={`${dashboard.patient.firstName} ${dashboard.patient.lastName}`}
+      userEmail={dashboard.patient.email || undefined}
+      profiles={profileOptions}
+      selectedProfileId={selectedProfileId}
+      onSelectProfileId={(id) => setSelectedProfileId(id)}
+      onBookAppointmentClick={() => {
+        setActiveTab("appointments");
+        setAppointmentSubTab("find");
+      }}
+      onNotificationsClick={() => setActiveTab("notifications")}
+      hasUnreadNotifications={false}
+    >
+      <div className="p-6 space-y-6 max-w-7xl mx-auto">
+        {/* Status / Notice alerts */}
         {(error || notice) && (
-          <div className="px-6 pt-4">
-            <div
-              role={error ? "alert" : "status"}
-              className={`flex items-start justify-between gap-3 p-4 rounded-xl text-sm border ${
-                error
-                  ? "bg-red-50 border-red-200 text-red-800"
-                  : "bg-teal/10 border-teal/30 text-navy"
-              }`}
-            >
-              <div className="flex items-start gap-2.5">
-                {error ? <AlertCircle size={18} className="mt-0.5 shrink-0" /> : <CheckCircle2 size={18} className="mt-0.5 shrink-0 text-teal" />}
-                <span>{error || notice}</span>
-              </div>
-              <button onClick={() => { setError(""); setNotice(""); }} className="text-xs font-semibold opacity-60 hover:opacity-100">
-                <X size={16} />
-              </button>
+          <div
+            role={error ? "alert" : "status"}
+            className={`flex items-start justify-between gap-3 p-3.5 rounded-xl text-xs border ${
+              error
+                ? "bg-red-50 border-red-200 text-red-800"
+                : "bg-emerald-50 border-emerald-200 text-emerald-800"
+            }`}
+          >
+            <div className="flex items-start gap-2">
+              {error ? (
+                <AlertCircle size={16} className="mt-0.5 shrink-0 text-red-600" />
+              ) : (
+                <CheckCircle2 size={16} className="mt-0.5 shrink-0 text-emerald-600" />
+              )}
+              <span>{error || notice}</span>
             </div>
+            <button
+              onClick={() => {
+                setError("");
+                setNotice("");
+              }}
+              className="text-xs font-semibold opacity-60 hover:opacity-100 p-0.5"
+              aria-label="Dismiss alert"
+            >
+              <X size={14} />
+            </button>
           </div>
         )}
 
-        {/* Content Body */}
-        <main className="flex-1 p-5 md:p-8 space-y-6 max-w-7xl w-full mx-auto">
-          {/* ========================================================== */}
-          {/* TAB: OVERVIEW                                              */}
-          {/* ========================================================== */}
-          {activeTab === "overview" && (
-            <div className="space-y-6">
-              {/* TOP STAT CARDS (Kukamoto / FIKA style metric cards) */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                {/* Stat 1: Subscription */}
-                <div className="bg-white rounded-2xl p-5 border border-border shadow-sm">
-                  <div className="flex items-center justify-between text-body-text mb-2">
-                    <span className="text-xs font-semibold uppercase tracking-wider">Vault Plan</span>
-                    <span className="p-2 rounded-xl bg-teal/10 text-teal">
-                      <ShieldCheck size={18} />
-                    </span>
-                  </div>
-                  <div className="text-xl font-bold text-navy">{subscription?.plan || "Basic"}</div>
-                  <div className="mt-1 flex items-center gap-1.5 text-xs text-teal font-medium">
-                    <span className="w-1.5 h-1.5 rounded-full bg-teal" />
-                    <span>Active subscription</span>
-                  </div>
-                </div>
-
-                {/* Stat 2: MedCard NFC ID */}
-                <div className="bg-white rounded-2xl p-5 border border-border shadow-sm">
-                  <div className="flex items-center justify-between text-body-text mb-2">
-                    <span className="text-xs font-semibold uppercase tracking-wider">MedCard NFC</span>
-                    <span className="p-2 rounded-xl bg-pale-cyan text-navy">
-                      <CreditCard size={18} />
-                    </span>
-                  </div>
-                  <div className="text-lg font-bold font-mono text-navy truncate">
-                    {selectedProfile.patientNumber}
-                  </div>
-                  <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-text">
-                    <span>Instant clinic tap enabled</span>
-                  </div>
-                </div>
-
-                {/* Stat 3: Medical Alerts */}
-                <div className="bg-white rounded-2xl p-5 border border-border shadow-sm">
-                  <div className="flex items-center justify-between text-body-text mb-2">
-                    <span className="text-xs font-semibold uppercase tracking-wider">Allergies & Conditions</span>
-                    <span className="p-2 rounded-xl bg-amber-50 text-amber-600">
-                      <AlertTriangle size={18} />
-                    </span>
-                  </div>
-                  <div className="text-xl font-bold text-navy">
-                    {selectedProfile.allergies.length + selectedProfile.medicalConditions.length}
-                  </div>
-                  <div className="mt-1 text-xs text-muted-text">
-                    {selectedProfile.allergies.length} allergies, {selectedProfile.medicalConditions.length} conditions
-                  </div>
-                </div>
-
-                {/* Stat 4: Clinical History Records */}
-                <div className="bg-white rounded-2xl p-5 border border-border shadow-sm">
-                  <div className="flex items-center justify-between text-body-text mb-2">
-                    <span className="text-xs font-semibold uppercase tracking-wider">Clinic Encounters</span>
-                    <span className="p-2 rounded-xl bg-blue-50 text-mid-blue">
-                      <Activity size={18} />
-                    </span>
-                  </div>
-                  <div className="text-xl font-bold text-navy">
-                    {consultations.length}
-                  </div>
-                  <div className="mt-1 text-xs text-muted-text">
-                    {prescriptions.length} prescriptions on file
-                  </div>
-                </div>
-              </div>
-
-              {/* EMERGENCY HEALTH CARD BANNER */}
-              <div className="bg-gradient-to-r from-navy to-[#084C74] rounded-2xl p-6 text-white shadow-soft">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div className="space-y-2">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-accent-on-navy text-xs font-semibold">
-                      <ShieldAlert size={14} />
-                      <span>EMERGENCY ACCESS SUMMARY</span>
-                    </div>
-                    <h3 className="text-2xl font-bold">
-                      {selectedProfile.firstName} {selectedProfile.lastName}
-                    </h3>
-                    <p className="text-sm text-soft-text-on-navy max-w-xl">
-                      This information is immediately retrieved when your NFC card is tapped at participating emergency clinics.
-                    </p>
-                    <div className="flex flex-wrap gap-4 pt-2 text-xs">
-                      <div>
-                        <span className="text-soft-text-on-navy block">Emergency Contact</span>
-                        <span className="font-semibold text-white">
-                          {selectedProfile.emergencyContactName || "Not provided"} ({selectedProfile.emergencyContactPhone || "No phone"})
-                        </span>
-                      </div>
-                      <div className="border-l border-white/20 pl-4">
-                        <span className="text-soft-text-on-navy block">Known Allergies</span>
-                        <span className="font-semibold text-white">
-                          {selectedProfile.allergies.length > 0
-                            ? selectedProfile.allergies.map((a) => a.allergen).join(", ")
-                            : "None reported"}
-                        </span>
-                      </div>
-                      <div className="border-l border-white/20 pl-4">
-                        <span className="text-soft-text-on-navy block">Insurance</span>
-                        <span className="font-semibold text-white">
-                          {selectedProfile.insuranceProvider || "Direct payer"}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="shrink-0 flex flex-col sm:flex-row md:flex-col gap-2">
-                    <button
-                      onClick={() => setActiveTab("profile")}
-                      className="px-4 py-2.5 rounded-xl bg-teal text-white text-xs font-bold hover:bg-teal/90 transition-colors text-center"
-                    >
-                      Update Emergency Details
-                    </button>
-                    <button
-                      onClick={() => setShowBookingModal(true)}
-                      className="px-4 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-semibold transition-colors text-center"
-                    >
-                      Book Clinic Visit
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* GRID: RECENT CONSULTATIONS & PRESCRIPTIONS PREVIEW */}
-              <div className="grid lg:grid-cols-2 gap-6">
-                {/* Card: Recent Consultations */}
-                <div className="bg-white rounded-2xl p-6 border border-border shadow-sm">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-2.5">
-                      <div className="p-2 rounded-xl bg-pale-cyan text-navy">
-                        <Stethoscope size={18} />
-                      </div>
-                      <h3 className="font-bold text-navy">Recent Consultations</h3>
-                    </div>
-                    <button
-                      onClick={() => setActiveTab("consultations")}
-                      className="text-xs text-teal font-semibold hover:underline inline-flex items-center gap-1"
-                    >
-                      <span>View all</span>
-                      <ChevronRight size={14} />
-                    </button>
-                  </div>
-
-                  {consultations.length > 0 ? (
-                    <div className="space-y-3">
-                      {consultations.slice(0, 3).map((c) => (
-                        <div key={c.id} className="p-3.5 rounded-xl bg-section-tint border border-border/60">
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="font-bold text-navy">{c.facility.name}</span>
-                            <span className="text-muted-text">{formatDate(c.startedAt)}</span>
-                          </div>
-                          <p className="text-xs text-body-text mt-1">
-                            Dr. {c.provider.firstName} {c.provider.lastName} · {c.type}
-                          </p>
-                          {c.diagnoses.length > 0 && (
-                            <div className="mt-2 text-xs font-medium text-navy bg-white px-2 py-1 rounded inline-block">
-                              Diagnosis: {c.diagnoses[0].description}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 text-body-text">
-                      <Stethoscope size={32} className="mx-auto text-muted-text/50 mb-2" />
-                      <p className="text-sm font-medium">No clinic visits recorded yet</p>
-                      <p className="text-xs text-muted-text mt-1 max-w-sm mx-auto">
-                        When you visit a MedCard participating clinic and tap your NFC card, your doctor's notes and diagnoses will appear here.
-                      </p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Card: Active Prescriptions & Medications */}
-                <div className="bg-white rounded-2xl p-6 border border-border shadow-sm">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-2.5">
-                      <div className="p-2 rounded-xl bg-pale-cyan text-navy">
-                        <Pill size={18} />
-                      </div>
-                      <h3 className="font-bold text-navy">Prescriptions & Medications</h3>
-                    </div>
-                    <button
-                      onClick={() => setActiveTab("prescriptions")}
-                      className="text-xs text-teal font-semibold hover:underline inline-flex items-center gap-1"
-                    >
-                      <span>View all</span>
-                      <ChevronRight size={14} />
-                    </button>
-                  </div>
-
-                  {prescriptions.length > 0 ? (
-                    <div className="space-y-3">
-                      {prescriptions.slice(0, 3).map((p) => (
-                        <div key={p.id} className="p-3.5 rounded-xl bg-section-tint border border-border/60">
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="font-semibold text-teal font-mono uppercase">{p.status}</span>
-                            <span className="text-muted-text">{formatDate(p.createdAt)}</span>
-                          </div>
-                          <div className="mt-1.5 space-y-1">
-                            {p.items.map((item) => (
-                              <div key={item.id} className="text-xs">
-                                <strong className="text-navy">{item.medicationName}</strong>
-                                {item.dosage && <span className="text-body-text"> · {item.dosage}</span>}
-                                {item.frequency && <span className="text-muted-text"> ({item.frequency})</span>}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 text-body-text">
-                      <Pill size={32} className="mx-auto text-muted-text/50 mb-2" />
-                      <p className="text-sm font-medium">No active prescriptions</p>
-                      <p className="text-xs text-muted-text mt-1 max-w-sm mx-auto">
-                        Prescriptions issued by authorized healthcare providers will be safely accessible in your vault.
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* FAMILY & PLAN HIGHLIGHTS */}
-              <div className="grid md:grid-cols-3 gap-6">
-                {/* Family members */}
-                <div className="bg-white rounded-2xl p-6 border border-border shadow-sm md:col-span-2">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-2">
-                      <UsersRound size={18} className="text-teal" />
-                      <h3 className="font-bold text-navy">Family Members & Dependents</h3>
-                    </div>
-                    <button
-                      onClick={() => setActiveTab("family")}
-                      className="text-xs text-teal font-semibold hover:underline"
-                    >
-                      + Add Member
-                    </button>
-                  </div>
-                  {dashboard.patient.dependents?.length ? (
-                    <div className="grid sm:grid-cols-2 gap-3">
-                      {dashboard.patient.dependents.map((dep) => (
-                        <div
-                          key={dep.id}
-                          onClick={() => setSelectedProfileId(dep.id)}
-                          className={`p-3.5 rounded-xl border cursor-pointer transition-all ${
-                            selectedProfileId === dep.id
-                              ? "border-teal bg-pale-cyan/40"
-                              : "border-border hover:border-teal/50 bg-section-tint"
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className="font-semibold text-sm text-navy">{dep.firstName} {dep.lastName}</span>
-                            {selectedProfileId === dep.id && (
-                              <span className="text-[10px] bg-teal text-white px-2 py-0.5 rounded-full font-bold">Active</span>
-                            )}
-                          </div>
-                          <p className="text-xs text-muted-text mt-1">DOB: {formatDate(dep.dateOfBirth)}</p>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="p-4 rounded-xl bg-section-tint border border-dashed border-border text-center">
-                      <p className="text-xs text-body-text">No family dependents added yet.</p>
-                      <button
-                        onClick={() => setActiveTab("family")}
-                        className="mt-2 text-xs font-bold text-teal hover:underline"
-                      >
-                        Add your child or dependent
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                {/* Plan status card */}
-                <div className="bg-white rounded-2xl p-6 border border-border shadow-sm flex flex-col justify-between">
-                  <div>
-                    <div className="flex items-center gap-2 text-navy mb-2">
-                      <CreditCard size={18} className="text-teal" />
-                      <h3 className="font-bold">Subscription Plan</h3>
-                    </div>
-                    <p className="text-2xl font-bold text-navy mt-2">{subscription?.plan} Vault</p>
-                    <p className="text-xs text-body-text mt-1">
-                      {subscription?.plan === "PREMIUM"
-                        ? "Unlimited document uploads, family sharing & priority sync"
-                        : "Basic clinical records & instant NFC identification"}
-                    </p>
-                  </div>
-                  {!isPremium && (
-                    <button
-                      onClick={() => setActiveTab("billing")}
-                      className="mt-4 w-full py-2.5 rounded-xl bg-teal text-white text-xs font-bold hover:bg-teal/90 transition-colors"
-                    >
-                      Upgrade to Premium · 150 RWF
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ========================================================== */}
-          {/* TAB: MEDICAL HISTORY                                       */}
-          {/* ========================================================== */}
-          {activeTab === "history" && (
-            <div className="space-y-6">
-              <div className="bg-white rounded-2xl p-6 border border-border shadow-sm">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
-                  <div>
-                    <h3 className="text-lg font-bold text-navy">Medical History & Clinical Conditions</h3>
-                    <p className="text-xs text-muted-text mt-1">
-                      Patient-reported and clinician-confirmed records for {selectedProfile.firstName}.
-                    </p>
-                  </div>
-                  <span className="text-xs bg-pale-cyan text-navy px-3 py-1 rounded-full font-semibold">
-                    {selectedProfile.allergies.length} Allergies · {selectedProfile.medicalConditions.length} Conditions
+        {/* ========================================================== */}
+        {/* TAB: OVERVIEW (Restyled with FIKA calm and density)         */}
+        {/* ========================================================== */}
+        {activeTab === "overview" && (
+          <div className="space-y-6">
+            {/* Top Stat Cards (4 columns, 4px grid, 16px gap) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Stat 1: Vault Plan */}
+              <div className="bg-white rounded-xl p-4 sm:p-5 border border-[#E4EBF0]">
+                <div className="flex items-center justify-between text-[#7A8D9B] mb-2">
+                  <span className="text-xs font-medium text-[#7A8D9B]">Vault plan</span>
+                  <span className="p-1.5 rounded-lg bg-[#EAF3F8] text-[#00A3B8]">
+                    <ShieldCheck size={16} />
                   </span>
                 </div>
+                <div className="text-xl font-semibold text-[#0F2942]">
+                  {isPremium ? "Premium" : "Basic"}
+                </div>
+                <div className="mt-1.5 flex items-center gap-1.5 text-xs text-[#00A3B8] font-medium">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#00A3B8]" />
+                  <span>Active subscription</span>
+                </div>
+              </div>
 
-                <div className="grid lg:grid-cols-2 gap-8">
-                  {/* Allergies Column */}
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2 pb-2 border-b border-border">
-                      <AlertTriangle size={18} className="text-amber-500" />
-                      <h4 className="font-bold text-navy">Allergies & Adverse Reactions</h4>
-                    </div>
+              {/* Stat 2: MedCard Patient ID */}
+              <div className="bg-white rounded-xl p-4 sm:p-5 border border-[#E4EBF0]">
+                <div className="flex items-center justify-between text-[#7A8D9B] mb-2">
+                  <span className="text-xs font-medium text-[#7A8D9B]">MedCard patient ID</span>
+                  <span className="p-1.5 rounded-lg bg-[#EAF3F8] text-[#0F2942]">
+                    <CreditCard size={16} />
+                  </span>
+                </div>
+                <div className="text-lg font-semibold font-mono text-[#0F2942] truncate">
+                  {selectedProfile.patientNumber}
+                </div>
+                <div className="mt-1.5 text-xs text-[#7A8D9B]">
+                  Instant clinic tap enabled
+                </div>
+              </div>
 
-                    {selectedProfile.allergies.length > 0 ? (
-                      <div className="space-y-2.5">
-                        {selectedProfile.allergies.map((item) => (
-                          <div key={item.id} className="p-3 rounded-xl bg-section-tint border border-border flex items-center justify-between">
-                            <div>
-                              <div className="font-bold text-sm text-navy">{item.allergen}</div>
-                              <div className="text-xs text-body-text">
-                                {item.reaction ? `Reaction: ${item.reaction}` : "No specific reaction"}
-                                {item.severity && <span className="ml-2 font-semibold text-amber-700">({item.severity})</span>}
-                              </div>
-                            </div>
-                            <button
-                              onClick={() => removeHealthRecord("allergies", item.id)}
-                              className="text-xs text-red-600 hover:text-red-800 font-semibold px-2 py-1"
-                            >
-                              Remove
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-xs text-muted-text italic py-2">No known allergies recorded.</p>
-                    )}
+              {/* Stat 3: Allergies & Conditions */}
+              <div className="bg-white rounded-xl p-4 sm:p-5 border border-[#E4EBF0]">
+                <div className="flex items-center justify-between text-[#7A8D9B] mb-2">
+                  <span className="text-xs font-medium text-[#7A8D9B]">Allergies and conditions</span>
+                  <span className="p-1.5 rounded-lg bg-amber-50 text-amber-700">
+                    <AlertTriangle size={16} />
+                  </span>
+                </div>
+                <div className="text-xl font-semibold text-[#0F2942]">
+                  {selectedProfile.allergies.length + selectedProfile.medicalConditions.length}
+                </div>
+                <div className="mt-1.5 text-xs text-[#7A8D9B]">
+                  {selectedProfile.allergies.length} allergies, {selectedProfile.medicalConditions.length} conditions
+                </div>
+              </div>
 
-                    {/* Add Allergy Form */}
-                    <form onSubmit={(e) => addHealthRecord("allergies", e)} className="p-4 rounded-xl border border-dashed border-border bg-white space-y-3">
-                      <p className="text-xs font-bold text-navy uppercase">Add New Allergy</p>
-                      <input
-                        required
-                        placeholder="Allergen (e.g. Penicillin, Peanuts)"
-                        value={allergy.allergen}
-                        onChange={(e) => setAllergy({ ...allergy, allergen: e.target.value })}
-                        className="w-full text-xs rounded-lg border border-border px-3 py-2"
-                      />
-                      <div className="grid grid-cols-2 gap-2">
-                        <input
-                          placeholder="Reaction (e.g. Hives, Swelling)"
-                          value={allergy.reaction}
-                          onChange={(e) => setAllergy({ ...allergy, reaction: e.target.value })}
-                          className="text-xs rounded-lg border border-border px-3 py-2"
-                        />
-                        <select
-                          value={allergy.severity}
-                          onChange={(e) => setAllergy({ ...allergy, severity: e.target.value })}
-                          className="text-xs rounded-lg border border-border px-3 py-2 bg-white"
-                        >
-                          <option value="MILD">Mild</option>
-                          <option value="MODERATE">Moderate</option>
-                          <option value="SEVERE">Severe / Life Threatening</option>
-                        </select>
-                      </div>
-                      <button className="w-full text-xs font-bold py-2 rounded-lg bg-teal text-white hover:bg-teal/90">
-                        + Add Allergy
-                      </button>
-                    </form>
-                  </div>
-
-                  {/* Medical Conditions Column */}
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2 pb-2 border-b border-border">
-                      <HeartPulse size={18} className="text-teal" />
-                      <h4 className="font-bold text-navy">Chronic Diseases & Diagnoses</h4>
-                    </div>
-
-                    {selectedProfile.medicalConditions.length > 0 ? (
-                      <div className="space-y-2.5">
-                        {selectedProfile.medicalConditions.map((item) => (
-                          <div key={item.id} className="p-3 rounded-xl bg-section-tint border border-border flex items-center justify-between">
-                            <div>
-                              <div className="font-bold text-sm text-navy">{item.name}</div>
-                              {item.description && (
-                                <div className="text-xs text-body-text">{item.description}</div>
-                              )}
-                            </div>
-                            <button
-                              onClick={() => removeHealthRecord("conditions", item.id)}
-                              className="text-xs text-red-600 hover:text-red-800 font-semibold px-2 py-1"
-                            >
-                              Remove
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-xs text-muted-text italic py-2">No chronic conditions recorded.</p>
-                    )}
-
-                    {/* Add Condition Form */}
-                    <form onSubmit={(e) => addHealthRecord("conditions", e)} className="p-4 rounded-xl border border-dashed border-border bg-white space-y-3">
-                      <p className="text-xs font-bold text-navy uppercase">Add Condition</p>
-                      <input
-                        required
-                        placeholder="Condition Name (e.g. Asthma, Hypertension)"
-                        value={condition.name}
-                        onChange={(e) => setCondition({ ...condition, name: e.target.value })}
-                        className="w-full text-xs rounded-lg border border-border px-3 py-2"
-                      />
-                      <input
-                        placeholder="Notes / Management (optional)"
-                        value={condition.description}
-                        onChange={(e) => setCondition({ ...condition, description: e.target.value })}
-                        className="w-full text-xs rounded-lg border border-border px-3 py-2"
-                      />
-                      <button className="w-full text-xs font-bold py-2 rounded-lg bg-navy text-white hover:bg-mid-blue">
-                        + Add Medical Condition
-                      </button>
-                    </form>
-                  </div>
+              {/* Stat 4: Appointments */}
+              <div className="bg-white rounded-xl p-4 sm:p-5 border border-[#E4EBF0]">
+                <div className="flex items-center justify-between text-[#7A8D9B] mb-2">
+                  <span className="text-xs font-medium text-[#7A8D9B]">Appointments</span>
+                  <span className="p-1.5 rounded-lg bg-[#EAF3F8] text-[#2A7AA5]">
+                    <Calendar size={16} />
+                  </span>
+                </div>
+                <div className="text-xl font-semibold text-[#0F2942]">
+                  {upcomingAppointments.length}
+                </div>
+                <div className="mt-1.5 text-xs text-[#00A3B8] font-medium">
+                  {upcomingAppointments.length > 0 ? "Upcoming visit scheduled" : "No visits queued"}
                 </div>
               </div>
             </div>
-          )}
 
-          {/* ========================================================== */}
-          {/* TAB: CONSULTATIONS                                         */}
-          {/* ========================================================== */}
-          {activeTab === "consultations" && (
-            <div className="space-y-6">
-              <div className="bg-white rounded-2xl p-6 border border-border shadow-sm">
-                <div className="flex items-center justify-between mb-6">
-                  <div>
-                    <h3 className="text-lg font-bold text-navy">Consultation History</h3>
-                    <p className="text-xs text-muted-text mt-1">
-                      Doctor consultations and clinical notes recorded across participating MedCard clinics.
-                    </p>
+            {/* Emergency Health Card (Calm white card with subtle pale cyan strip) */}
+            <div className="bg-white rounded-xl p-5 border border-[#E4EBF0] border-l-4 border-l-[#00A3B8]">
+              <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                <div className="space-y-2 flex-1">
+                  <div className="inline-flex items-center gap-1.5 text-xs font-medium text-[#00A3B8]">
+                    <ShieldAlert size={15} />
+                    <span>Emergency access summary</span>
+                  </div>
+                  <h3 className="text-lg font-semibold text-[#0F2942]">
+                    {selectedProfile.firstName} {selectedProfile.lastName}
+                  </h3>
+                  <p className="text-xs text-[#475B6B] max-w-xl">
+                    This information is immediately retrieved when your NFC card is tapped at participating emergency clinics.
+                  </p>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 text-xs">
+                    <div className="p-2.5 rounded-lg bg-[#F6F8FA] border border-[#E4EBF0]">
+                      <span className="text-[#7A8D9B] block font-medium">Emergency contact</span>
+                      <span className="font-semibold text-[#0F2942] block mt-0.5 truncate">
+                        {selectedProfile.emergencyContactName || "Not provided"} ({selectedProfile.emergencyContactPhone || "No phone"})
+                      </span>
+                    </div>
+                    <div className="p-2.5 rounded-lg bg-[#F6F8FA] border border-[#E4EBF0]">
+                      <span className="text-[#7A8D9B] block font-medium">Known allergies</span>
+                      <span className="font-semibold text-[#0F2942] block mt-0.5 truncate">
+                        {selectedProfile.allergies.length > 0
+                          ? selectedProfile.allergies.map((a) => a.allergen).join(", ")
+                          : "None reported"}
+                      </span>
+                    </div>
+                    <div className="p-2.5 rounded-lg bg-[#F6F8FA] border border-[#E4EBF0]">
+                      <span className="text-[#7A8D9B] block font-medium">Insurance provider</span>
+                      <span className="font-semibold text-[#0F2942] block mt-0.5 truncate">
+                        {selectedProfile.insuranceProvider || "Direct payer"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="shrink-0 flex sm:flex-row md:flex-col gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("profile")}
+                    className="h-9 px-3.5 rounded-lg bg-[#F6F8FA] hover:bg-[#E4EBF0] border border-[#E4EBF0] text-xs font-medium text-[#0F2942] transition-colors"
+                  >
+                    Update emergency details
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveTab("appointments");
+                      setAppointmentSubTab("find");
+                    }}
+                    className="h-9 px-3.5 rounded-lg bg-[#0F2942] hover:bg-[#183a5c] text-white text-xs font-semibold transition-colors"
+                  >
+                    Book clinic visit
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Grid: Next Appointment & Recent Consultations */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {/* Next Scheduled Appointment */}
+              <div className="bg-white rounded-xl p-5 border border-[#E4EBF0]">
+                <div className="flex items-center justify-between mb-3.5">
+                  <div className="flex items-center gap-2">
+                    <span className="p-1.5 rounded-lg bg-[#EAF3F8] text-[#0F2942]">
+                      <Calendar size={15} />
+                    </span>
+                    <h3 className="text-sm font-semibold text-[#0F2942]">Next scheduled appointment</h3>
                   </div>
                   <button
-                    onClick={() => setShowBookingModal(true)}
-                    className="inline-flex items-center gap-2 bg-teal text-white text-xs font-bold px-3 py-2 rounded-lg"
+                    type="button"
+                    onClick={() => setActiveTab("appointments")}
+                    className="text-xs text-[#00A3B8] font-medium hover:underline inline-flex items-center gap-0.5"
                   >
-                    <Plus size={14} />
-                    <span>Book New Visit</span>
+                    <span>View all ({appointments.length})</span>
+                    <ChevronRight size={13} />
+                  </button>
+                </div>
+
+                {upcomingAppointments.length > 0 ? (
+                  <div className="p-3.5 rounded-lg bg-[#F6F8FA] border border-[#E4EBF0] space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-[#0F2942] text-xs">
+                        {upcomingAppointments[0].facility.name}
+                      </span>
+                      <span
+                        className={`h-[22px] px-2.5 rounded-full text-xs font-medium flex items-center ${
+                          upcomingAppointments[0].status === "CONFIRMED"
+                            ? "bg-emerald-50 text-emerald-700 border border-emerald-200/60"
+                            : "bg-amber-50 text-amber-800 border border-amber-200/60"
+                        }`}
+                      >
+                        {upcomingAppointments[0].status === "CONFIRMED" ? "Confirmed" : "Pending confirmation"}
+                      </span>
+                    </div>
+                    <p className="text-xs text-[#475B6B] flex items-center gap-1.5">
+                      <Clock size={13} className="text-[#00A3B8]" />
+                      <span>{formatDateTime(upcomingAppointments[0].scheduledAt)}</span>
+                    </p>
+                    {upcomingAppointments[0].reason && (
+                      <p className="text-xs text-[#7A8D9B]">
+                        Reason: {upcomingAppointments[0].reason}
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-center py-6 text-[#475B6B]">
+                    <Calendar size={28} className="mx-auto text-[#7A8D9B]/50 mb-2" />
+                    <p className="text-xs font-medium">No upcoming appointments</p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab("appointments");
+                        setAppointmentSubTab("find");
+                      }}
+                      className="mt-2 text-xs font-semibold text-[#00A3B8] hover:underline"
+                    >
+                      Book an appointment with a clinic
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Recent Consultations */}
+              <div className="bg-white rounded-xl p-5 border border-[#E4EBF0]">
+                <div className="flex items-center justify-between mb-3.5">
+                  <div className="flex items-center gap-2">
+                    <span className="p-1.5 rounded-lg bg-[#EAF3F8] text-[#0F2942]">
+                      <Stethoscope size={15} />
+                    </span>
+                    <h3 className="text-sm font-semibold text-[#0F2942]">Recent consultations</h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("consultations")}
+                    className="text-xs text-[#00A3B8] font-medium hover:underline inline-flex items-center gap-0.5"
+                  >
+                    <span>View all</span>
+                    <ChevronRight size={13} />
                   </button>
                 </div>
 
                 {consultations.length > 0 ? (
-                  <div className="space-y-4">
-                    {consultations.map((c) => (
-                      <div key={c.id} className="p-5 rounded-2xl bg-section-tint border border-border">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-border/70">
-                          <div>
-                            <span className="font-bold text-base text-navy">{c.facility.name}</span>
-                            <p className="text-xs text-body-text">
-                              Attending Clinician: Dr. {c.provider.firstName} {c.provider.lastName} ({c.provider.role})
-                            </p>
-                          </div>
-                          <div className="text-left sm:text-right">
-                            <span className="text-xs font-bold bg-white text-navy px-2.5 py-1 rounded-md border border-border">
-                              {formatDate(c.startedAt)}
-                            </span>
-                            <span className="block text-[11px] text-teal font-semibold mt-1">Status: {c.status}</span>
-                          </div>
+                  <div className="space-y-2.5">
+                    {consultations.slice(0, 2).map((c) => (
+                      <div key={c.id} className="p-3 rounded-lg bg-[#F6F8FA] border border-[#E4EBF0]">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-semibold text-[#0F2942]">{c.facility.name}</span>
+                          <span className="text-[#7A8D9B]">{formatDate(c.startedAt)}</span>
                         </div>
-
-                        {/* Diagnoses */}
+                        <p className="text-xs text-[#475B6B] mt-1">
+                          Dr. {c.provider.firstName} {c.provider.lastName} · {c.type}
+                        </p>
                         {c.diagnoses.length > 0 && (
-                          <div className="mt-3">
-                            <span className="text-xs font-bold text-navy block mb-1">Diagnoses</span>
-                            <div className="flex flex-wrap gap-2">
-                              {c.diagnoses.map((d) => (
-                                <span key={d.id} className="text-xs px-2.5 py-1 bg-white rounded-lg border border-border text-navy font-medium">
-                                  {d.description} {d.code && `(${d.code})`}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Notes / Plan */}
-                        {c.clinicalNotes.length > 0 && (
-                          <div className="mt-3 space-y-2 text-xs">
-                            {c.clinicalNotes.map((note) => (
-                              <div key={note.id} className="p-3 bg-white rounded-xl border border-border/70">
-                                {note.subjective && (
-                                  <p className="text-body-text mb-1">
-                                    <strong className="text-navy">Chief Complaint:</strong> {note.subjective}
-                                  </p>
-                                )}
-                                {note.assessment && (
-                                  <p className="text-body-text mb-1">
-                                    <strong className="text-navy">Assessment:</strong> {note.assessment}
-                                  </p>
-                                )}
-                                {note.plan && (
-                                  <p className="text-body-text">
-                                    <strong className="text-navy">Management Plan:</strong> {note.plan}
-                                  </p>
-                                )}
-                              </div>
-                            ))}
+                          <div className="mt-1.5 text-xs text-[#0F2942] bg-white px-2 py-0.5 rounded border border-[#E4EBF0] inline-block font-medium">
+                            Diagnosis: {c.diagnoses[0].description}
                           </div>
                         )}
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-12 text-body-text">
-                    <Stethoscope size={40} className="mx-auto text-muted-text/40 mb-3" />
-                    <p className="text-base font-semibold text-navy">No past consultations recorded</p>
-                    <p className="text-xs text-muted-text mt-1 max-w-md mx-auto">
-                      When you visit a MedCard hospital or clinic, authorized doctors will document your visits directly into your digital health timeline.
+                  <div className="text-center py-6 text-[#475B6B]">
+                    <Stethoscope size={28} className="mx-auto text-[#7A8D9B]/50 mb-2" />
+                    <p className="text-xs font-medium">No recorded consultations</p>
+                    <p className="text-[11px] text-[#7A8D9B] mt-1">
+                      Consultations from participating MedCard clinics appear here automatically.
                     </p>
-                    <button
-                      onClick={() => setShowBookingModal(true)}
-                      className="mt-5 inline-flex items-center gap-2 bg-navy text-white text-xs font-bold px-4 py-2.5 rounded-xl hover:bg-mid-blue"
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================== */}
+        {/* TAB: APPOINTMENTS & CLINIC DIRECTORY                       */}
+        {/* ========================================================== */}
+        {activeTab === "appointments" && (
+          <div className="space-y-5">
+            {/* Header + Subtabs */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E4EBF0] pb-3">
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setAppointmentSubTab("upcoming")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                    appointmentSubTab === "upcoming"
+                      ? "bg-[#0F2942] text-white"
+                      : "text-[#475B6B] hover:bg-[#E4EBF0]"
+                  }`}
+                >
+                  Upcoming ({upcomingAppointments.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAppointmentSubTab("past")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                    appointmentSubTab === "past"
+                      ? "bg-[#0F2942] text-white"
+                      : "text-[#475B6B] hover:bg-[#E4EBF0]"
+                  }`}
+                >
+                  Past visits ({pastAppointments.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAppointmentSubTab("find")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                    appointmentSubTab === "find"
+                      ? "bg-[#0F2942] text-white"
+                      : "text-[#475B6B] hover:bg-[#E4EBF0]"
+                  }`}
+                >
+                  Find a clinic ({clinics.length})
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setShowBookingModal(true);
+                  if (clinics.length > 0 && !bookingFacilityId) {
+                    setBookingFacilityId(clinics[0].id);
+                  }
+                }}
+                className="h-8 px-3 rounded-lg bg-[#00A3B8] hover:bg-[#008f9e] text-white text-xs font-semibold flex items-center gap-1.5 transition-colors self-start sm:self-auto"
+              >
+                <Plus size={14} />
+                <span>Book appointment</span>
+              </button>
+            </div>
+
+            {/* Subtab: Upcoming */}
+            {appointmentSubTab === "upcoming" && (
+              <div className="space-y-3">
+                {upcomingAppointments.length > 0 ? (
+                  upcomingAppointments.map((appt) => (
+                    <div
+                      key={appt.id}
+                      className="bg-white rounded-xl p-4 border border-[#E4EBF0] flex flex-col md:flex-row md:items-center justify-between gap-4"
                     >
-                      <Calendar size={14} />
-                      <span>Book an appointment at a participating clinic</span>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-semibold text-sm text-[#0F2942]">{appt.facility.name}</h4>
+                          <span
+                            className={`h-[22px] px-2.5 rounded-full text-xs font-medium flex items-center ${
+                              appt.status === "CONFIRMED"
+                                ? "bg-emerald-50 text-emerald-700 border border-emerald-200/60"
+                                : "bg-amber-50 text-amber-800 border border-amber-200/60"
+                            }`}
+                          >
+                            {appt.status === "CONFIRMED" ? "Confirmed" : "Pending confirmation"}
+                          </span>
+                        </div>
+                        <p className="text-xs text-[#475B6B] flex items-center gap-1.5">
+                          <Clock size={13} className="text-[#00A3B8]" />
+                          <span>{formatDateTime(appt.scheduledAt)}</span>
+                          <span className="text-[#7A8D9B]">· {appt.appointmentType}</span>
+                        </p>
+                        {appt.reason && <p className="text-xs text-[#7A8D9B]">Reason: {appt.reason}</p>}
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleCancelAppointment(appt.id)}
+                          disabled={cancellingAppointmentId === appt.id}
+                          className="px-3 py-1.5 rounded-lg border border-red-200 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50 transition-colors"
+                        >
+                          {cancellingAppointmentId === appt.id ? "Cancelling..." : "Cancel booking"}
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="bg-white rounded-xl p-8 border border-[#E4EBF0] text-center">
+                    <Calendar size={32} className="mx-auto text-[#7A8D9B]/50 mb-2" />
+                    <p className="text-sm font-medium text-[#0F2942]">No upcoming appointments</p>
+                    <p className="text-xs text-[#7A8D9B] mt-1">Browse participating clinics to schedule a visit.</p>
+                    <button
+                      type="button"
+                      onClick={() => setAppointmentSubTab("find")}
+                      className="mt-3 text-xs font-semibold text-[#00A3B8] hover:underline"
+                    >
+                      Browse clinic directory
                     </button>
                   </div>
                 )}
               </div>
-            </div>
-          )}
+            )}
 
-          {/* ========================================================== */}
-          {/* TAB: PRESCRIPTIONS & LABS                                  */}
-          {/* ========================================================== */}
-          {activeTab === "prescriptions" && (
-            <div className="space-y-6">
-              <div className="grid lg:grid-cols-2 gap-6">
-                {/* Prescriptions */}
-                <div className="bg-white rounded-2xl p-6 border border-border shadow-sm">
-                  <div className="flex items-center gap-2 pb-3 mb-4 border-b border-border">
-                    <Pill size={18} className="text-teal" />
-                    <h3 className="font-bold text-navy">Prescriptions Released to Vault</h3>
-                  </div>
-
-                  {prescriptions.length > 0 ? (
-                    <div className="space-y-3">
-                      {prescriptions.map((p) => (
-                        <div key={p.id} className="p-4 rounded-xl bg-section-tint border border-border">
-                          <div className="flex items-center justify-between text-xs mb-2">
-                            <span className="font-bold text-navy font-mono">Status: {p.status}</span>
-                            <span className="text-muted-text">{formatDate(p.createdAt)}</span>
-                          </div>
-                          <p className="text-xs text-muted-text mb-2">
-                            Prescribed by Dr. {p.prescribedBy.firstName} {p.prescribedBy.lastName}
-                          </p>
-                          <div className="space-y-1.5 pt-2 border-t border-border/60">
-                            {p.items.map((it) => (
-                              <div key={it.id} className="text-xs bg-white p-2 rounded-lg border border-border/70">
-                                <div className="font-bold text-navy">{it.medicationName}</div>
-                                <div className="text-body-text mt-0.5">
-                                  {it.dosage && <span>{it.dosage} · </span>}
-                                  {it.frequency && <span>{it.frequency} · </span>}
-                                  {it.duration && <span>{it.duration}</span>}
-                                </div>
-                                {it.instructions && (
-                                  <div className="text-muted-text italic mt-1">Instructions: {it.instructions}</div>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-xs text-muted-text py-6 text-center italic">No active prescriptions.</p>
-                  )}
-                </div>
-
-                {/* Lab & Diagnostic Results */}
-                <div className="bg-white rounded-2xl p-6 border border-border shadow-sm">
-                  <div className="flex items-center gap-2 pb-3 mb-4 border-b border-border">
-                    <TestTube size={18} className="text-mid-blue" />
-                    <h3 className="font-bold text-navy">Laboratory & Diagnostic Reports</h3>
-                  </div>
-
-                  {labResults.length > 0 ? (
-                    <div className="space-y-3">
-                      {labResults.map((lab) => (
-                        <div key={lab.id} className="p-4 rounded-xl bg-section-tint border border-border">
-                          <div className="flex items-center justify-between text-xs mb-1">
-                            <span className="font-bold text-navy">{lab.tests.map((t) => t.testName).join(", ")}</span>
-                            <span className="text-xs font-semibold px-2 py-0.5 rounded bg-white border border-border text-teal">{lab.status}</span>
-                          </div>
-                          <p className="text-[11px] text-muted-text mb-2">Requested: {formatDate(lab.requestedAt)}</p>
-
-                          {lab.results.length > 0 ? (
-                            <div className="space-y-1.5 pt-2 border-t border-border/60">
-                              {lab.results.map((res) => (
-                                <div key={res.id} className="text-xs bg-white p-2.5 rounded-lg border border-border/70">
-                                  <div className="flex justify-between font-bold text-navy">
-                                    <span>{res.testName}</span>
-                                    <span>{res.resultValue} {res.unit}</span>
-                                  </div>
-                                  {res.referenceRange && (
-                                    <div className="text-[11px] text-muted-text mt-0.5">
-                                      Reference Range: {res.referenceRange}
-                                    </div>
-                                  )}
-                                  {res.interpretation && (
-                                    <div className="text-xs text-body-text mt-1">
-                                      Interpretation: {res.interpretation}
-                                    </div>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <p className="text-xs text-muted-text italic">Results pending laboratory processing.</p>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-xs text-muted-text py-6 text-center italic">No lab results on file.</p>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ========================================================== */}
-          {/* TAB: FAMILY PROFILES                                       */}
-          {/* ========================================================== */}
-          {activeTab === "family" && (
-            <div className="space-y-6">
-              <div className="bg-white rounded-2xl p-6 border border-border shadow-sm">
-                <div className="mb-4">
-                  <h3 className="text-lg font-bold text-navy">Family Members & Dependents</h3>
-                  <p className="text-xs text-muted-text mt-1">
-                    Manage medical files for children or family members under your MedCard guardian account.
-                  </p>
-                </div>
-
-                <div className="grid md:grid-cols-2 gap-6">
-                  {/* List of members */}
-                  <div className="space-y-3">
-                    <p className="text-xs font-bold uppercase text-navy">Linked Profiles</p>
-                    {/* Self */}
+            {/* Subtab: Past */}
+            {appointmentSubTab === "past" && (
+              <div className="space-y-3">
+                {pastAppointments.length > 0 ? (
+                  pastAppointments.map((appt) => (
                     <div
-                      onClick={() => setSelectedProfileId(dashboard.patient.id)}
-                      className={`p-4 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
-                        selectedProfileId === dashboard.patient.id
-                          ? "border-teal bg-pale-cyan/50"
-                          : "border-border bg-section-tint hover:border-teal/50"
-                      }`}
+                      key={appt.id}
+                      className="bg-white rounded-xl p-4 border border-[#E4EBF0] flex flex-col md:flex-row md:items-center justify-between gap-3 opacity-90"
                     >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-navy text-white flex items-center justify-center font-bold">
-                          {dashboard.patient.firstName[0]}
-                        </div>
-                        <div>
-                          <p className="font-bold text-navy text-sm">
-                            {dashboard.patient.firstName} {dashboard.patient.lastName} (Primary Account)
-                          </p>
-                          <p className="text-xs text-muted-text font-mono">{dashboard.patient.patientNumber}</p>
-                        </div>
-                      </div>
-                      <span className="text-xs bg-navy text-white px-2.5 py-1 rounded-full font-bold">Account Owner</span>
-                    </div>
-
-                    {/* Dependents */}
-                    {dashboard.patient.dependents?.map((dep) => (
-                      <div
-                        key={dep.id}
-                        onClick={() => setSelectedProfileId(dep.id)}
-                        className={`p-4 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
-                          selectedProfileId === dep.id
-                            ? "border-teal bg-pale-cyan/50"
-                            : "border-border bg-section-tint hover:border-teal/50"
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-teal text-white flex items-center justify-center font-bold">
-                            {dep.firstName[0]}
-                          </div>
-                          <div>
-                            <p className="font-bold text-navy text-sm">{dep.firstName} {dep.lastName}</p>
-                            <p className="text-xs text-muted-text">DOB: {formatDate(dep.dateOfBirth)}</p>
-                          </div>
-                        </div>
-                        <span className="text-xs text-teal font-semibold">Switch to view</span>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Add dependent form */}
-                  <div className="p-5 rounded-2xl bg-section-tint border border-border">
-                    <h4 className="font-bold text-navy text-sm mb-3">Add New Dependent</h4>
-                    <form onSubmit={addDependent} className="space-y-3">
-                      <div className="grid grid-cols-2 gap-2">
-                        <input
-                          required
-                          placeholder="First Name"
-                          value={dependentForm.firstName}
-                          onChange={(e) => setDependentForm({ ...dependentForm, firstName: e.target.value })}
-                          className="text-xs rounded-lg border border-border px-3 py-2 bg-white"
-                        />
-                        <input
-                          required
-                          placeholder="Last Name"
-                          value={dependentForm.lastName}
-                          onChange={(e) => setDependentForm({ ...dependentForm, lastName: e.target.value })}
-                          className="text-xs rounded-lg border border-border px-3 py-2 bg-white"
-                        />
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <label className="text-[11px] text-body-text block">
-                          Date of Birth
-                          <input
-                            type="date"
-                            value={dependentForm.dateOfBirth}
-                            onChange={(e) => setDependentForm({ ...dependentForm, dateOfBirth: e.target.value })}
-                            className="w-full text-xs rounded-lg border border-border px-2 py-1.5 bg-white mt-1"
-                          />
-                        </label>
-                        <label className="text-[11px] text-body-text block">
-                          Gender
-                          <select
-                            value={dependentForm.gender}
-                            onChange={(e) => setDependentForm({ ...dependentForm, gender: e.target.value })}
-                            className="w-full text-xs rounded-lg border border-border px-2 py-1.5 bg-white mt-1"
-                          >
-                            <option value="UNKNOWN">Prefer not to say</option>
-                            <option value="FEMALE">Female</option>
-                            <option value="MALE">Male</option>
-                            <option value="OTHER">Other</option>
-                          </select>
-                        </label>
-                      </div>
-                      <input
-                        placeholder="National ID / Birth Reg Number (optional)"
-                        value={dependentForm.nationalId}
-                        onChange={(e) => setDependentForm({ ...dependentForm, nationalId: e.target.value })}
-                        className="w-full text-xs rounded-lg border border-border px-3 py-2 bg-white"
-                      />
-                      <input
-                        placeholder="Insurance Provider (optional)"
-                        value={dependentForm.insuranceProvider}
-                        onChange={(e) => setDependentForm({ ...dependentForm, insuranceProvider: e.target.value })}
-                        className="w-full text-xs rounded-lg border border-border px-3 py-2 bg-white"
-                      />
-                      <button
-                        disabled={isAddingDependent}
-                        className="w-full text-xs font-bold py-2.5 rounded-lg bg-teal text-white hover:bg-teal/90 disabled:opacity-50"
-                      >
-                        {isAddingDependent ? "Adding..." : "+ Create Dependent Profile"}
-                      </button>
-                    </form>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ========================================================== */}
-          {/* TAB: DOCUMENTS & INSURANCE                                 */}
-          {/* ========================================================== */}
-          {activeTab === "documents" && (
-            <div className="space-y-6">
-              <div className="grid lg:grid-cols-2 gap-6">
-                {/* Documents */}
-                <div className="bg-white rounded-2xl p-6 border border-border shadow-sm">
-                  <div className="flex items-center gap-2 pb-3 mb-4 border-b border-border">
-                    <FileText size={18} className="text-teal" />
-                    <h3 className="font-bold text-navy">Medical Documents</h3>
-                  </div>
-
-                  {selectedProfile.medicalDocuments.length > 0 ? (
-                    <div className="space-y-3">
-                      {selectedProfile.medicalDocuments.map((doc) => (
-                        <div key={doc.id} className="p-3.5 rounded-xl bg-section-tint border border-border flex items-start justify-between">
-                          <div>
-                            <p className="font-bold text-sm text-navy">{doc.title}</p>
-                            <p className="text-xs text-muted-text mt-0.5">{doc.type} · {formatDate(doc.createdAt)}</p>
-                            {doc.description && <p className="text-xs text-body-text mt-1">{doc.description}</p>}
-                          </div>
-                          <span className="text-xs bg-white px-2 py-1 rounded border border-border font-mono text-teal">
-                            Verified
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-semibold text-sm text-[#0F2942]">{appt.facility.name}</h4>
+                          <span className="h-[22px] px-2 rounded-full text-xs font-medium bg-[#F0F4F8] text-[#7A8D9B] flex items-center">
+                            {appt.status}
                           </span>
                         </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 text-body-text">
-                      <FileText size={32} className="mx-auto text-muted-text/40 mb-2" />
-                      <p className="text-sm font-semibold">No medical documents uploaded yet</p>
-                      <p className="text-xs text-muted-text mt-1 max-w-sm mx-auto">
-                        Referral letters, radiology scans, and lab reports sent by clinics will appear securely in this vault.
-                      </p>
-                    </div>
-                  )}
-
-                  <div className="mt-4 p-3 rounded-xl bg-pale-cyan/50 border border-teal/20 flex items-start gap-2.5 text-xs text-navy">
-                    <LockKeyhole size={16} className="text-teal shrink-0 mt-0.5" />
-                    <span>Patient direct upload is currently restricted to clinical staff verification to ensure strict regulatory authenticity.</span>
-                  </div>
-                </div>
-
-                {/* Insurance */}
-                <div className="bg-white rounded-2xl p-6 border border-border shadow-sm">
-                  <div className="flex items-center gap-2 pb-3 mb-4 border-b border-border">
-                    <ShieldCheck size={18} className="text-teal" />
-                    <h3 className="font-bold text-navy">Insurance Coverage</h3>
-                  </div>
-
-                  <div className="p-4 rounded-xl bg-section-tint border border-border space-y-2">
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="text-body-text">Declared Insurance Provider:</span>
-                      <strong className="text-navy">{selectedProfile.insuranceProvider || "Direct Payer (Private)"}</strong>
-                    </div>
-                    {selectedProfile.patientInsurances?.map((ins) => (
-                      <div key={ins.id} className="pt-2 border-t border-border/70 text-xs">
-                        <div className="font-bold text-navy">{ins.plan.provider.name} — {ins.plan.name}</div>
-                        <div className="text-muted-text">Card #: {ins.membershipNumber} ({ins.status})</div>
+                        <p className="text-xs text-[#7A8D9B] mt-1">{formatDateTime(appt.scheduledAt)}</p>
                       </div>
-                    ))}
-                  </div>
-
-                  <div className="mt-6 p-4 rounded-xl bg-section-tint border border-border">
-                    <h4 className="font-bold text-navy text-xs uppercase mb-2">Clinician NFC Retrieval</h4>
-                    <p className="text-xs text-body-text leading-relaxed">
-                      Clinicians retrieve your record through the authenticated MedCard clinical system upon presenting your NFC card. Your physical card is a cryptographic key; sensitive records are stored securely encrypted in the cloud.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ========================================================== */}
-          {/* TAB: PLAN & BILLING                                        */}
-          {/* ========================================================== */}
-          {activeTab === "billing" && (
-            <div className="space-y-6">
-              <div className="bg-white rounded-2xl p-6 border border-border shadow-sm max-w-3xl">
-                <h3 className="text-lg font-bold text-navy mb-1">Subscription Plan & Billing</h3>
-                <p className="text-xs text-muted-text mb-6">Manage your MedCard Patient Vault subscription and mobile money billing.</p>
-
-                <div className="p-5 rounded-2xl bg-navy text-white mb-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="text-xs text-accent-on-navy font-bold uppercase tracking-wider">Current Tier</span>
-                      <h4 className="text-2xl font-bold mt-1">{subscription?.plan} Vault</h4>
-                      <p className="text-xs text-soft-text-on-navy mt-1">
-                        Active until {formatDate(subscription?.endDate)} · {subscription?.amount.toLocaleString()} RWF/month
-                      </p>
                     </div>
-                    <span className="px-3 py-1 rounded-full bg-teal text-white text-xs font-bold">
-                      ACTIVE
-                    </span>
-                  </div>
-                </div>
-
-                {!isPremium ? (
-                  <div className="p-5 rounded-2xl border border-teal/40 bg-pale-cyan/30 space-y-4">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h4 className="font-bold text-navy text-base">Upgrade to Premium Vault</h4>
-                        <p className="text-xs text-body-text mt-1">
-                          Unlock document uploads, multi-sector linkage, family sharing, and priority backup.
-                        </p>
-                      </div>
-                      <span className="text-lg font-bold text-teal">150 RWF/mo</span>
-                    </div>
-
-                    <div className="space-y-3 pt-2">
-                      <label className="text-xs font-semibold text-navy block">
-                        MTN / Airtel Mobile Money Number
-                        <input
-                          value={paymentPhone}
-                          onChange={(e) => setPaymentPhone(e.target.value)}
-                          placeholder="2507XXXXXXXX"
-                          className="w-full text-xs rounded-lg border border-border px-3 py-2 bg-white mt-1"
-                        />
-                      </label>
-                      <button
-                        onClick={upgradePlan}
-                        disabled={isPaying || !paymentPhone.trim()}
-                        className="w-full py-3 rounded-xl bg-teal text-white font-bold text-xs hover:bg-teal/90 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
-                      >
-                        {isPaying ? <LoaderCircle size={16} className="animate-spin" /> : <CreditCard size={16} />}
-                        <span>{isPaying ? "Awaiting prompt approval..." : "Pay with Mobile Money (150 RWF)"}</span>
-                      </button>
-                      <p className="text-[11px] text-muted-text text-center">
-                        Securely processed via XentriPay Rwanda. You will receive a push prompt on your mobile phone.
-                      </p>
-                    </div>
-                  </div>
+                  ))
                 ) : (
-                  <div className="p-4 rounded-xl bg-pale-cyan text-navy flex items-center gap-3">
-                    <CheckCircle2 size={20} className="text-teal shrink-0" />
-                    <p className="text-xs font-medium">You are on the top-tier Premium plan with all benefits unlocked.</p>
+                  <div className="bg-white rounded-xl p-8 border border-[#E4EBF0] text-center text-xs text-[#7A8D9B]">
+                    No past appointments recorded.
                   </div>
                 )}
               </div>
-            </div>
-          )}
+            )}
 
-          {/* ========================================================== */}
-          {/* TAB: PERSONAL DETAILS                                      */}
-          {/* ========================================================== */}
-          {activeTab === "profile" && (
-            <div className="space-y-6">
-              <form onSubmit={saveProfile} className="bg-white rounded-2xl p-6 border border-border shadow-sm max-w-3xl">
-                <div className="flex items-center justify-between mb-6 pb-3 border-b border-border">
-                  <div>
-                    <h3 className="text-lg font-bold text-navy">Personal & Emergency Details</h3>
-                    <p className="text-xs text-muted-text mt-1">
-                      Update your contact information and emergency contact.
-                    </p>
-                  </div>
-                  <button
-                    disabled={isSaving}
-                    className="inline-flex items-center gap-2 bg-teal text-white text-xs font-bold px-4 py-2.5 rounded-lg hover:bg-teal/90 disabled:opacity-50"
-                  >
-                    {isSaving && <LoaderCircle size={14} className="animate-spin" />}
-                    <span>Save Changes</span>
-                  </button>
+            {/* Subtab: Find a Clinic */}
+            {appointmentSubTab === "find" && (
+              <div className="space-y-4">
+                <div className="relative">
+                  <Search size={16} className="absolute left-3 top-2.5 text-[#7A8D9B]" />
+                  <input
+                    type="text"
+                    value={clinicSearch}
+                    onChange={(e) => setClinicSearch(e.target.value)}
+                    placeholder="Search clinics by name, district, or service..."
+                    className="w-full text-xs bg-white rounded-xl border border-[#E4EBF0] pl-9 pr-3 py-2 text-[#0F2942] placeholder-[#7A8D9B] focus:outline-none focus:ring-1 focus:ring-[#00A3B8]"
+                  />
                 </div>
 
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <label className="text-xs font-semibold text-navy">
-                    First Name
-                    <input
-                      required
-                      value={profileForm.firstName}
-                      onChange={(e) => setProfileForm({ ...profileForm, firstName: e.target.value })}
-                      className="w-full text-xs rounded-lg border border-border px-3 py-2 mt-1"
-                    />
-                  </label>
-                  <label className="text-xs font-semibold text-navy">
-                    Last Name
-                    <input
-                      required
-                      value={profileForm.lastName}
-                      onChange={(e) => setProfileForm({ ...profileForm, lastName: e.target.value })}
-                      className="w-full text-xs rounded-lg border border-border px-3 py-2 mt-1"
-                    />
-                  </label>
-                  <label className="text-xs font-semibold text-navy">
-                    Date of Birth
-                    <input
-                      type="date"
-                      value={profileForm.dateOfBirth}
-                      onChange={(e) => setProfileForm({ ...profileForm, dateOfBirth: e.target.value })}
-                      className="w-full text-xs rounded-lg border border-border px-3 py-2 mt-1"
-                    />
-                  </label>
-                  <label className="text-xs font-semibold text-navy">
-                    Gender
-                    <select
-                      value={profileForm.gender}
-                      onChange={(e) => setProfileForm({ ...profileForm, gender: e.target.value })}
-                      className="w-full text-xs rounded-lg border border-border px-3 py-2 mt-1 bg-white"
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {filteredClinics.map((clinic) => (
+                    <div
+                      key={clinic.id}
+                      className="bg-white rounded-xl p-4 border border-[#E4EBF0] flex flex-col justify-between"
                     >
-                      <option value="UNKNOWN">Prefer not to say</option>
-                      <option value="FEMALE">Female</option>
-                      <option value="MALE">Male</option>
-                      <option value="OTHER">Other</option>
-                    </select>
-                  </label>
-                  <label className="text-xs font-semibold text-navy">
-                    Phone Number
-                    <input
-                      value={profileForm.phone}
-                      onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
-                      className="w-full text-xs rounded-lg border border-border px-3 py-2 mt-1"
-                    />
-                  </label>
-                  <label className="text-xs font-semibold text-navy">
-                    National ID
-                    <input
-                      value={profileForm.nationalId}
-                      onChange={(e) => setProfileForm({ ...profileForm, nationalId: e.target.value })}
-                      className="w-full text-xs rounded-lg border border-border px-3 py-2 mt-1"
-                    />
-                  </label>
-                  <label className="text-xs font-semibold text-navy">
-                    Emergency Contact Name
-                    <input
-                      value={profileForm.emergencyContactName}
-                      onChange={(e) => setProfileForm({ ...profileForm, emergencyContactName: e.target.value })}
-                      className="w-full text-xs rounded-lg border border-border px-3 py-2 mt-1"
-                    />
-                  </label>
-                  <label className="text-xs font-semibold text-navy">
-                    Emergency Contact Phone
-                    <input
-                      value={profileForm.emergencyContactPhone}
-                      onChange={(e) => setProfileForm({ ...profileForm, emergencyContactPhone: e.target.value })}
-                      className="w-full text-xs rounded-lg border border-border px-3 py-2 mt-1"
-                    />
-                  </label>
-                  <label className="text-xs font-semibold text-navy sm:col-span-2">
-                    Insurance Provider
-                    <input
-                      value={profileForm.insuranceProvider}
-                      onChange={(e) => setProfileForm({ ...profileForm, insuranceProvider: e.target.value })}
-                      className="w-full text-xs rounded-lg border border-border px-3 py-2 mt-1"
-                      placeholder="e.g. RSSB / RAMA, MMI, Radiant, UAP"
-                    />
-                  </label>
-                </div>
-              </form>
-            </div>
-          )}
-        </main>
-      </div>
+                      <div>
+                        <div className="flex items-start justify-between gap-2">
+                          <h4 className="font-semibold text-sm text-[#0F2942]">{clinic.name}</h4>
+                          <span className="h-[22px] px-2 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200/50 flex items-center">
+                            Active clinic
+                          </span>
+                        </div>
+                        <p className="text-xs text-[#7A8D9B] flex items-center gap-1 mt-1">
+                          <MapPin size={13} className="shrink-0 text-[#00A3B8]" />
+                          <span>{clinic.address || "Kigali, Rwanda"}</span>
+                        </p>
+                        <div className="flex flex-wrap gap-1.5 mt-2.5">
+                          {clinic.services.map((svc) => (
+                            <span
+                              key={svc}
+                              className="text-[11px] px-2 py-0.5 rounded-md bg-[#F6F8FA] text-[#475B6B] border border-[#E4EBF0]"
+                            >
+                              {svc}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
 
-      {/* ============================================================== */}
-      {/* BOOK APPOINTMENT MODAL (Requirement 2 from Document)           */}
-      {/* ============================================================== */}
-      {showBookingModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-card space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-border">
-              <div className="flex items-center gap-2">
-                <Calendar className="text-teal" size={20} />
-                <h3 className="font-bold text-navy text-lg">Book Clinic Appointment</h3>
+                      <div className="pt-3 mt-3 border-t border-[#E4EBF0] flex items-center justify-between">
+                        <span className="text-[11px] text-[#7A8D9B]">{clinic.operatingHours}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setBookingFacilityId(clinic.id);
+                            setShowBookingModal(true);
+                          }}
+                          className="h-7 px-3 rounded-lg bg-[#0F2942] hover:bg-[#183a5c] text-white text-xs font-semibold transition-colors"
+                        >
+                          Book appointment
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ========================================================== */}
+        {/* TAB: MEDICAL HISTORY                                       */}
+        {/* ========================================================== */}
+        {activeTab === "history" && (
+          <div className="space-y-6">
+            {/* Allergies Card */}
+            <div className="bg-white rounded-xl p-5 border border-[#E4EBF0]">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-sm font-semibold text-[#0F2942]">Allergies and adverse reactions</h3>
+                  <p className="text-xs text-[#7A8D9B] mt-0.5">Recorded patient allergies transmitted on NFC scan.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowAllergyModal(true)}
+                  className="h-8 px-3 rounded-lg bg-[#F6F8FA] hover:bg-[#E4EBF0] border border-[#E4EBF0] text-xs font-medium text-[#0F2942] flex items-center gap-1.5 transition-colors"
+                >
+                  <Plus size={14} />
+                  <span>Add allergy</span>
+                </button>
+              </div>
+
+              {selectedProfile.allergies.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  {selectedProfile.allergies.map((allergy) => (
+                    <div
+                      key={allergy.id}
+                      className="p-3 rounded-lg bg-[#F6F8FA] border border-[#E4EBF0] flex items-center justify-between"
+                    >
+                      <div>
+                        <span className="font-semibold text-xs text-[#0F2942] block">{allergy.allergen}</span>
+                        <span className="text-[11px] text-[#7A8D9B]">
+                          Severity: {allergy.severity || "Not stated"}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => deleteAllergy(allergy.id)}
+                        className="text-[#7A8D9B] hover:text-red-600 p-1 rounded transition-colors"
+                        aria-label="Delete allergy"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-[#7A8D9B]">No allergies currently recorded.</p>
+              )}
+            </div>
+
+            {/* Chronic Conditions Card */}
+            <div className="bg-white rounded-xl p-5 border border-[#E4EBF0]">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-sm font-semibold text-[#0F2942]">Medical conditions</h3>
+                  <p className="text-xs text-[#7A8D9B] mt-0.5">Active or previous diagnosed medical conditions.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowConditionModal(true)}
+                  className="h-8 px-3 rounded-lg bg-[#F6F8FA] hover:bg-[#E4EBF0] border border-[#E4EBF0] text-xs font-medium text-[#0F2942] flex items-center gap-1.5 transition-colors"
+                >
+                  <Plus size={14} />
+                  <span>Add condition</span>
+                </button>
+              </div>
+
+              {selectedProfile.medicalConditions.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  {selectedProfile.medicalConditions.map((cond) => (
+                    <div
+                      key={cond.id}
+                      className="p-3 rounded-lg bg-[#F6F8FA] border border-[#E4EBF0] flex items-center justify-between"
+                    >
+                      <div>
+                        <span className="font-semibold text-xs text-[#0F2942] block">{cond.name}</span>
+                        {cond.description && <span className="text-[11px] text-[#7A8D9B]">{cond.description}</span>}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => deleteCondition(cond.id)}
+                        className="text-[#7A8D9B] hover:text-red-600 p-1 rounded transition-colors"
+                        aria-label="Delete condition"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-[#7A8D9B]">No medical conditions recorded.</p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================== */}
+        {/* TAB: CONSULTATIONS                                         */}
+        {/* ========================================================== */}
+        {activeTab === "consultations" && (
+          <div className="bg-white rounded-xl p-5 border border-[#E4EBF0] space-y-4">
+            <div>
+              <h3 className="text-sm font-semibold text-[#0F2942]">Consultation history</h3>
+              <p className="text-xs text-[#7A8D9B] mt-0.5">
+                Past clinical consultations released by participating MedCard healthcare providers.
+              </p>
+            </div>
+
+            {consultations.length > 0 ? (
+              <div className="space-y-3">
+                {consultations.map((c) => (
+                  <div key={c.id} className="p-4 rounded-xl bg-[#F6F8FA] border border-[#E4EBF0] space-y-2">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs">
+                      <span className="font-semibold text-sm text-[#0F2942]">{c.facility.name}</span>
+                      <span className="text-[#7A8D9B]">{formatDate(c.startedAt)}</span>
+                    </div>
+                    <p className="text-xs text-[#475B6B]">
+                      Clinician: Dr. {c.provider.firstName} {c.provider.lastName} · {c.type}
+                    </p>
+                    {c.diagnoses.length > 0 && (
+                      <div className="text-xs text-[#0F2942] bg-white px-2.5 py-1 rounded-md border border-[#E4EBF0] inline-block font-medium">
+                        Diagnosis: {c.diagnoses.map((d) => d.description).join(", ")}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-xs text-[#7A8D9B]">
+                No consultation records found for this profile.
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ========================================================== */}
+        {/* TAB: PRESCRIPTIONS & RESULTS                               */}
+        {/* ========================================================== */}
+        {activeTab === "prescriptions" && (
+          <div className="space-y-6">
+            {/* Prescriptions */}
+            <div className="bg-white rounded-xl p-5 border border-[#E4EBF0] space-y-4">
+              <div>
+                <h3 className="text-sm font-semibold text-[#0F2942]">Active and previous prescriptions</h3>
+                <p className="text-xs text-[#7A8D9B] mt-0.5">Dispensed or authorized medication courses.</p>
+              </div>
+
+              {prescriptions.length > 0 ? (
+                <div className="space-y-3">
+                  {prescriptions.map((p) => (
+                    <div key={p.id} className="p-4 rounded-xl bg-[#F6F8FA] border border-[#E4EBF0] space-y-2">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-semibold text-xs text-[#0F2942]">
+                          Prescribed by Dr. {p.prescribedBy.firstName} {p.prescribedBy.lastName}
+                        </span>
+                        <span className="h-[22px] px-2 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200/50 flex items-center">
+                          {p.status}
+                        </span>
+                      </div>
+                      <div className="space-y-1">
+                        {p.items.map((item) => (
+                          <div key={item.id} className="text-xs text-[#475B6B] bg-white p-2 rounded-md border border-[#E4EBF0]">
+                            <strong className="text-[#0F2942]">{item.medicationName}</strong> — {item.dosage} · {item.frequency} · {item.instructions}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-[#7A8D9B]">No prescriptions on file.</p>
+              )}
+            </div>
+
+            {/* Laboratory reports */}
+            <div className="bg-white rounded-xl p-5 border border-[#E4EBF0] space-y-4">
+              <div>
+                <h3 className="text-sm font-semibold text-[#0F2942]">Laboratory and diagnostic results</h3>
+                <p className="text-xs text-[#7A8D9B] mt-0.5">Diagnostic test reports released by authorized labs.</p>
+              </div>
+
+              {labResults.length > 0 ? (
+                <div className="space-y-3">
+                  {labResults.map((lab) => (
+                    <div key={lab.id} className="p-4 rounded-xl bg-[#F6F8FA] border border-[#E4EBF0] space-y-2">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-semibold text-xs text-[#0F2942]">
+                          Lab Order · {lab.encounter?.facility?.name || "Clinic Lab"}
+                        </span>
+                        <span className="text-[#7A8D9B]">{formatDate(lab.completedAt || lab.requestedAt)}</span>
+                      </div>
+                      <div className="space-y-1">
+                        {lab.results.map((r) => (
+                          <div key={r.id} className="text-xs text-[#475B6B] bg-white p-2 rounded-md border border-[#E4EBF0] flex justify-between">
+                            <span>{r.testName}</span>
+                            <span className="font-semibold text-[#0F2942]">{r.resultValue} {r.unit}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-[#7A8D9B]">No laboratory test results recorded.</p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================== */}
+        {/* TAB: DOCUMENTS AND INSURANCE                               */}
+        {/* ========================================================== */}
+        {activeTab === "documents" && (
+          <div className="space-y-6">
+            {/* Section 1: Documents */}
+            <div className="bg-white rounded-xl p-5 border border-[#E4EBF0] space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-semibold text-[#0F2942]">Medical documents</h3>
+                  <p className="text-xs text-[#7A8D9B] mt-0.5">Medical reports, referral letters, and scan files.</p>
+                </div>
+              </div>
+
+              {selectedProfile.medicalDocuments.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {selectedProfile.medicalDocuments.map((doc) => (
+                    <div key={doc.id} className="p-3 rounded-lg bg-[#F6F8FA] border border-[#E4EBF0] flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <FileText size={16} className="text-[#00A3B8]" />
+                        <span className="text-xs font-semibold text-[#0F2942]">{doc.title}</span>
+                      </div>
+                      <span className="text-[11px] text-[#7A8D9B]">{doc.type}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-[#7A8D9B]">No uploaded medical documents.</p>
+              )}
+            </div>
+
+            {/* Section 2: Insurance */}
+            <div className="bg-white rounded-xl p-5 border border-[#E4EBF0] space-y-4">
+              <div>
+                <h3 className="text-sm font-semibold text-[#0F2942]">Insurance policies</h3>
+                <p className="text-xs text-[#7A8D9B] mt-0.5">Linked health insurance policies and membership numbers.</p>
+              </div>
+
+              {selectedProfile.patientInsurances.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {selectedProfile.patientInsurances.map((ins) => (
+                    <div key={ins.id} className="p-3.5 rounded-lg bg-[#F6F8FA] border border-[#E4EBF0] space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-[#0F2942]">
+                          {ins.plan.provider.name} — {ins.plan.name}
+                        </span>
+                        <span className="h-[22px] px-2 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200/50 flex items-center">
+                          {ins.status}
+                        </span>
+                      </div>
+                      <p className="text-xs text-[#7A8D9B] font-mono">Member ID: {ins.membershipNumber}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-[#7A8D9B]">
+                  No insurance cards linked. Current provider: {selectedProfile.insuranceProvider || "Direct payer"}.
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================== */}
+        {/* TAB: NOTIFICATIONS                                         */}
+        {/* ========================================================== */}
+        {activeTab === "notifications" && (
+          <div className="bg-white rounded-xl p-5 border border-[#E4EBF0] space-y-4">
+            <div>
+              <h3 className="text-sm font-semibold text-[#0F2942]">Notifications and reminders</h3>
+              <p className="text-xs text-[#7A8D9B] mt-0.5">
+                Appointment confirmations, cancellations, reminders, and updates when new clinical records become available.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <div className="p-3.5 rounded-lg bg-[#F6F8FA] border border-[#E4EBF0] flex items-start gap-3">
+                <span className="p-1.5 rounded-lg bg-emerald-50 text-emerald-700 shrink-0">
+                  <CheckCircle2 size={16} />
+                </span>
+                <div>
+                  <h4 className="text-xs font-semibold text-[#0F2942]">Account active</h4>
+                  <p className="text-xs text-[#475B6B] mt-0.5">
+                    Your MedCard Patient Vault account is configured and synchronized with your card.
+                  </p>
+                  <span className="text-[11px] text-[#7A8D9B] block mt-1">Live status</span>
+                </div>
+              </div>
+
+              {upcomingAppointments.length > 0 && (
+                <div className="p-3.5 rounded-lg bg-[#F6F8FA] border border-[#E4EBF0] flex items-start gap-3">
+                  <span className="p-1.5 rounded-lg bg-[#EAF3F8] text-[#00A3B8] shrink-0">
+                    <Calendar size={16} />
+                  </span>
+                  <div>
+                    <h4 className="text-xs font-semibold text-[#0F2942]">Appointment reminder</h4>
+                    <p className="text-xs text-[#475B6B] mt-0.5">
+                      You have an appointment scheduled at {upcomingAppointments[0].facility.name} on{" "}
+                      {formatDateTime(upcomingAppointments[0].scheduledAt)}.
+                    </p>
+                    <span className="text-[11px] text-[#7A8D9B] block mt-1">Upcoming</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================== */}
+        {/* TAB: FAMILY PROFILES                                       */}
+        {/* ========================================================== */}
+        {activeTab === "family" && (
+          <div className="bg-white rounded-xl p-5 border border-[#E4EBF0] space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-semibold text-[#0F2942]">Family profiles</h3>
+                <p className="text-xs text-[#7A8D9B] mt-0.5">Manage health records for your children and dependents.</p>
               </div>
               <button
-                onClick={() => setShowBookingModal(false)}
-                className="p-1 rounded-lg hover:bg-section-tint text-muted-text"
+                type="button"
+                onClick={() => setShowDependentModal(true)}
+                className="h-8 px-3 rounded-lg bg-[#00A3B8] hover:bg-[#008f9e] text-white text-xs font-semibold flex items-center gap-1.5 transition-colors"
               >
-                <X size={20} />
+                <Plus size={14} />
+                <span>Add dependent</span>
               </button>
             </div>
 
-            {bookingSuccess ? (
-              <div className="py-8 text-center space-y-3">
-                <CheckCircle2 size={48} className="text-teal mx-auto" />
-                <h4 className="text-lg font-bold text-navy">Appointment Request Sent!</h4>
-                <p className="text-xs text-body-text max-w-sm mx-auto">
-                  Your visit request to {bookingClinic} has been submitted. The clinic will confirm or propose a slot. Status: <strong>Pending Confirmation</strong>.
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+              {/* Primary Owner */}
+              <div
+                onClick={() => setSelectedProfileId(dashboard.patient.id)}
+                className={`p-4 rounded-xl border cursor-pointer transition-colors ${
+                  selectedProfileId === dashboard.patient.id
+                    ? "bg-[#F0F4F8] border-[#00A3B8]"
+                    : "bg-white border-[#E4EBF0] hover:bg-[#F6F8FA]"
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-xs text-[#0F2942]">
+                    {dashboard.patient.firstName} {dashboard.patient.lastName}
+                  </span>
+                  <span className="h-[20px] px-2 rounded-full text-[10px] font-medium bg-[#EAF3F8] text-[#00A3B8] flex items-center">
+                    Primary
+                  </span>
+                </div>
+                <p className="text-xs text-[#7A8D9B] font-mono mt-1">{dashboard.patient.patientNumber}</p>
+              </div>
+
+              {/* Dependents */}
+              {dashboard.patient.dependents?.map((d) => (
+                <div
+                  key={d.id}
+                  onClick={() => setSelectedProfileId(d.id)}
+                  className={`p-4 rounded-xl border cursor-pointer transition-colors ${
+                    selectedProfileId === d.id
+                      ? "bg-[#F0F4F8] border-[#00A3B8]"
+                      : "bg-white border-[#E4EBF0] hover:bg-[#F6F8FA]"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-xs text-[#0F2942]">
+                      {d.firstName} {d.lastName}
+                    </span>
+                    <span className="h-[20px] px-2 rounded-full text-[10px] font-medium bg-amber-50 text-amber-800 border border-amber-200/50 flex items-center">
+                      Dependent
+                    </span>
+                  </div>
+                  <p className="text-xs text-[#7A8D9B] font-mono mt-1">{d.patientNumber}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================== */}
+        {/* TAB: PROFILE                                               */}
+        {/* ========================================================== */}
+        {activeTab === "profile" && (
+          <form onSubmit={saveProfile} className="bg-white rounded-xl p-5 border border-[#E4EBF0] space-y-4 max-w-2xl">
+            <div className="flex items-center justify-between border-b border-[#E4EBF0] pb-3">
+              <div>
+                <h3 className="text-sm font-semibold text-[#0F2942]">Personal profile details</h3>
+                <p className="text-xs text-[#7A8D9B] mt-0.5">Update your permitted personal and emergency information.</p>
+              </div>
+              <button
+                type="submit"
+                disabled={isSaving}
+                className="h-8 px-3.5 rounded-lg bg-[#0F2942] hover:bg-[#183a5c] text-white text-xs font-semibold flex items-center gap-1.5 disabled:opacity-50 transition-colors"
+              >
+                {isSaving && <LoaderCircle size={14} className="animate-spin" />}
+                <span>Save changes</span>
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              <div>
+                <label className="text-xs font-medium text-[#475B6B] block">First name</label>
+                <input
+                  required
+                  value={profileForm.firstName}
+                  onChange={(e) => setProfileForm({ ...profileForm, firstName: e.target.value })}
+                  className="w-full text-xs bg-white rounded-lg border border-[#E4EBF0] px-3 py-2 text-[#0F2942] mt-1"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-[#475B6B] block">Last name</label>
+                <input
+                  required
+                  value={profileForm.lastName}
+                  onChange={(e) => setProfileForm({ ...profileForm, lastName: e.target.value })}
+                  className="w-full text-xs bg-white rounded-lg border border-[#E4EBF0] px-3 py-2 text-[#0F2942] mt-1"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-[#475B6B] block">Phone number</label>
+                <input
+                  value={profileForm.phone}
+                  onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
+                  className="w-full text-xs bg-white rounded-lg border border-[#E4EBF0] px-3 py-2 text-[#0F2942] mt-1"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-[#475B6B] block">National ID / Passport</label>
+                <input
+                  value={profileForm.nationalId}
+                  onChange={(e) => setProfileForm({ ...profileForm, nationalId: e.target.value })}
+                  className="w-full text-xs bg-white rounded-lg border border-[#E4EBF0] px-3 py-2 text-[#0F2942] mt-1"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-[#475B6B] block">Emergency contact name</label>
+                <input
+                  value={profileForm.emergencyContactName}
+                  onChange={(e) => setProfileForm({ ...profileForm, emergencyContactName: e.target.value })}
+                  className="w-full text-xs bg-white rounded-lg border border-[#E4EBF0] px-3 py-2 text-[#0F2942] mt-1"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-[#475B6B] block">Emergency contact phone</label>
+                <input
+                  value={profileForm.emergencyContactPhone}
+                  onChange={(e) => setProfileForm({ ...profileForm, emergencyContactPhone: e.target.value })}
+                  className="w-full text-xs bg-white rounded-lg border border-[#E4EBF0] px-3 py-2 text-[#0F2942] mt-1"
+                />
+              </div>
+            </div>
+          </form>
+        )}
+
+        {/* ========================================================== */}
+        {/* TAB: PLAN AND BILLING                                      */}
+        {/* ========================================================== */}
+        {activeTab === "billing" && (
+          <div className="bg-white rounded-xl p-5 border border-[#E4EBF0] space-y-5 max-w-2xl">
+            <div>
+              <h3 className="text-sm font-semibold text-[#0F2942]">Plan and billing</h3>
+              <p className="text-xs text-[#7A8D9B] mt-0.5">Manage your MedCard Patient Vault subscription tier.</p>
+            </div>
+
+            {/* Active Tier Card */}
+            <div className="p-4 rounded-xl bg-[#F6F8FA] border border-[#E4EBF0] flex items-center justify-between">
+              <div>
+                <span className="text-xs text-[#7A8D9B]">Current tier</span>
+                <h4 className="text-lg font-semibold text-[#0F2942] mt-0.5">
+                  {isPremium ? VAULT_PLANS.PREMIUM.displayName : VAULT_PLANS.BASIC.displayName}
+                </h4>
+                <p className="text-xs text-[#475B6B] mt-0.5">
+                  {isPremium ? VAULT_PLANS.PREMIUM.price : VAULT_PLANS.BASIC.price} {VAULT_PLANS.BASIC.period}
                 </p>
               </div>
-            ) : (
-              <form onSubmit={handleBookAppointment} className="space-y-4">
-                <label className="block text-xs font-semibold text-navy">
-                  Select Participating Clinic
-                  <select
-                    value={bookingClinic}
-                    onChange={(e) => setBookingClinic(e.target.value)}
-                    className="w-full text-xs rounded-lg border border-border px-3 py-2 mt-1 bg-white"
-                  >
-                    <option value="Remera Community Clinic">Remera Community Clinic · Kigali</option>
-                    <option value="Kigali Central Health Center">Kigali Central Health Center · Nyarugenge</option>
-                    <option value="Gasabo Family Clinic">Gasabo Family Clinic · Kimironko</option>
-                    <option value="Kacyiru PolyClinic">Kacyiru PolyClinic · Gasabo</option>
-                  </select>
-                </label>
+              <span className="h-[22px] px-2.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200/50 flex items-center">
+                Active
+              </span>
+            </div>
 
-                <label className="block text-xs font-semibold text-navy">
-                  Service / Specialty
-                  <select
-                    value={bookingService}
-                    onChange={(e) => setBookingService(e.target.value)}
-                    className="w-full text-xs rounded-lg border border-border px-3 py-2 mt-1 bg-white"
-                  >
-                    <option value="General Consultation">General Medicine Consultation</option>
-                    <option value="Dental Care">Dental Care & Hygiene</option>
-                    <option value="Pediatrics">Pediatrics (Child Health)</option>
-                    <option value="Laboratory Screening">Laboratory & Health Screening</option>
-                  </select>
-                </label>
+            {/* Upgrade Card if Basic */}
+            {!isPremium ? (
+              <div className="p-4 rounded-xl border border-[#00A3B8]/30 bg-[#EAF3F8]/40 space-y-3">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h4 className="text-sm font-semibold text-[#0F2942]">
+                      Upgrade to {VAULT_PLANS.PREMIUM.displayName}
+                    </h4>
+                    <p className="text-xs text-[#475B6B] mt-0.5">
+                      {VAULT_PLANS.PREMIUM.subtitle}
+                    </p>
+                  </div>
+                  <span className="text-sm font-semibold text-[#00A3B8]">
+                    {VAULT_PLANS.PREMIUM.price}
+                  </span>
+                </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <label className="block text-xs font-semibold text-navy">
-                    Preferred Date
+                <div className="space-y-2 pt-2">
+                  <label className="text-xs font-medium text-[#475B6B] block">
+                    Mobile Money number (MTN / Airtel)
                     <input
-                      type="date"
-                      required
-                      value={bookingDate}
-                      onChange={(e) => setBookingDate(e.target.value)}
-                      className="w-full text-xs rounded-lg border border-border px-3 py-2 mt-1"
+                      value={paymentPhone}
+                      onChange={(e) => setPaymentPhone(e.target.value)}
+                      placeholder="2507XXXXXXXX"
+                      className="w-full text-xs rounded-lg border border-[#E4EBF0] px-3 py-2 bg-white mt-1"
                     />
                   </label>
-                  <label className="block text-xs font-semibold text-navy">
-                    Preferred Time
-                    <select
-                      value={bookingTime}
-                      onChange={(e) => setBookingTime(e.target.value)}
-                      className="w-full text-xs rounded-lg border border-border px-3 py-2 mt-1 bg-white"
-                    >
-                      <option value="08:30">08:30 AM</option>
-                      <option value="09:00">09:00 AM</option>
-                      <option value="10:30">10:30 AM</option>
-                      <option value="11:30">11:30 AM</option>
-                      <option value="14:00">02:00 PM</option>
-                      <option value="15:30">03:30 PM</option>
-                    </select>
-                  </label>
-                </div>
-
-                <label className="block text-xs font-semibold text-navy">
-                  Reason for Visit / Symptoms
-                  <textarea
-                    rows={3}
-                    placeholder="Describe symptoms or purpose of appointment..."
-                    value={bookingReason}
-                    onChange={(e) => setBookingReason(e.target.value)}
-                    className="w-full text-xs rounded-lg border border-border px-3 py-2 mt-1 resize-none"
-                  />
-                </label>
-
-                <div className="pt-2 flex justify-end gap-2">
                   <button
                     type="button"
-                    onClick={() => setShowBookingModal(false)}
-                    className="px-4 py-2 rounded-lg border border-border text-xs font-semibold text-navy"
+                    onClick={upgradePlan}
+                    disabled={isPaying || !paymentPhone.trim()}
+                    className="w-full h-9 rounded-lg bg-[#0F2942] hover:bg-[#183a5c] text-white font-semibold text-xs flex items-center justify-center gap-1.5 disabled:opacity-50 transition-colors"
                   >
-                    Cancel
+                    {isPaying ? <LoaderCircle size={15} className="animate-spin" /> : <CreditCard size={15} />}
+                    <span>{isPaying ? "Awaiting prompt approval..." : `Pay with Mobile Money (${VAULT_PLANS.PREMIUM.price})`}</span>
                   </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 rounded-lg bg-teal text-white text-xs font-bold hover:bg-teal/90"
-                  >
-                    Submit Booking Request
-                  </button>
+                  <p className="text-[11px] text-[#7A8D9B] text-center">
+                    Securely processed via XentriPay Rwanda. You will receive a push prompt on your mobile phone.
+                  </p>
                 </div>
-              </form>
+              </div>
+            ) : (
+              <div className="p-3.5 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200/60 text-xs flex items-center gap-2">
+                <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+                <span>You are on the Premium plan with all health record features enabled.</span>
+              </div>
             )}
+          </div>
+        )}
+      </div>
+
+      {/* ============================================================== */}
+      {/* MODAL: BOOK APPOINTMENT                                        */}
+      {/* ============================================================== */}
+      {showBookingModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#0F2942]/40 backdrop-blur-xs">
+          <div className="bg-white rounded-xl border border-[#E4EBF0] max-w-lg w-full p-5 space-y-4">
+            <div className="flex items-center justify-between border-b border-[#E4EBF0] pb-3">
+              <h3 className="text-sm font-semibold text-[#0F2942]">Book clinic appointment</h3>
+              <button
+                type="button"
+                onClick={() => setShowBookingModal(false)}
+                className="text-[#7A8D9B] hover:text-[#0F2942] p-1 rounded"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handleBookAppointment} className="space-y-3">
+              <div>
+                <label className="text-xs font-medium text-[#475B6B] block">Participating clinic</label>
+                <select
+                  required
+                  value={bookingFacilityId}
+                  onChange={(e) => setBookingFacilityId(e.target.value)}
+                  className="w-full text-xs bg-[#F6F8FA] rounded-lg border border-[#E4EBF0] px-3 py-2 text-[#0F2942] mt-1"
+                >
+                  <option value="">Select clinic</option>
+                  {clinics.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} — {c.address || "Kigali"}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-[#475B6B] block">Service requested</label>
+                <input
+                  required
+                  value={bookingService}
+                  onChange={(e) => setBookingService(e.target.value)}
+                  className="w-full text-xs bg-[#F6F8FA] rounded-lg border border-[#E4EBF0] px-3 py-2 text-[#0F2942] mt-1"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-[#475B6B] block">Date</label>
+                  <input
+                    required
+                    type="date"
+                    value={bookingDate}
+                    onChange={(e) => setBookingDate(e.target.value)}
+                    className="w-full text-xs bg-[#F6F8FA] rounded-lg border border-[#E4EBF0] px-3 py-2 text-[#0F2942] mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-[#475B6B] block">Time</label>
+                  <input
+                    required
+                    type="time"
+                    value={bookingTime}
+                    onChange={(e) => setBookingTime(e.target.value)}
+                    className="w-full text-xs bg-[#F6F8FA] rounded-lg border border-[#E4EBF0] px-3 py-2 text-[#0F2942] mt-1"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-[#475B6B] block">Reason for visit</label>
+                <input
+                  value={bookingReason}
+                  onChange={(e) => setBookingReason(e.target.value)}
+                  placeholder="e.g. Follow-up consultation or annual checkup"
+                  className="w-full text-xs bg-[#F6F8FA] rounded-lg border border-[#E4EBF0] px-3 py-2 text-[#0F2942] mt-1"
+                />
+              </div>
+
+              <div className="pt-2 flex justify-end gap-2 border-t border-[#E4EBF0]">
+                <button
+                  type="button"
+                  onClick={() => setShowBookingModal(false)}
+                  className="h-8 px-3 rounded-lg border border-[#E4EBF0] text-xs font-medium text-[#475B6B] hover:bg-[#F6F8FA]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingBooking}
+                  className="h-8 px-3.5 rounded-lg bg-[#0F2942] hover:bg-[#183a5c] text-white text-xs font-semibold flex items-center gap-1.5 disabled:opacity-50 transition-colors"
+                >
+                  {isSubmittingBooking && <LoaderCircle size={14} className="animate-spin" />}
+                  <span>Submit request</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
-    </div>
+
+      {/* ============================================================== */}
+      {/* MODAL: ADD ALLERGY                                             */}
+      {/* ============================================================== */}
+      {showAllergyModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#0F2942]/40 backdrop-blur-xs">
+          <div className="bg-white rounded-xl border border-[#E4EBF0] max-w-sm w-full p-5 space-y-4">
+            <div className="flex items-center justify-between border-b border-[#E4EBF0] pb-2">
+              <h3 className="text-sm font-semibold text-[#0F2942]">Add allergy record</h3>
+              <button
+                type="button"
+                onClick={() => setShowAllergyModal(false)}
+                className="text-[#7A8D9B] hover:text-[#0F2942] p-1"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <form onSubmit={addAllergy} className="space-y-3">
+              <div>
+                <label className="text-xs font-medium text-[#475B6B] block">Allergen</label>
+                <input
+                  required
+                  value={allergyName}
+                  onChange={(e) => setAllergyName(e.target.value)}
+                  placeholder="e.g. Penicillin, Peanuts"
+                  className="w-full text-xs bg-[#F6F8FA] rounded-lg border border-[#E4EBF0] px-3 py-2 text-[#0F2942] mt-1"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-[#475B6B] block">Reaction (optional)</label>
+                <input
+                  value={allergyReaction}
+                  onChange={(e) => setAllergyReaction(e.target.value)}
+                  placeholder="e.g. Skin rash, swelling"
+                  className="w-full text-xs bg-[#F6F8FA] rounded-lg border border-[#E4EBF0] px-3 py-2 text-[#0F2942] mt-1"
+                />
+              </div>
+              <div className="pt-2 flex justify-end gap-2 border-t border-[#E4EBF0]">
+                <button
+                  type="button"
+                  onClick={() => setShowAllergyModal(false)}
+                  className="h-8 px-3 rounded-lg border border-[#E4EBF0] text-xs font-medium text-[#475B6B]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSaving}
+                  className="h-8 px-3.5 rounded-lg bg-[#0F2942] text-white text-xs font-semibold"
+                >
+                  Save allergy
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================== */}
+      {/* MODAL: ADD CONDITION                                           */}
+      {/* ============================================================== */}
+      {showConditionModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#0F2942]/40 backdrop-blur-xs">
+          <div className="bg-white rounded-xl border border-[#E4EBF0] max-w-sm w-full p-5 space-y-4">
+            <div className="flex items-center justify-between border-b border-[#E4EBF0] pb-2">
+              <h3 className="text-sm font-semibold text-[#0F2942]">Add medical condition</h3>
+              <button
+                type="button"
+                onClick={() => setShowConditionModal(false)}
+                className="text-[#7A8D9B] hover:text-[#0F2942] p-1"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <form onSubmit={addCondition} className="space-y-3">
+              <div>
+                <label className="text-xs font-medium text-[#475B6B] block">Condition name</label>
+                <input
+                  required
+                  value={conditionName}
+                  onChange={(e) => setConditionName(e.target.value)}
+                  placeholder="e.g. Asthma, Hypertension"
+                  className="w-full text-xs bg-[#F6F8FA] rounded-lg border border-[#E4EBF0] px-3 py-2 text-[#0F2942] mt-1"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-[#475B6B] block">Notes (optional)</label>
+                <input
+                  value={conditionDescription}
+                  onChange={(e) => setConditionDescription(e.target.value)}
+                  placeholder="e.g. Diagnosed in 2021"
+                  className="w-full text-xs bg-[#F6F8FA] rounded-lg border border-[#E4EBF0] px-3 py-2 text-[#0F2942] mt-1"
+                />
+              </div>
+              <div className="pt-2 flex justify-end gap-2 border-t border-[#E4EBF0]">
+                <button
+                  type="button"
+                  onClick={() => setShowConditionModal(false)}
+                  className="h-8 px-3 rounded-lg border border-[#E4EBF0] text-xs font-medium text-[#475B6B]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSaving}
+                  className="h-8 px-3.5 rounded-lg bg-[#0F2942] text-white text-xs font-semibold"
+                >
+                  Save condition
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================== */}
+      {/* MODAL: ADD DEPENDENT                                           */}
+      {/* ============================================================== */}
+      {showDependentModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#0F2942]/40 backdrop-blur-xs">
+          <div className="bg-white rounded-xl border border-[#E4EBF0] max-w-sm w-full p-5 space-y-4">
+            <div className="flex items-center justify-between border-b border-[#E4EBF0] pb-2">
+              <h3 className="text-sm font-semibold text-[#0F2942]">Add family profile</h3>
+              <button
+                type="button"
+                onClick={() => setShowDependentModal(false)}
+                className="text-[#7A8D9B] hover:text-[#0F2942] p-1"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <form onSubmit={addDependent} className="space-y-3">
+              <div>
+                <label className="text-xs font-medium text-[#475B6B] block">First name</label>
+                <input
+                  required
+                  value={dependentForm.firstName}
+                  onChange={(e) => setDependentForm({ ...dependentForm, firstName: e.target.value })}
+                  className="w-full text-xs bg-[#F6F8FA] rounded-lg border border-[#E4EBF0] px-3 py-2 text-[#0F2942] mt-1"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-[#475B6B] block">Last name</label>
+                <input
+                  required
+                  value={dependentForm.lastName}
+                  onChange={(e) => setDependentForm({ ...dependentForm, lastName: e.target.value })}
+                  className="w-full text-xs bg-[#F6F8FA] rounded-lg border border-[#E4EBF0] px-3 py-2 text-[#0F2942] mt-1"
+                />
+              </div>
+              <div className="pt-2 flex justify-end gap-2 border-t border-[#E4EBF0]">
+                <button
+                  type="button"
+                  onClick={() => setShowDependentModal(false)}
+                  className="h-8 px-3 rounded-lg border border-[#E4EBF0] text-xs font-medium text-[#475B6B]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSaving}
+                  className="h-8 px-3.5 rounded-lg bg-[#0F2942] text-white text-xs font-semibold"
+                >
+                  Create profile
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </AppLayout>
   );
 }

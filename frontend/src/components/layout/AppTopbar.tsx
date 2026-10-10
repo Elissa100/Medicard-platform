@@ -1,37 +1,42 @@
 import {
   Menu,
-  Search,
   Bell,
-  Wifi,
-  Plus,
-  X,
-  CheckCircle2,
+  CalendarPlus,
 } from "lucide-react";
-import {
-  useState,
-  type FormEvent,
-  type ReactNode,
-} from "react";
-import { useNavigate } from "react-router-dom";
+import type { ReactNode } from "react";
 import type { Role } from "./AppSidebar";
 
+interface ActiveProfileOption {
+  id: string;
+  name: string;
+  isDependent: boolean;
+}
+
 interface AppTopbarProps {
-  currentRole?: Role;
+  currentRole?: Role | string;
   pageTitle?: string;
   pageSubtitle?: string;
   onToggleMobileMenu?: () => void;
-
+  // Patient Portal specific props
+  profiles?: ActiveProfileOption[];
+  selectedProfileId?: string;
+  onSelectProfileId?: (id: string) => void;
+  onBookAppointmentClick?: () => void;
+  onNotificationsClick?: () => void;
+  hasUnreadNotifications?: boolean;
+  // Clinical / Custom action buttons
   actionButton?: {
     label: string;
     onClick: () => void;
     icon?: ReactNode;
   };
-
   secondaryActionButton?: {
     label: string;
     onClick: () => void;
     icon?: ReactNode;
   };
+  leftContent?: ReactNode;
+  rightContent?: ReactNode;
 }
 
 export default function AppTopbar({
@@ -39,234 +44,136 @@ export default function AppTopbar({
   pageTitle = "Dashboard",
   pageSubtitle,
   onToggleMobileMenu,
+  profiles,
+  selectedProfileId,
+  onSelectProfileId,
+  onBookAppointmentClick,
+  onNotificationsClick,
+  hasUnreadNotifications = false,
   actionButton,
   secondaryActionButton,
+  leftContent,
+  rightContent,
 }: AppTopbarProps) {
-  const navigate = useNavigate();
+  const isPatient = currentRole === "patient";
 
-  const [searchFocused, setSearchFocused] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [showNotifications, setShowNotifications] = useState(false);
-
-  const notifications = [
-    {
-      id: 1,
-      title: "MedCard Tap Identified",
-      desc: "Patient Alice Mutoni (MC-9021-X) checked in at Reception.",
-      time: "2 mins ago",
-    },
-    {
-      id: 2,
-      title: "Laboratory Order Ready",
-      desc: "CBC & Lipid panel results uploaded for Patient Jean Rukundo.",
-      time: "14 mins ago",
-    },
-    {
-      id: 3,
-      title: "Pharmacy Dispensed",
-      desc: "Amoxicillin 500mg prescription fulfilled via MedCard Wallet.",
-      time: "32 mins ago",
-    },
-  ];
-
-  const handleSearchSubmit = (e: FormEvent) => {
-    e.preventDefault();
-
-    if (searchQuery.trim()) {
-      navigate(
-        `/patients?search=${encodeURIComponent(
-          searchQuery.trim()
-        )}`
-      );
-    }
-  };
+  const selectedProfile = profiles?.find((p) => p.id === selectedProfileId);
+  const isViewingDependent = selectedProfile?.isDependent ?? false;
 
   return (
-    <header className="h-16 md:h-20 bg-white border-b border-border flex items-center gap-4 px-4 md:px-6">
-
-      <div className="flex items-center gap-4 flex-1">
+    <header className="h-14 shrink-0 border-b border-[#E4EBF0] bg-white px-4 sm:px-6 flex items-center justify-between z-20">
+      {/* Left Area */}
+      <div className="flex items-center gap-3 min-w-0">
         {onToggleMobileMenu && (
           <button
             type="button"
-            className="md:hidden p-2 hover:bg-section-tint rounded-full transition-colors"
             onClick={onToggleMobileMenu}
-            aria-label="Open sidebar menu"
+            className="lg:hidden p-1.5 -ml-1 text-[#475B6B] hover:text-[#0F2942] rounded-md transition-colors"
+            aria-label="Open navigation menu"
           >
-            <Menu size={22} />
+            <Menu size={20} />
           </button>
         )}
 
-        <div className="hidden md:block">
-          <h1 className="text-lg md:text-xl font-bold text-navy">
-            {pageTitle}
-          </h1>
-          {pageSubtitle && (
-            <span className="text-xs text-body-text">
-              {pageSubtitle}
-            </span>
-          )}
-        </div>
-      </div>
-
-      <div className="hidden lg:block flex-1 max-w-md">
-        <form
-          className={`relative flex items-center border rounded-xl transition-colors ${
-            searchFocused ? "border-teal ring-2 ring-teal/20" : "border-border"
-          }`}
-          onSubmit={handleSearchSubmit}
-        >
-          <Search
-            size={18}
-            className="absolute left-3 text-body-text"
-          />
-
-          <input
-            type="text"
-            placeholder="Search patient, MedCard UID, National ID..."
-            value={searchQuery}
-            onChange={(e) =>
-              setSearchQuery(e.target.value)
-            }
-            onFocus={() =>
-              setSearchFocused(true)
-            }
-            onBlur={() =>
-              setSearchFocused(false)
-            }
-            className="w-full pl-10 pr-10 py-2.5 bg-transparent text-navy placeholder:text-muted-text focus:outline-none text-sm"
-            aria-label="Search patient records"
-          />
-
-          {searchQuery && (
-            <button
-              type="button"
-              className="absolute right-3 p-1 hover:bg-section-tint rounded-full transition-colors"
-              onClick={() =>
-                setSearchQuery("")
-              }
-            >
-              <X size={14} className="text-body-text" />
-            </button>
-          )}
-        </form>
-      </div>
-
-      <div className="flex items-center gap-2 md:gap-3">
-        {actionButton && (
-          <button
-            type="button"
-            className="hidden lg:flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-navy rounded-full hover:bg-mid-blue transition-colors"
-            onClick={actionButton.onClick}
-          >
-            {actionButton.icon || <Plus size={15} />}
-            <span>{actionButton.label}</span>
-          </button>
-        )}
-
-        {secondaryActionButton && (
-          <button
-            type="button"
-            className="hidden lg:flex items-center gap-2 px-4 py-2 text-sm font-semibold text-navy border-2 border-navy rounded-full hover:bg-navy hover:text-white transition-colors"
-            onClick={secondaryActionButton.onClick}
-          >
-            {secondaryActionButton.icon}
-            <span>{secondaryActionButton.label}</span>
-          </button>
-        )}
-
-        <button
-          type="button"
-          className="hidden md:flex items-center gap-2 px-4 py-2 text-sm font-semibold text-teal border-2 border-teal rounded-full hover:bg-teal hover:text-white transition-colors"
-          onClick={() => navigate("/nfc")}
-          title="Open NFC Patient Tap Scanner"
-        >
-          <Wifi size={15} className="animate-pulse" />
-          <span>Scan MedCard</span>
-        </button>
-
-        <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 bg-pale-cyan rounded-full">
-          <span className="w-2 h-2 rounded-full bg-teal animate-pulse" />
-          <span className="text-xs font-semibold text-teal">
-            Live Sync
-          </span>
-        </div>
-
-        <div className="relative">
-          <button
-            type="button"
-            className="relative p-2 hover:bg-section-tint rounded-full transition-colors"
-            onClick={() =>
-              setShowNotifications(
-                !showNotifications
-              )
-            }
-            aria-label="View notifications"
-          >
-            <Bell size={18} className="text-body-text" />
-            <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
-              3
-            </span>
-          </button>
-
-          {showNotifications && (
-            <div className="absolute right-0 top-full mt-2 w-80 bg-white border border-border rounded-xl shadow-lg overflow-hidden z-50">
-              <div className="p-4 border-b border-border flex items-center justify-between">
-                <strong className="text-navy">Activity Feed</strong>
-                <span className="text-xs font-semibold text-teal">3 new</span>
-              </div>
-
-              <div className="max-h-64 overflow-y-auto">
-                {notifications.map((n) => (
-                  <div
-                    key={n.id}
-                    className="p-4 border-b border-border hover:bg-section-tint transition-colors cursor-pointer"
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="w-8 h-8 bg-pale-cyan rounded-full flex items-center justify-center flex-shrink-0">
-                        <CheckCircle2 size={14} className="text-teal" />
-                      </div>
-                      <div className="flex-1">
-                        <strong className="text-navy text-sm">{n.title}</strong>
-                        <p className="text-body-text text-xs">{n.desc}</p>
-                        <small className="text-muted-text text-xs">{n.time}</small>
-                      </div>
-                    </div>
-                  </div>
+        {leftContent ? (
+          leftContent
+        ) : isPatient && profiles && profiles.length > 0 ? (
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-[#7A8D9B] hidden sm:inline">
+                Active record:
+              </span>
+              <select
+                value={selectedProfileId}
+                onChange={(e) => onSelectProfileId?.(e.target.value)}
+                className="h-8 text-xs font-medium text-[#0F2942] bg-[#F6F8FA] border border-[#E4EBF0] rounded-lg px-2.5 py-1 focus:outline-none focus:ring-1 focus:ring-[#00A3B8]"
+                aria-label="Select active record"
+              >
+                {profiles.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} {p.isDependent ? "(Dependent)" : "(Me)"}
+                  </option>
                 ))}
-              </div>
-
-              <div className="p-3 border-t border-border">
-                <button
-                  type="button"
-                  onClick={() =>
-                    setShowNotifications(false)
-                  }
-                  className="w-full text-sm font-semibold text-navy hover:text-teal transition-colors"
-                >
-                  Close
-                </button>
-              </div>
+              </select>
             </div>
-          )}
-        </div>
 
-        <div
-          className="flex items-center gap-3 p-2 hover:bg-section-tint rounded-xl cursor-pointer transition-colors"
-          onClick={() =>
-            navigate("/settings")
-          }
-          title="Facility settings"
-        >
-          <div className="w-9 h-9 bg-pale-cyan rounded-full flex items-center justify-center font-bold text-navy text-sm">
-            {currentRole
-              .charAt(0)
-              .toUpperCase()}
+            {isViewingDependent && selectedProfile && (
+              <span className="h-[22px] px-2.5 rounded-full text-xs font-medium bg-amber-50 text-amber-800 border border-amber-200/70 flex items-center">
+                Viewing: {selectedProfile.name}, dependent
+              </span>
+            )}
           </div>
-          <div className="hidden md:block">
-            <strong className="text-navy text-sm block">{currentRole} Staff</strong>
-            <small className="text-body-text text-xs">KFH Kigali</small>
+        ) : (
+          <div className="min-w-0">
+            <h1 className="text-sm font-semibold text-[#0F2942] truncate leading-tight">
+              {pageTitle}
+            </h1>
+            {pageSubtitle && (
+              <p className="text-[11px] text-[#7A8D9B] truncate leading-tight">
+                {pageSubtitle}
+              </p>
+            )}
           </div>
-        </div>
+        )}
+      </div>
+
+      {/* Right Area */}
+      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+        {rightContent ? (
+          rightContent
+        ) : isPatient ? (
+          <>
+            {onBookAppointmentClick && (
+              <button
+                type="button"
+                onClick={onBookAppointmentClick}
+                className="h-8 sm:h-9 px-3 sm:px-3.5 bg-[#0F2942] hover:bg-[#183a5c] text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-colors"
+              >
+                <CalendarPlus size={15} />
+                <span className="hidden xs:inline">Book an appointment</span>
+                <span className="xs:hidden">Book</span>
+              </button>
+            )}
+
+            {onNotificationsClick && (
+              <button
+                type="button"
+                onClick={onNotificationsClick}
+                className="h-8 w-8 sm:h-9 sm:w-9 flex items-center justify-center text-[#475B6B] hover:text-[#0F2942] hover:bg-[#F6F8FA] rounded-lg transition-colors relative"
+                aria-label="View notifications"
+              >
+                <Bell size={17} />
+                {hasUnreadNotifications && (
+                  <span className="absolute top-2 right-2 w-2 h-2 bg-[#00A3B8] rounded-full" />
+                )}
+              </button>
+            )}
+          </>
+        ) : (
+          <>
+            {secondaryActionButton && (
+              <button
+                type="button"
+                onClick={secondaryActionButton.onClick}
+                className="h-8 sm:h-9 px-3 text-xs font-medium text-[#475B6B] bg-[#F6F8FA] hover:bg-[#E4EBF0] rounded-lg transition-colors flex items-center gap-1.5"
+              >
+                {secondaryActionButton.icon}
+                <span>{secondaryActionButton.label}</span>
+              </button>
+            )}
+
+            {actionButton && (
+              <button
+                type="button"
+                onClick={actionButton.onClick}
+                className="h-8 sm:h-9 px-3.5 bg-[#0F2942] hover:bg-[#183a5c] text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-colors"
+              >
+                {actionButton.icon}
+                <span>{actionButton.label}</span>
+              </button>
+            )}
+          </>
+        )}
       </div>
     </header>
   );
