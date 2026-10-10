@@ -351,7 +351,7 @@ export default function VaultPortalPage() {
       setIsLoading(true);
       setError("");
 
-      const response = await fetch(`${API_URL}/vault/dashboard`, {
+      const response = await fetch(`${API_URL}/vault/me`, {
         headers: getHeaders(),
       });
 
@@ -654,7 +654,7 @@ export default function VaultPortalPage() {
       const paymentId = result.data.paymentId;
       for (let i = 0; i < 6; i++) {
         await new Promise((resolve) => window.setTimeout(resolve, 5000));
-        const check = await fetch(`${API_URL}/vault/payment/status/${paymentId}`, { headers: getHeaders() });
+        const check = await fetch(`${API_URL}/vault/payment/${paymentId}/status`, { headers: getHeaders() });
         const checkResult = await check.json();
         if (checkResult.success && checkResult.data.status === "SUCCESS") {
           setNotice("Payment confirmed! Your Premium Vault is now active.");

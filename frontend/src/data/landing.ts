@@ -112,7 +112,7 @@ export const landingConfig = {
       {
         name: "Basic",
         subtitle: "For essential record retrieval and clinic history access.",
-        price: "1,000",
+        price: "100",
         period: "RWF /mo",
         description: null,
         features: [
@@ -127,7 +127,7 @@ export const landingConfig = {
       {
         name: "Premium",
         subtitle: "Complete family health management and document storage.",
-        price: "5,000",
+        price: "150",
         period: "RWF /mo",
         description: null,
         features: [
