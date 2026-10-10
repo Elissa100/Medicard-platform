@@ -32,6 +32,22 @@ export function PatientVault() {
           <div className="hidden md:block absolute top-6 left-[33.33%] right-[33.33%] border-t-2 border-dashed border-border" />
         </div>
 
+        <div className="max-w-[720px] mx-auto text-center mb-12">
+          <p className="text-body-text text-lg mb-2">
+            Patient Vault is MedCard's secure personal health record service. Store your medical history, allergies, prescriptions, lab results and insurance — all in one private place — and share it instantly with any healthcare provider using your NFC MedCard.
+          </p>
+          <p className="text-muted-text text-sm mb-8">
+            Choose a plan below and get started in minutes. No long-term contract — cancel anytime.
+          </p>
+          <a
+            href="/patient-vault"
+            className="inline-flex items-center gap-2 bg-teal text-white font-semibold px-8 py-3.5 rounded-full hover:bg-teal/90 transition-colors focus:outline-none focus:ring-2 focus:ring-teal focus:ring-offset-2"
+          >
+            Get Started with Patient Vault
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+          </a>
+        </div>
+
         <div className="grid md:grid-cols-2 gap-12 max-w-[900px] mx-auto">
           {landingConfig.patientVault.pricing.map((plan) => (
             <div

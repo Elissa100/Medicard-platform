@@ -87,7 +87,7 @@ export async function sendContactMessage({ name, email, subject, message }) {
   `;
 
   const messageId = await sendBrevoEmail(
-    "wilsonceo@medicard.org.rw",
+    "info@medcard.org.rw",
     `Website contact: ${subject}`,
     htmlContent,
     email,
