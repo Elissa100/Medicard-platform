@@ -1,4 +1,6 @@
-import { staffLogin, facilityLogin, patientLogin, getUserByToken } from "../services/auth.service.js";
+import { staffLogin, facilityLogin, patientLogin, getUserByToken, platformAdminLogin, adminChangePassword } from "../services/auth.service.js";
+import { verifyToken } from "../services/auth.service.js";
+
 
 /**
  * Staff login
@@ -127,4 +129,79 @@ export async function logout(req, res) {
     success: true,
     message: "Logged out successfully",
   });
+}
+
+/**
+ * Platform admin login
+ */
+export async function loginPlatformAdmin(req, res) {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and password are required",
+      });
+    }
+
+    const ipAddress = req.ip || req.headers["x-forwarded-for"];
+    const userAgent = req.headers["user-agent"];
+
+    const result = await platformAdminLogin(email, password, { ipAddress, userAgent });
+
+    res.json({ success: true, data: result });
+  } catch (error) {
+    res.status(401).json({
+      success: false,
+      message: error.message || "Login failed",
+    });
+  }
+}
+
+/**
+ * Change platform admin password
+ */
+export async function changePlatformAdminPassword(req, res) {
+  try {
+    const token = req.headers.authorization?.replace("Bearer ", "");
+
+    if (!token) {
+      return res.status(401).json({ success: false, message: "No token provided" });
+    }
+
+    const decoded = verifyToken(token);
+
+    if (!decoded || decoded.role !== "PLATFORM_ADMIN") {
+      return res.status(403).json({ success: false, message: "Forbidden" });
+    }
+
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "currentPassword and newPassword are required",
+      });
+    }
+
+    if (newPassword.length < 12) {
+      return res.status(400).json({
+        success: false,
+        message: "New password must be at least 12 characters",
+      });
+    }
+
+    const ipAddress = req.ip || req.headers["x-forwarded-for"];
+    const userAgent = req.headers["user-agent"];
+
+    await adminChangePassword(decoded.userId, currentPassword, newPassword, { ipAddress, userAgent });
+
+    res.json({ success: true, message: "Password changed successfully" });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: error.message || "Password change failed",
+    });
+  }
 }

@@ -50,6 +50,10 @@ export async function staffLogin(email, password) {
     throw new Error("Invalid credentials");
   }
 
+  if (user.role === "PLATFORM_ADMIN") {
+    throw new Error("Invalid credentials");
+  }
+
   if (!user.isActive) {
     throw new Error("Account is inactive");
   }
@@ -217,4 +221,90 @@ export async function getUserByToken(token) {
     type: "staff",
     ...user,
   };
+}
+
+/**
+ * Platform admin login
+ */
+export async function platformAdminLogin(email, password, { ipAddress, userAgent } = {}) {
+  const user = await prisma.user.findUnique({ where: { email } });
+
+  const logEvent = async (action, userId) => {
+    await prisma.securityAuditLog.create({
+      data: { userId: userId ?? null, email, action, ipAddress, userAgent },
+    });
+  };
+
+  if (!user || user.role !== "PLATFORM_ADMIN") {
+    await logEvent("ADMIN_LOGIN_FAILED", null);
+    throw new Error("Invalid credentials");
+  }
+
+  if (!user.isActive) {
+    await logEvent("ADMIN_LOGIN_FAILED", user.id);
+    throw new Error("Account is inactive");
+  }
+
+  const valid = await comparePassword(password, user.passwordHash);
+
+  if (!valid) {
+    await logEvent("ADMIN_LOGIN_FAILED", user.id);
+    throw new Error("Invalid credentials");
+  }
+
+  await logEvent("ADMIN_LOGIN_SUCCESS", user.id);
+
+  const token = generateToken({
+    userId: user.id,
+    email: user.email,
+    role: user.role,
+    permissions: user.permissions,
+  });
+
+  return {
+    token,
+    mustChangePassword: user.mustChangePassword,
+    user: {
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
+      permissions: user.permissions,
+    },
+  };
+}
+
+/**
+ * Admin change password
+ */
+export async function adminChangePassword(userId, currentPassword, newPassword, { ipAddress, userAgent } = {}) {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+
+  if (!user || user.role !== "PLATFORM_ADMIN") {
+    throw new Error("Not authorized");
+  }
+
+  const valid = await comparePassword(currentPassword, user.passwordHash);
+
+  if (!valid) {
+    throw new Error("Current password is incorrect");
+  }
+
+  const newHash = await hashPassword(newPassword);
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: { passwordHash: newHash, mustChangePassword: false },
+  });
+
+  await prisma.securityAuditLog.create({
+    data: {
+      userId,
+      email: user.email,
+      action: "ADMIN_PASSWORD_CHANGED",
+      ipAddress,
+      userAgent,
+    },
+  });
 }

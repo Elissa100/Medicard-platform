@@ -13,6 +13,7 @@ datasource db {
  */
 
 enum UserRole {
+  PLATFORM_ADMIN
   ADMIN
   DOCTOR
   NURSE
@@ -242,6 +243,10 @@ model User {
   role         UserRole
   isActive     Boolean  @default(true)
 
+  emailVerified      Boolean  @default(false)
+  mustChangePassword Boolean  @default(false)
+  permissions        String[] @default([])
+
   facilityId String?
   facility   Facility? @relation(fields: [facilityId], references: [id])
 
@@ -262,10 +267,35 @@ model User {
   uploadedDocuments MedicalDocument[]  @relation("DocumentUploader")
   paymentAuditLogs  PaymentAuditLog[]
   dispensingRecords DispensingRecord[] @relation("DispensedBy")
+  securityAuditLogs SecurityAuditLog[]
 
   @@index([email])
   @@index([facilityId])
   @@index([role])
+}
+
+/**
+ * |--------------------------------------------------------------------------
+ * | SECURITY AUDIT LOG
+ * |--------------------------------------------------------------------------
+ */
+
+model SecurityAuditLog {
+  id        String  @id @default(uuid())
+  userId    String?
+  user      User?   @relation(fields: [userId], references: [id])
+  email     String
+  action    String
+  ipAddress String?
+  userAgent String?
+  metadata  Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([email])
+  @@index([action])
+  @@index([createdAt])
 }
 
 /**

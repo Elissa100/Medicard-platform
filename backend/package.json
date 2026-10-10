@@ -8,6 +8,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "node src/server.js",
     "seed": "node scripts/seed-auth.js",
+    "seed:admin": "node scripts/seed-admin.js",
     "test:xentripay": "node scripts/test-xentripay.js",
     "postinstall": "prisma generate && prisma db push --accept-data-loss && node scripts/seed-auth.js"
   },
