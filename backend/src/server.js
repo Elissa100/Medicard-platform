@@ -4,6 +4,7 @@ import { Server } from "socket.io";
 import app from "./app.js";
 import { env } from "./config/env.js";
 import prisma from "./config/database.js";
+import { syncPlatformAdmin } from "./services/admin.seed.js";
 
 
 /*
@@ -91,6 +92,8 @@ const startServer = async () => {
     console.log(
       "✅ PostgreSQL connected through Prisma"
     );
+
+    await syncPlatformAdmin();
 
 
     /*
