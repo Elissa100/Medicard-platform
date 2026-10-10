@@ -9,6 +9,9 @@ import {
   getOwnPlanPaymentStatus,
   initiatePlanPayment,
   updateProfile,
+  getConsultations,
+  getPrescriptions,
+  getLabResults,
 } from "../controllers/patient-vault.controller.js";
 
 const router = express.Router();
@@ -17,6 +20,9 @@ router.use(authenticate, requirePatient);
 router.get("/me", getDashboard);
 router.post("/payment/initiate", initiatePlanPayment);
 router.get("/payment/:paymentId/status", getOwnPlanPaymentStatus);
+router.get("/consultations", getConsultations);
+router.get("/prescriptions", getPrescriptions);
+router.get("/lab-results", getLabResults);
 router.patch("/profiles/:profileId", updateProfile);
 router.post("/dependents", addDependent);
 router.post("/profiles/:profileId/allergies", addAllergy);

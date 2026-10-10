@@ -5,6 +5,9 @@ import {
   getVaultDashboard,
   removeVaultHealthItem,
   updateVaultProfile,
+  getPatientConsultations,
+  getPatientPrescriptions,
+  getPatientLabResults,
 } from "../services/patient-vault.service.js";
 import {
   getVaultPaymentStatus,
@@ -113,3 +116,34 @@ export async function getOwnPlanPaymentStatus(req, res) {
     res.status(status).json({ success: false, message: error.message || "Unable to check payment" });
   }
 }
+
+export async function getConsultations(req, res) {
+  try {
+    const patientId = req.query.profileId || req.user.id;
+    const data = await getPatientConsultations(patientId);
+    res.json({ success: true, data });
+  } catch (error) {
+    sendError(res, error);
+  }
+}
+
+export async function getPrescriptions(req, res) {
+  try {
+    const patientId = req.query.profileId || req.user.id;
+    const data = await getPatientPrescriptions(patientId);
+    res.json({ success: true, data });
+  } catch (error) {
+    sendError(res, error);
+  }
+}
+
+export async function getLabResults(req, res) {
+  try {
+    const patientId = req.query.profileId || req.user.id;
+    const data = await getPatientLabResults(patientId);
+    res.json({ success: true, data });
+  } catch (error) {
+    sendError(res, error);
+  }
+}
+

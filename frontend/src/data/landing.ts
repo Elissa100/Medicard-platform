@@ -14,7 +14,7 @@ export const landingConfig = {
     links: [
       { label: "About", href: "#about" },
       { label: "Services", href: "#services" },
-      { label: "Patient Vault", href: "/patient-vault" },
+      { label: "Patient Vault", href: "#patient-vault" },
       { label: "Contact", href: "#contact" },
     ],
     cta: {
@@ -33,7 +33,7 @@ export const landingConfig = {
     },
     secondaryCta: {
       label: "Patient Vault",
-      href: "/patient-vault",
+      href: "#patient-vault",
     },
   },
   

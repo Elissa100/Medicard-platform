@@ -6,6 +6,7 @@ import { Services } from "../components/landing/Services";
 import { WhyMedCard } from "../components/landing/WhyMedCard";
 import { FAQ } from "../components/landing/FAQ";
 import { Contact } from "../components/landing/Contact";
+import { PatientVault } from "../components/landing/PatientVault";
 
 export default function CompanyLandingPage() {
   return (
@@ -16,6 +17,7 @@ export default function CompanyLandingPage() {
         <SolutionsStrip />
         <About />
         <Services />
+        <PatientVault />
         <WhyMedCard />
         <FAQ />
         <Contact />

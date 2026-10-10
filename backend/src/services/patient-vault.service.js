@@ -215,3 +215,118 @@ export async function removeVaultHealthItem(ownerId, profileId, itemId, kind) {
   if (!item) throw notFound("Health record not found");
   await model.delete({ where: { id: itemId } });
 }
+
+/**
+ * Returns all completed/closed encounters for a patient,
+ * including clinical notes and diagnoses — patient-safe view.
+ */
+export async function getPatientConsultations(patientId) {
+  return prisma.encounter.findMany({
+    where: {
+      patientId,
+      status: { in: ["CLOSED", "COMPLETED"] },
+    },
+    orderBy: { startedAt: "desc" },
+    select: {
+      id: true,
+      type: true,
+      status: true,
+      startedAt: true,
+      endedAt: true,
+      facility: { select: { id: true, name: true } },
+      provider: { select: { firstName: true, lastName: true, role: true } },
+      clinicalNotes: {
+        select: {
+          id: true,
+          subjective: true,
+          assessment: true,
+          plan: true,
+          createdAt: true,
+        },
+        orderBy: { createdAt: "desc" },
+      },
+      diagnoses: {
+        select: {
+          id: true,
+          code: true,
+          description: true,
+          diagnosisType: true,
+          createdAt: true,
+        },
+        orderBy: { createdAt: "desc" },
+      },
+    },
+  });
+}
+
+/**
+ * Returns all prescriptions for a patient.
+ */
+export async function getPatientPrescriptions(patientId) {
+  return prisma.prescription.findMany({
+    where: { patientId },
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      status: true,
+      notes: true,
+      createdAt: true,
+      prescribedBy: { select: { firstName: true, lastName: true, role: true } },
+      encounter: {
+        select: {
+          startedAt: true,
+          facility: { select: { name: true } },
+        },
+      },
+      items: {
+        select: {
+          id: true,
+          medicationName: true,
+          dosage: true,
+          frequency: true,
+          duration: true,
+          quantity: true,
+          instructions: true,
+        },
+      },
+    },
+  });
+}
+
+/**
+ * Returns all lab requests + results for a patient.
+ */
+export async function getPatientLabResults(patientId) {
+  return prisma.labRequest.findMany({
+    where: { patientId },
+    orderBy: { requestedAt: "desc" },
+    select: {
+      id: true,
+      status: true,
+      clinicalIndication: true,
+      requestedAt: true,
+      completedAt: true,
+      requestedBy: { select: { firstName: true, lastName: true, role: true } },
+      encounter: {
+        select: {
+          startedAt: true,
+          facility: { select: { name: true } },
+        },
+      },
+      tests: { select: { id: true, testName: true, testCode: true } },
+      results: {
+        select: {
+          id: true,
+          testName: true,
+          resultValue: true,
+          unit: true,
+          referenceRange: true,
+          interpretation: true,
+          status: true,
+          resultDate: true,
+        },
+        orderBy: { resultDate: "desc" },
+      },
+    },
+  });
+}
