@@ -31,6 +31,7 @@ import registrationRoutes from "./routes/registration.routes.js";
 import patientVaultRoutes from "./routes/patient-vault.routes.js";
 import contactRoutes from "./routes/contact.routes.js";
 import appointmentRoutes from "./routes/appointment.routes.js";
+import adminRoutes from "./routes/admin.routes.js";
 
 
 
@@ -309,6 +310,11 @@ app.use(
 app.use(
   "/api/v1/appointments",
   appointmentRoutes
+);
+
+app.use(
+  "/api/v1/admin",
+  adminRoutes
 );
 
 

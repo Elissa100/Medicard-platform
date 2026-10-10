@@ -83,3 +83,41 @@ export function requirePatient(req, res, next) {
 
   next();
 }
+
+/**
+ * Check if user is a platform admin, optionally requiring a specific permission
+ */
+export function requirePlatformAdmin(requiredPermission) {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: "Not authenticated",
+      });
+    }
+
+    if (req.user.role !== "PLATFORM_ADMIN") {
+      return res.status(403).json({
+        success: false,
+        message: "Platform administrator access required",
+      });
+    }
+
+    if (req.user.mustChangePassword) {
+      return res.status(403).json({
+        success: false,
+        mustChangePassword: true,
+        message: "Password change required before accessing platform features",
+      });
+    }
+
+    if (requiredPermission && (!req.user.permissions || !req.user.permissions.includes(requiredPermission))) {
+      return res.status(403).json({
+        success: false,
+        message: `Insufficient permissions: missing ${requiredPermission}`,
+      });
+    }
+
+    next();
+  };
+}
