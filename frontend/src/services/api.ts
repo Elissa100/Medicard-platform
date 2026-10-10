@@ -959,6 +959,121 @@ export const createPayment = async (
 };
 
 
+// Appointments & Scheduling
+export interface ClinicAppointment {
+  id: string;
+  patientId: string;
+  facilityId: string;
+  providerId?: string | null;
+  appointmentType: string;
+  status: "PENDING" | "SCHEDULED" | "CONFIRMED" | "DECLINED" | "RESCHEDULING" | "CHECKED_IN" | "COMPLETED" | "CANCELLED" | "NO_SHOW";
+  scheduledAt: string;
+  scheduledEnd?: string | null;
+  durationMinutes?: number;
+  proposedTime?: string | null;
+  declineReason?: string | null;
+  reason?: string | null;
+  notes?: string | null;
+  patient: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    patientNumber: string;
+    phone?: string;
+    emergencyContactName?: string;
+    emergencyContactPhone?: string;
+  };
+  provider?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    role: string;
+  } | null;
+}
+
+export const getAppointments = async (params: {
+  status?: string;
+  date?: string;
+  startDate?: string;
+  endDate?: string;
+  providerId?: string;
+} = {}): Promise<ClinicAppointment[]> => {
+  const response = await api.get<ApiResponse<ClinicAppointment[]>>("/appointments", { params });
+  return response.data.data ?? [];
+};
+
+export const createAppointment = async (payload: {
+  patientId: string;
+  providerId?: string;
+  appointmentType?: string;
+  scheduledAt: string;
+  durationMinutes?: number;
+  reason?: string;
+  notes?: string;
+}): Promise<ClinicAppointment> => {
+  const response = await api.post<ApiResponse<ClinicAppointment>>("/appointments", payload);
+  return response.data.data;
+};
+
+export const updateAppointmentStatus = async (
+  appointmentId: string,
+  payload: { status: string; providerId?: string; notes?: string }
+): Promise<ClinicAppointment> => {
+  const response = await api.patch<ApiResponse<ClinicAppointment>>(`/appointments/${appointmentId}/status`, payload);
+  return response.data.data;
+};
+
+export const confirmAppointmentRequest = async (
+  appointmentId: string,
+  payload: { providerId?: string; notes?: string } = {}
+): Promise<ClinicAppointment> => {
+  const response = await api.post<ApiResponse<ClinicAppointment>>(`/appointments/${appointmentId}/confirm`, payload);
+  return response.data.data;
+};
+
+export const declineAppointmentRequest = async (
+  appointmentId: string,
+  payload: { declineReason?: string }
+): Promise<ClinicAppointment> => {
+  const response = await api.post<ApiResponse<ClinicAppointment>>(`/appointments/${appointmentId}/decline`, payload);
+  return response.data.data;
+};
+
+export const proposeAppointmentTime = async (
+  appointmentId: string,
+  payload: { proposedTime: string; notes?: string }
+): Promise<ClinicAppointment> => {
+  const response = await api.post<ApiResponse<ClinicAppointment>>(`/appointments/${appointmentId}/propose-time`, payload);
+  return response.data.data;
+};
+
+export const rescheduleAppointment = async (
+  appointmentId: string,
+  payload: { scheduledAt: string; durationMinutes?: number; providerId?: string; notes?: string }
+): Promise<ClinicAppointment> => {
+  const response = await api.post<ApiResponse<ClinicAppointment>>(`/appointments/${appointmentId}/reschedule`, payload);
+  return response.data.data;
+};
+
+export const getClinicSettings = async (): Promise<{
+  bookingMode: string;
+  operatingHours: Record<string, { open: string; close: string; active: boolean }>;
+}> => {
+  const response = await api.get<ApiResponse<{
+    bookingMode: string;
+    operatingHours: Record<string, { open: string; close: string; active: boolean }>;
+  }>>("/appointments/settings");
+  return response.data.data;
+};
+
+export const updateClinicSettings = async (payload: {
+  bookingMode?: string;
+  operatingHours?: Record<string, { open: string; close: string; active: boolean }>;
+}): Promise<unknown> => {
+  const response = await api.patch<ApiResponse<unknown>>("/appointments/settings", payload);
+  return response.data.data;
+};
+
 // Error Helper
 
 export const getApiErrorMessage = (

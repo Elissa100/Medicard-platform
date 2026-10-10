@@ -163,8 +163,11 @@ enum EncounterType {
 }
 
 enum AppointmentStatus {
+  PENDING
   SCHEDULED
   CONFIRMED
+  DECLINED
+  RESCHEDULING
   CHECKED_IN
   COMPLETED
   CANCELLED
@@ -314,6 +317,9 @@ model Facility {
 
   status FacilityStatus @default(ACTIVE)
 
+  bookingMode    String? @default("MANUAL")
+  operatingHours Json?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -438,6 +444,10 @@ model Appointment {
   status          AppointmentStatus @default(SCHEDULED)
 
   scheduledAt DateTime
+  scheduledEnd DateTime?
+  durationMinutes Int? @default(30)
+  proposedTime DateTime?
+  declineReason String?
   reason      String?
   notes       String?
 
