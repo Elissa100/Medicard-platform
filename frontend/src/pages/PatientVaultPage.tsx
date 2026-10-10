@@ -87,7 +87,7 @@ export default function PatientVaultPage() {
           password,
           firstName: email.trim().split("@")[0] || "Patient",
           lastName: "User",
-          plan: selectedPlan === "Premium Vault" ? "PREMIUM" : "BASIC",
+          plan: selectedPlan === "Premium" || selectedPlan === "Premium Vault" ? "PREMIUM" : "BASIC",
         }),
       });
 
@@ -165,7 +165,7 @@ export default function PatientVaultPage() {
           password,
           firstName: normalizedEmail.split("@")[0] || "Patient",
           lastName: "User",
-          plan: selectedPlan === "Premium Vault" ? "PREMIUM" : "BASIC",
+          plan: selectedPlan === "Premium" || selectedPlan === "Premium Vault" ? "PREMIUM" : "BASIC",
         }),
       });
 
@@ -677,7 +677,7 @@ export default function PatientVaultPage() {
                 <div className="border-t border-border pt-3 flex justify-between">
                   <span className="font-semibold text-navy">Total</span>
                   <span className="font-bold text-navy">
-                    {selectedPlan === "Premium Vault" ? "150 RWF" : "100 RWF"}
+                    {selectedPlan === "Premium" || selectedPlan === "Premium Vault" ? "150 RWF" : "100 RWF"}
                   </span>
                 </div>
               </div>
