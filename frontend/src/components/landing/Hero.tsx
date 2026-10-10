@@ -28,13 +28,13 @@ export function Hero() {
             <div className="flex flex-col sm:flex-row gap-4">
               <a
                 href={landingConfig.hero.primaryCta.href}
-                className="inline-flex items-center justify-center h-14 px-6 text-base font-semibold text-white bg-navy rounded-full hover:bg-mid-blue transition-colors focus:outline-none focus:ring-2 focus:ring-teal focus:ring-offset-2"
+                className="inline-flex items-center justify-center h-12 px-6 text-base font-semibold text-white bg-teal rounded-full hover:bg-teal-hover transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-teal focus:ring-offset-2"
               >
                 {landingConfig.hero.primaryCta.label}
               </a>
               <a
                 href={landingConfig.hero.secondaryCta.href}
-                className="inline-flex items-center justify-center h-14 px-6 text-base font-semibold text-navy border-2 border-navy rounded-full hover:bg-navy hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-teal focus:ring-offset-2"
+                className="inline-flex items-center justify-center h-12 px-6 text-base font-semibold text-teal border border-teal/40 rounded-full hover:bg-teal/5 transition-colors focus:outline-none focus:ring-2 focus:ring-teal focus:ring-offset-2"
               >
                 {landingConfig.hero.secondaryCta.label}
               </a>

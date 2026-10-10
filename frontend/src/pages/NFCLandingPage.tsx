@@ -59,14 +59,14 @@ export default function NFCLandingPage() {
               <button
                 type="button"
                 onClick={() => navigate("/login")}
-                className="inline-flex items-center justify-center px-4 py-2 text-base font-semibold text-navy border-2 border-navy rounded-full hover:bg-navy hover:text-white transition-colors"
+                className="inline-flex items-center justify-center px-4 py-2 text-base font-semibold text-teal border border-teal/40 rounded-full hover:bg-teal/5 transition-colors focus:outline-none focus:ring-2 focus:ring-teal"
               >
                 Live Dashboard
               </button>
               <button
                 type="button"
                 onClick={goToFacilityPortal}
-                className="inline-flex items-center justify-center px-6 py-3 text-base font-semibold text-white bg-navy rounded-full hover:bg-mid-blue transition-colors"
+                className="inline-flex items-center justify-center px-6 py-2.5 text-base font-semibold text-white bg-teal rounded-full hover:bg-teal-hover transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-teal focus:ring-offset-2"
               >
                 Facility Portal
                 <ArrowRight size={18} className="ml-2" />
@@ -154,7 +154,7 @@ export default function NFCLandingPage() {
                   <button
                     type="button"
                     onClick={() => navigate("/login")}
-                    className="inline-flex items-center justify-center h-14 px-6 text-base font-semibold text-white bg-navy rounded-full hover:bg-mid-blue transition-colors"
+                    className="inline-flex items-center justify-center h-12 px-6 text-base font-semibold text-white bg-teal rounded-full hover:bg-teal-hover transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-teal focus:ring-offset-2"
                   >
                     Launch Interactive Demo
                     <ArrowRight size={18} className="ml-2" />
@@ -162,7 +162,7 @@ export default function NFCLandingPage() {
                   <button
                     type="button"
                     onClick={() => navigate("/login")}
-                    className="inline-flex items-center justify-center h-14 px-6 text-base font-semibold text-navy border-2 border-navy rounded-full hover:bg-navy hover:text-white transition-colors"
+                    className="inline-flex items-center justify-center h-12 px-6 text-base font-semibold text-teal border border-teal/40 rounded-full hover:bg-teal/5 transition-colors focus:outline-none focus:ring-2 focus:ring-teal"
                   >
                     <Wifi size={18} className="mr-2" />
                     Scan MedCard
@@ -170,7 +170,7 @@ export default function NFCLandingPage() {
                   <button
                     type="button"
                     onClick={goToFacilityPortal}
-                    className="inline-flex items-center justify-center h-14 px-6 text-base font-semibold text-navy border-2 border-navy rounded-full hover:bg-navy hover:text-white transition-colors"
+                    className="inline-flex items-center justify-center h-12 px-6 text-base font-semibold text-teal border border-teal/40 rounded-full hover:bg-teal/5 transition-colors focus:outline-none focus:ring-2 focus:ring-teal"
                   >
                     Facility Login
                   </button>
@@ -489,7 +489,7 @@ export default function NFCLandingPage() {
             <button
               type="button"
               onClick={goToFacilityPortal}
-              className="inline-flex items-center justify-center h-14 px-8 text-base font-semibold text-white bg-navy rounded-full hover:bg-mid-blue transition-colors"
+              className="inline-flex items-center justify-center h-12 px-8 text-base font-semibold text-white bg-teal rounded-full hover:bg-teal-hover transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-teal focus:ring-offset-2"
             >
               Contact Us
               <ArrowRight size={18} className="ml-2" />

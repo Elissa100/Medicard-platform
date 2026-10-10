@@ -238,7 +238,7 @@ function LoginPage() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full inline-flex h-12 items-center justify-center rounded-full bg-navy px-6 text-base font-semibold text-white transition-colors hover:bg-mid-blue disabled:cursor-not-allowed disabled:opacity-50"
+                className="w-full inline-flex h-12 items-center justify-center rounded-full bg-teal px-6 text-base font-semibold text-white shadow-sm transition-colors hover:bg-teal-hover focus:outline-none focus:ring-2 focus:ring-teal focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isLoading ? (
                   <>

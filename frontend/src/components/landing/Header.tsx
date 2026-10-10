@@ -42,7 +42,7 @@ export function Header() {
             </a>
             <a
               href={landingConfig.nav.cta.href}
-              className="inline-flex items-center justify-center px-6 py-3 text-base font-semibold text-white bg-navy rounded-full hover:bg-mid-blue transition-colors focus:outline-none focus:ring-2 focus:ring-teal focus:ring-offset-2"
+              className="inline-flex items-center justify-center px-6 py-2.5 text-base font-semibold text-white bg-teal rounded-full hover:bg-teal-hover transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-teal focus:ring-offset-2"
             >
               {landingConfig.nav.cta.label}
             </a>
