@@ -142,7 +142,7 @@ export default function AdminChangePasswordPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full inline-flex items-center justify-center gap-2 h-9 text-sm font-semibold text-white bg-[#0B1F3A] rounded-lg hover:bg-[#0B1F3A]/90 transition-colors disabled:opacity-50"
+              className="w-full inline-flex items-center justify-center gap-2 h-9 text-sm font-semibold text-white bg-[#00A3B8] rounded-lg hover:bg-[#008FA2] transition-colors disabled:opacity-50"
             >
               {isLoading && <LoaderCircle size={15} className="animate-spin" />}
               {isLoading ? "Saving..." : "Set new password"}
