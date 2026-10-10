@@ -31,6 +31,7 @@ router.get("/finance/overview", requirePlatformAdmin("finance"), adminController
 router.get("/finance/transactions", requirePlatformAdmin("finance"), adminController.getFinanceTransactions);
 router.get("/finance/transactions/export", requirePlatformAdmin("finance"), adminController.exportFinanceTransactions);
 router.get("/finance/transactions/:id", requirePlatformAdmin("finance"), adminController.getFinanceTransactionDetail);
+router.post("/finance/withdraw", requirePlatformAdmin("finance"), adminController.withdrawFunds);
 
 // Audit logs
 router.get("/audit-logs", requirePlatformAdmin("audit_log"), adminController.getAuditLogs);

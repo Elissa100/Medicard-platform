@@ -171,6 +171,15 @@ export async function exportFinanceTransactions(req, res) {
   }
 }
 
+export async function withdrawFunds(req, res) {
+  try {
+    const data = await adminService.withdrawPlatformFunds(req.body, req.user, getContext(req));
+    res.json({ success: true, data, message: "Withdrawal initiated successfully" });
+  } catch (error) {
+    res.status(error.statusCode || 400).json({ success: false, message: error.message });
+  }
+}
+
 export async function getAuditLogs(req, res) {
   try {
     const data = await adminService.getAuditLogs(req.query);

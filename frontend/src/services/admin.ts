@@ -178,6 +178,18 @@ export async function downloadFinanceExport(params: Record<string, string> = {})
   window.URL.revokeObjectURL(url);
 }
 
+export async function withdrawPlatformFunds(payload: {
+  amount: number;
+  telco: "MTN" | "AIRTEL";
+  phone: string;
+  reason?: string;
+}) {
+  return adminFetch("/finance/withdraw", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
 export async function fetchAuditLogs(params: { search?: string; action?: string; page?: number; limit?: number } = {}) {
   const query = new URLSearchParams();
   if (params.search) query.set("search", params.search);

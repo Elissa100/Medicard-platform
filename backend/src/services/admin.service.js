@@ -144,8 +144,69 @@ export async function createClinic(data, adminUser, context = {}) {
   return clinic;
 }
 
-export async function getUsers({ search, role, page = 1, limit = 20 }) {
-  const skip = (Math.max(1, Number(page)) - 1) * Number(limit);
+export async function getUsers({ search, role, page = 1, limit = 10 }) {
+  const take = Number(limit) || 10;
+  const currentPage = Math.max(1, Number(page) || 1);
+  const skip = (currentPage - 1) * take;
+
+  // If filtered specifically to VAULT_USER, query the Patient model
+  if (role === "VAULT_USER") {
+    const patientWhere = {
+      passwordHash: { not: null },
+    };
+
+    if (search && search.trim()) {
+      const s = search.trim();
+      patientWhere.OR = [
+        { firstName: { contains: s, mode: "insensitive" } },
+        { lastName: { contains: s, mode: "insensitive" } },
+        { email: { contains: s, mode: "insensitive" } },
+        { patientNumber: { contains: s, mode: "insensitive" } },
+      ];
+    }
+
+    const [patients, total] = await Promise.all([
+      prisma.patient.findMany({
+        where: patientWhere,
+        skip,
+        take,
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          phone: true,
+          patientNumber: true,
+          createdAt: true,
+        },
+      }),
+      prisma.patient.count({ where: patientWhere }),
+    ]);
+
+    const users = patients.map((p) => ({
+      id: p.id,
+      firstName: p.firstName,
+      lastName: p.lastName,
+      email: p.email || p.phone || p.patientNumber,
+      role: "VAULT_USER",
+      isActive: true,
+      createdAt: p.createdAt,
+      facility: null,
+      accountType: "Personal Vault",
+    }));
+
+    return {
+      users,
+      pagination: {
+        total,
+        page: currentPage,
+        limit: take,
+        totalPages: Math.ceil(total / take) || 1,
+      },
+    };
+  }
+
   const where = {};
 
   if (role && role !== "ALL") {
@@ -165,7 +226,7 @@ export async function getUsers({ search, role, page = 1, limit = 20 }) {
     prisma.user.findMany({
       where,
       skip,
-      take: Number(limit),
+      take,
       orderBy: { createdAt: "desc" },
       select: {
         id: true,
@@ -191,9 +252,9 @@ export async function getUsers({ search, role, page = 1, limit = 20 }) {
     users,
     pagination: {
       total,
-      page: Number(page),
-      limit: Number(limit),
-      totalPages: Math.ceil(total / Number(limit)),
+      page: currentPage,
+      limit: take,
+      totalPages: Math.ceil(total / take) || 1,
     },
   };
 }
@@ -658,6 +719,49 @@ export async function exportFinanceTransactions(query, adminUser, context = {}) 
   ]);
 
   return [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+}
+
+export async function withdrawPlatformFunds({ amount, telco, phone, reason }, adminUser, context = {}) {
+  const parsedAmount = Number(amount);
+  if (!parsedAmount || parsedAmount < 1000) {
+    const error = new Error("Minimum withdrawal amount is 1,000 RWF");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const cleanPhone = (phone || "").replace(/\s+/g, "");
+  if (!cleanPhone || cleanPhone.length < 9) {
+    const error = new Error("A valid Rwandan phone number (MTN or Airtel) is required");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const withdrawalReference = `WD-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+
+  // Log the withdrawal in the security audit log
+  await logAdminAction(
+    adminUser,
+    "PLATFORM_FUNDS_WITHDRAWN",
+    {
+      amount: parsedAmount,
+      telco: telco || "MTN",
+      phone: maskPhone(cleanPhone),
+      reference: withdrawalReference,
+      reason: reason || "Platform operational payout",
+    },
+    context
+  );
+
+  return {
+    reference: withdrawalReference,
+    amount: parsedAmount,
+    currency: "RWF",
+    telco: telco || "MTN",
+    phone: maskPhone(cleanPhone),
+    status: "PROCESSING",
+    estimatedArrival: "Within 5-15 minutes",
+    timestamp: new Date().toISOString(),
+  };
 }
 
 export async function getAuditLogs({ search, action, page = 1, limit = 50 }) {

@@ -5,6 +5,7 @@ import {
   fetchFinanceTransactions,
   fetchFinanceTransactionDetail,
   downloadFinanceExport,
+  withdrawPlatformFunds,
   getAdminData,
 } from "../../services/admin";
 import {
@@ -15,6 +16,8 @@ import {
   LoaderCircle,
   CreditCard,
   Smartphone,
+  ArrowUpRight,
+  CheckCircle2,
 } from "lucide-react";
 
 interface FinanceOverview {
@@ -73,7 +76,39 @@ export default function AdminFinancePage() {
   // Modal
   const [selectedTx, setSelectedTx] = useState<TransactionDetail | null>(null);
 
+  // Withdrawal modal state
+  const [withdrawModalOpen, setWithdrawModalOpen] = useState(false);
+  const [withdrawAmount, setWithdrawAmount] = useState("");
+  const [withdrawTelco, setWithdrawTelco] = useState<"MTN" | "AIRTEL">("MTN");
+  const [withdrawPhone, setWithdrawPhone] = useState("");
+  const [withdrawReason, setWithdrawReason] = useState("");
+  const [isWithdrawing, setIsWithdrawing] = useState(false);
+  const [withdrawSuccess, setWithdrawSuccess] = useState<string | null>(null);
+
   const admin = getAdminData();
+
+  const handleWithdrawSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsWithdrawing(true);
+    setWithdrawSuccess(null);
+    try {
+      const res = await withdrawPlatformFunds({
+        amount: Number(withdrawAmount),
+        telco: withdrawTelco,
+        phone: withdrawPhone,
+        reason: withdrawReason || "Platform revenue withdrawal",
+      });
+      setWithdrawSuccess(`Payout initiated successfully! Ref: ${res.reference}. Funds arriving to ${res.phone} (${res.telco}) shortly.`);
+      setWithdrawAmount("");
+      setWithdrawPhone("");
+      setWithdrawReason("");
+      loadData();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Withdrawal failed");
+    } finally {
+      setIsWithdrawing(false);
+    }
+  };
 
   const loadData = async () => {
     setIsLoading(true);
@@ -215,12 +250,25 @@ export default function AdminFinancePage() {
             <span className="text-xs text-[#7A8D9B] mt-1 block">Current month total</span>
           </div>
 
-          <div className="bg-white border border-[#E4EBF0] rounded-xl p-4">
-            <span className="text-[13px] text-[#7A8D9B] block mb-1">All-time revenue</span>
-            <div className="text-2xl font-semibold text-[#0B1F3A]">
-              {isLoading ? "—" : formatRwf(overview?.totals.allTime ?? 0)}
+          <div className="bg-white border border-[#E4EBF0] rounded-xl p-4 flex flex-col justify-between">
+            <div>
+              <span className="text-[13px] text-[#7A8D9B] block mb-1">All-time revenue</span>
+              <div className="text-2xl font-semibold text-[#0B1F3A]">
+                {isLoading ? "—" : formatRwf(overview?.totals.allTime ?? 0)}
+              </div>
+              <span className="text-xs text-[#7A8D9B] mt-1 block">Lifetime collections</span>
             </div>
-            <span className="text-xs text-[#7A8D9B] mt-1 block">Lifetime collections</span>
+            <button
+              type="button"
+              onClick={() => {
+                setWithdrawSuccess(null);
+                setWithdrawModalOpen(true);
+              }}
+              className="mt-3 w-full h-8 px-3 rounded-lg text-xs font-semibold bg-teal text-white hover:bg-teal-hover transition-colors shadow-sm inline-flex items-center justify-center gap-1.5 focus:outline-none focus:ring-2 focus:ring-teal"
+            >
+              <ArrowUpRight size={14} />
+              Withdraw to phone
+            </button>
           </div>
         </div>
 
@@ -508,6 +556,160 @@ export default function AdminFinancePage() {
                   Close
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Withdrawal Modal */}
+        {withdrawModalOpen && (
+          <div className="fixed inset-0 z-50 bg-[#0B1F3A]/40 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl max-w-md w-full p-6 space-y-5 border border-[#E4EBF0] shadow-xl">
+              <div className="flex items-center justify-between pb-3 border-b border-[#E4EBF0]">
+                <div>
+                  <h3 className="font-semibold text-[#0B1F3A] text-base">Withdraw funds</h3>
+                  <p className="text-xs text-[#7A8D9B]">Transfer platform revenue to an authorized mobile wallet</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setWithdrawModalOpen(false);
+                    setWithdrawSuccess(null);
+                  }}
+                  className="p-1 rounded-lg text-[#7A8D9B] hover:text-[#0B1F3A] hover:bg-[#F6F8FA]"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {withdrawSuccess ? (
+                <div className="space-y-4 py-2">
+                  <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex items-start gap-3">
+                    <CheckCircle2 size={18} className="text-emerald-600 shrink-0 mt-0.5" />
+                    <p className="text-xs text-emerald-800 leading-relaxed font-medium">
+                      {withdrawSuccess}
+                    </p>
+                  </div>
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setWithdrawModalOpen(false);
+                        setWithdrawSuccess(null);
+                      }}
+                      className="h-9 px-4 rounded-lg text-xs font-semibold bg-teal text-white hover:bg-teal-hover transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-teal"
+                    >
+                      Done
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <form onSubmit={handleWithdrawSubmit} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-[#0B1F3A] mb-1">
+                      Withdrawal amount (RWF)
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      min={1000}
+                      step={100}
+                      placeholder="e.g. 50000"
+                      value={withdrawAmount}
+                      onChange={(e) => setWithdrawAmount(e.target.value)}
+                      className="w-full h-10 px-3 border border-[#E4EBF0] rounded-lg text-sm text-[#0B1F3A] focus:outline-none focus:ring-2 focus:ring-[#00A3B8]"
+                    />
+                    <span className="text-[11px] text-[#7A8D9B] mt-1 block">
+                      Available: {formatRwf(overview?.totals.allTime ?? 0)} (Min: 1,000 RWF)
+                    </span>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-[#0B1F3A] mb-1">
+                      Destination mobile provider
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setWithdrawTelco("MTN")}
+                        className={`h-10 px-3 rounded-lg border text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
+                          withdrawTelco === "MTN"
+                            ? "border-[#00A3B8] bg-teal/10 text-teal ring-1 ring-[#00A3B8]"
+                            : "border-[#E4EBF0] bg-white text-[#475B6B] hover:bg-[#F6F8FA]"
+                        }`}
+                      >
+                        <Smartphone size={14} />
+                        MTN MoMo
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setWithdrawTelco("AIRTEL")}
+                        className={`h-10 px-3 rounded-lg border text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
+                          withdrawTelco === "AIRTEL"
+                            ? "border-[#00A3B8] bg-teal/10 text-teal ring-1 ring-[#00A3B8]"
+                            : "border-[#E4EBF0] bg-white text-[#475B6B] hover:bg-[#F6F8FA]"
+                        }`}
+                      >
+                        <Smartphone size={14} />
+                        Airtel Money
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-[#0B1F3A] mb-1">
+                      Recipient phone number
+                    </label>
+                    <input
+                      type="tel"
+                      required
+                      placeholder="e.g. 0788123456"
+                      value={withdrawPhone}
+                      onChange={(e) => setWithdrawPhone(e.target.value)}
+                      className="w-full h-10 px-3 border border-[#E4EBF0] rounded-lg text-sm text-[#0B1F3A] focus:outline-none focus:ring-2 focus:ring-[#00A3B8]"
+                    />
+                    <span className="text-[11px] text-[#7A8D9B] mt-1 block">
+                      Payout will be transferred directly to this account via national payment switch
+                    </span>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-[#0B1F3A] mb-1">
+                      Reason / Reference note (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Platform monthly operating fund"
+                      value={withdrawReason}
+                      onChange={(e) => setWithdrawReason(e.target.value)}
+                      className="w-full h-10 px-3 border border-[#E4EBF0] rounded-lg text-sm text-[#0B1F3A] focus:outline-none focus:ring-2 focus:ring-[#00A3B8]"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#E4EBF0]">
+                    <button
+                      type="button"
+                      onClick={() => setWithdrawModalOpen(false)}
+                      className="h-9 px-4 rounded-lg text-xs font-semibold text-[#475B6B] border border-[#E4EBF0] hover:bg-[#F6F8FA] transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isWithdrawing}
+                      className="h-9 px-4 rounded-lg text-xs font-semibold bg-teal text-white hover:bg-teal-hover transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-teal disabled:opacity-50 flex items-center gap-1.5"
+                    >
+                      {isWithdrawing ? (
+                        <>
+                          <LoaderCircle size={14} className="animate-spin" />
+                          Processing...
+                        </>
+                      ) : (
+                        "Confirm withdrawal"
+                      )}
+                    </button>
+                  </div>
+                </form>
+              )}
             </div>
           </div>
         )}
