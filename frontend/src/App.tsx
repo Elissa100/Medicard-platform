@@ -12,6 +12,9 @@ import PatientVaultLoginPage from "./pages/PatientVaultLoginPage";
 import VaultPortalPage from "./pages/VaultPortalPage";
 import FacilityLoginPage from "./pages/FacilityLoginPage";
 import LoginPage from "./pages/LoginPage";
+import AdminLoginPage from "./pages/AdminLoginPage";
+import AdminChangePasswordPage from "./pages/AdminChangePasswordPage";
+import AdminDashboardPage from "./pages/AdminDashboardPage";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
 import DashboardPage from "./pages/DashboardPage";
@@ -78,6 +81,26 @@ function App() {
         <Route
           path="/login"
           element={<LoginPage />}
+        />
+
+        {/* =====================================================
+            PLATFORM ADMIN
+        ====================================================== */}
+        <Route
+          path="/admin"
+          element={<Navigate to="/admin/login" replace />}
+        />
+        <Route
+          path="/admin/login"
+          element={<AdminLoginPage />}
+        />
+        <Route
+          path="/admin/change-password"
+          element={<AdminChangePasswordPage />}
+        />
+        <Route
+          path="/admin/dashboard"
+          element={<AdminDashboardPage />}
         />
 
         {/* =====================================================
