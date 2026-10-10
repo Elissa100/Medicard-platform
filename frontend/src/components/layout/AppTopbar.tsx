@@ -127,11 +127,10 @@ export default function AppTopbar({
               <button
                 type="button"
                 onClick={onBookAppointmentClick}
-                className="h-8 sm:h-9 px-3 sm:px-3.5 bg-[#0F2942] hover:bg-[#183a5c] text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-colors"
+                className="h-8 sm:h-9 px-3.5 bg-[#00A3B8] hover:bg-[#008f9e] text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-colors shadow-xs"
               >
-                <CalendarPlus size={15} />
-                <span className="hidden xs:inline">Book an appointment</span>
-                <span className="xs:hidden">Book</span>
+                <CalendarPlus size={15} className="text-white shrink-0" />
+                <span className="text-white font-semibold">Book an appointment</span>
               </button>
             )}
 
@@ -166,10 +165,10 @@ export default function AppTopbar({
               <button
                 type="button"
                 onClick={actionButton.onClick}
-                className="h-8 sm:h-9 px-3.5 bg-[#0F2942] hover:bg-[#183a5c] text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-colors"
+                className="h-8 sm:h-9 px-3.5 bg-[#00A3B8] hover:bg-[#008f9e] text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-colors shadow-xs"
               >
                 {actionButton.icon}
-                <span>{actionButton.label}</span>
+                <span className="text-white font-semibold">{actionButton.label}</span>
               </button>
             )}
           </>

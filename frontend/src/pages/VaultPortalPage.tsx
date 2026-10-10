@@ -734,7 +734,7 @@ export default function VaultPortalPage() {
           <p className="mt-1.5 text-xs text-[#475B6B]">{error || "We could not load your account session."}</p>
           <button
             onClick={() => window.location.assign("/patient-vault/login")}
-            className="mt-5 w-full rounded-lg bg-[#0F2942] px-4 py-2.5 text-xs font-semibold text-white hover:bg-[#183a5c] transition-colors"
+            className="mt-5 w-full rounded-lg bg-[#00A3B8] hover:bg-[#008f9e] px-4 py-2.5 text-xs font-semibold text-white transition-colors"
           >
             Sign in again
           </button>
@@ -921,7 +921,7 @@ export default function VaultPortalPage() {
                       setActiveTab("appointments");
                       setAppointmentSubTab("find");
                     }}
-                    className="h-9 px-3.5 rounded-lg bg-[#0F2942] hover:bg-[#183a5c] text-white text-xs font-semibold transition-colors"
+                    className="h-9 px-3.5 rounded-lg bg-[#00A3B8] hover:bg-[#008f9e] text-white text-xs font-semibold transition-colors"
                   >
                     Book clinic visit
                   </button>
@@ -1057,9 +1057,9 @@ export default function VaultPortalPage() {
                 <button
                   type="button"
                   onClick={() => setAppointmentSubTab("upcoming")}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
                     appointmentSubTab === "upcoming"
-                      ? "bg-[#0F2942] text-white"
+                      ? "bg-[#00A3B8] text-white shadow-xs"
                       : "text-[#475B6B] hover:bg-[#E4EBF0]"
                   }`}
                 >
@@ -1068,9 +1068,9 @@ export default function VaultPortalPage() {
                 <button
                   type="button"
                   onClick={() => setAppointmentSubTab("past")}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
                     appointmentSubTab === "past"
-                      ? "bg-[#0F2942] text-white"
+                      ? "bg-[#00A3B8] text-white shadow-xs"
                       : "text-[#475B6B] hover:bg-[#E4EBF0]"
                   }`}
                 >
@@ -1079,9 +1079,9 @@ export default function VaultPortalPage() {
                 <button
                   type="button"
                   onClick={() => setAppointmentSubTab("find")}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
                     appointmentSubTab === "find"
-                      ? "bg-[#0F2942] text-white"
+                      ? "bg-[#00A3B8] text-white shadow-xs"
                       : "text-[#475B6B] hover:bg-[#E4EBF0]"
                   }`}
                 >
@@ -1242,7 +1242,7 @@ export default function VaultPortalPage() {
                             setBookingFacilityId(clinic.id);
                             setShowBookingModal(true);
                           }}
-                          className="h-7 px-3 rounded-lg bg-[#0F2942] hover:bg-[#183a5c] text-white text-xs font-semibold transition-colors"
+                          className="h-7 px-3 rounded-lg bg-[#00A3B8] hover:bg-[#008f9e] text-white text-xs font-semibold transition-colors"
                         >
                           Book appointment
                         </button>
@@ -1653,10 +1653,10 @@ export default function VaultPortalPage() {
               <button
                 type="submit"
                 disabled={isSaving}
-                className="h-8 px-3.5 rounded-lg bg-[#0F2942] hover:bg-[#183a5c] text-white text-xs font-semibold flex items-center gap-1.5 disabled:opacity-50 transition-colors"
+                className="h-8 px-3.5 rounded-lg bg-[#00A3B8] hover:bg-[#008f9e] text-white text-xs font-semibold flex items-center gap-1.5 disabled:opacity-50 transition-colors shadow-xs"
               >
-                {isSaving && <LoaderCircle size={14} className="animate-spin" />}
-                <span>Save changes</span>
+                {isSaving && <LoaderCircle size={14} className="animate-spin text-white" />}
+                <span className="text-white font-semibold">Save changes</span>
               </button>
             </div>
 
@@ -1772,10 +1772,10 @@ export default function VaultPortalPage() {
                     type="button"
                     onClick={upgradePlan}
                     disabled={isPaying || !paymentPhone.trim()}
-                    className="w-full h-9 rounded-lg bg-[#0F2942] hover:bg-[#183a5c] text-white font-semibold text-xs flex items-center justify-center gap-1.5 disabled:opacity-50 transition-colors"
+                    className="w-full h-9 rounded-lg bg-[#00A3B8] hover:bg-[#008f9e] text-white font-semibold text-xs flex items-center justify-center gap-1.5 disabled:opacity-50 transition-colors shadow-xs"
                   >
-                    {isPaying ? <LoaderCircle size={15} className="animate-spin" /> : <CreditCard size={15} />}
-                    <span>{isPaying ? "Awaiting prompt approval..." : `Pay with Mobile Money (${VAULT_PLANS.PREMIUM.price})`}</span>
+                    {isPaying ? <LoaderCircle size={15} className="animate-spin text-white" /> : <CreditCard size={15} className="text-white" />}
+                    <span className="text-white font-semibold">{isPaying ? "Awaiting prompt approval..." : `Pay with Mobile Money (${VAULT_PLANS.PREMIUM.price})`}</span>
                   </button>
                   <p className="text-[11px] text-[#7A8D9B] text-center">
                     Securely processed via XentriPay Rwanda. You will receive a push prompt on your mobile phone.
@@ -1796,7 +1796,7 @@ export default function VaultPortalPage() {
       {/* MODAL: BOOK APPOINTMENT                                        */}
       {/* ============================================================== */}
       {showBookingModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#0F2942]/40 backdrop-blur-xs">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
           <div className="bg-white rounded-xl border border-[#E4EBF0] max-w-lg w-full p-5 space-y-4">
             <div className="flex items-center justify-between border-b border-[#E4EBF0] pb-3">
               <h3 className="text-sm font-semibold text-[#0F2942]">Book clinic appointment</h3>
@@ -1881,10 +1881,10 @@ export default function VaultPortalPage() {
                 <button
                   type="submit"
                   disabled={isSubmittingBooking}
-                  className="h-8 px-3.5 rounded-lg bg-[#0F2942] hover:bg-[#183a5c] text-white text-xs font-semibold flex items-center gap-1.5 disabled:opacity-50 transition-colors"
+                  className="h-8 px-3.5 rounded-lg bg-[#00A3B8] hover:bg-[#008f9e] text-white text-xs font-semibold flex items-center gap-1.5 disabled:opacity-50 transition-colors shadow-xs"
                 >
-                  {isSubmittingBooking && <LoaderCircle size={14} className="animate-spin" />}
-                  <span>Submit request</span>
+                  {isSubmittingBooking && <LoaderCircle size={14} className="animate-spin text-white" />}
+                  <span className="text-white font-semibold">Submit request</span>
                 </button>
               </div>
             </form>
@@ -1896,7 +1896,7 @@ export default function VaultPortalPage() {
       {/* MODAL: ADD ALLERGY                                             */}
       {/* ============================================================== */}
       {showAllergyModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#0F2942]/40 backdrop-blur-xs">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
           <div className="bg-white rounded-xl border border-[#E4EBF0] max-w-sm w-full p-5 space-y-4">
             <div className="flex items-center justify-between border-b border-[#E4EBF0] pb-2">
               <h3 className="text-sm font-semibold text-[#0F2942]">Add allergy record</h3>
@@ -1939,9 +1939,9 @@ export default function VaultPortalPage() {
                 <button
                   type="submit"
                   disabled={isSaving}
-                  className="h-8 px-3.5 rounded-lg bg-[#0F2942] text-white text-xs font-semibold"
+                  className="h-8 px-3.5 rounded-lg bg-[#00A3B8] hover:bg-[#008f9e] text-white text-xs font-semibold transition-colors shadow-xs"
                 >
-                  Save allergy
+                  <span className="text-white font-semibold">Save allergy</span>
                 </button>
               </div>
             </form>
@@ -1953,7 +1953,7 @@ export default function VaultPortalPage() {
       {/* MODAL: ADD CONDITION                                           */}
       {/* ============================================================== */}
       {showConditionModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#0F2942]/40 backdrop-blur-xs">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
           <div className="bg-white rounded-xl border border-[#E4EBF0] max-w-sm w-full p-5 space-y-4">
             <div className="flex items-center justify-between border-b border-[#E4EBF0] pb-2">
               <h3 className="text-sm font-semibold text-[#0F2942]">Add medical condition</h3>
@@ -1996,9 +1996,9 @@ export default function VaultPortalPage() {
                 <button
                   type="submit"
                   disabled={isSaving}
-                  className="h-8 px-3.5 rounded-lg bg-[#0F2942] text-white text-xs font-semibold"
+                  className="h-8 px-3.5 rounded-lg bg-[#00A3B8] hover:bg-[#008f9e] text-white text-xs font-semibold transition-colors shadow-xs"
                 >
-                  Save condition
+                  <span className="text-white font-semibold">Save condition</span>
                 </button>
               </div>
             </form>
@@ -2010,7 +2010,7 @@ export default function VaultPortalPage() {
       {/* MODAL: ADD DEPENDENT                                           */}
       {/* ============================================================== */}
       {showDependentModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#0F2942]/40 backdrop-blur-xs">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
           <div className="bg-white rounded-xl border border-[#E4EBF0] max-w-sm w-full p-5 space-y-4">
             <div className="flex items-center justify-between border-b border-[#E4EBF0] pb-2">
               <h3 className="text-sm font-semibold text-[#0F2942]">Add family profile</h3>
@@ -2052,9 +2052,9 @@ export default function VaultPortalPage() {
                 <button
                   type="submit"
                   disabled={isSaving}
-                  className="h-8 px-3.5 rounded-lg bg-[#0F2942] text-white text-xs font-semibold"
+                  className="h-8 px-3.5 rounded-lg bg-[#00A3B8] hover:bg-[#008f9e] text-white text-xs font-semibold transition-colors shadow-xs"
                 >
-                  Create profile
+                  <span className="text-white font-semibold">Create profile</span>
                 </button>
               </div>
             </form>
