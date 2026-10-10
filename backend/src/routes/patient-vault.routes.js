@@ -12,6 +12,10 @@ import {
   getConsultations,
   getPrescriptions,
   getLabResults,
+  getClinics,
+  getAppointments,
+  bookAppointment,
+  cancelAppointment,
 } from "../controllers/patient-vault.controller.js";
 
 const router = express.Router();
@@ -20,6 +24,10 @@ router.use(authenticate, requirePatient);
 router.get("/me", getDashboard);
 router.post("/payment/initiate", initiatePlanPayment);
 router.get("/payment/:paymentId/status", getOwnPlanPaymentStatus);
+router.get("/clinics", getClinics);
+router.get("/appointments", getAppointments);
+router.post("/appointments", bookAppointment);
+router.patch("/appointments/:appointmentId/cancel", cancelAppointment);
 router.get("/consultations", getConsultations);
 router.get("/prescriptions", getPrescriptions);
 router.get("/lab-results", getLabResults);

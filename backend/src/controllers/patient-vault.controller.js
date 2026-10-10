@@ -8,6 +8,10 @@ import {
   getPatientConsultations,
   getPatientPrescriptions,
   getPatientLabResults,
+  getParticipatingClinics,
+  getPatientAppointments,
+  bookPatientAppointment,
+  cancelPatientAppointment,
 } from "../services/patient-vault.service.js";
 import {
   getVaultPaymentStatus,
@@ -146,4 +150,49 @@ export async function getLabResults(req, res) {
     sendError(res, error);
   }
 }
+
+export async function getClinics(req, res) {
+  try {
+    const clinics = await getParticipatingClinics();
+    res.json({ success: true, data: clinics });
+  } catch (error) {
+    sendError(res, error);
+  }
+}
+
+export async function getAppointments(req, res) {
+  try {
+    const appointments = await getPatientAppointments(req.user.id, req.query.profileId);
+    res.json({ success: true, data: appointments });
+  } catch (error) {
+    sendError(res, error);
+  }
+}
+
+export async function bookAppointment(req, res) {
+  try {
+    const appointment = await bookPatientAppointment(req.user.id, req.body);
+    res.status(201).json({
+      success: true,
+      message: "Appointment request submitted. The clinic will confirm your booking.",
+      data: appointment,
+    });
+  } catch (error) {
+    sendError(res, error);
+  }
+}
+
+export async function cancelAppointment(req, res) {
+  try {
+    const appointment = await cancelPatientAppointment(req.user.id, req.params.appointmentId);
+    res.json({
+      success: true,
+      message: "Appointment cancelled successfully.",
+      data: appointment,
+    });
+  } catch (error) {
+    sendError(res, error);
+  }
+}
+
 
