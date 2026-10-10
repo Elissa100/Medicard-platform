@@ -14,10 +14,8 @@ if (!connectionString) {
 }
 
 if (!adminEmail || !adminPassword) {
-  console.error(
-    "error: ADMIN_EMAIL and ADMIN_PASSWORD must be set in environment"
-  );
-  process.exit(1);
+  console.log("ADMIN_EMAIL or ADMIN_PASSWORD not set. skipping platform admin seed.");
+  process.exit(0);
 }
 
 const adapter = new PrismaPg({ connectionString });
@@ -80,3 +78,4 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
+
