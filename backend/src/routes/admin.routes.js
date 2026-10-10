@@ -36,3 +36,4 @@ router.get("/finance/transactions/:id", requirePlatformAdmin("finance"), adminCo
 router.get("/audit-logs", requirePlatformAdmin("audit_log"), adminController.getAuditLogs);
 
 export default router;
+

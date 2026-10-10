@@ -187,3 +187,4 @@ export async function fetchAuditLogs(params: { search?: string; action?: string;
 
   return adminFetch(`/audit-logs?${query.toString()}`);
 }
+
