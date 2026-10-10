@@ -145,6 +145,7 @@ export function Contact() {
           <p>© 2026 MedCard, Rwanda</p>
           <nav className="flex flex-wrap justify-center gap-x-5 gap-y-2">
             {landingConfig.nav.links.map((link) => <a key={link.label} href={link.href} className="hover:text-white">{link.label}</a>)}
+            <a href="/admin/login" className="hover:text-white">Platform Admin</a>
           </nav>
         </div>
       </div>
