@@ -69,3 +69,4 @@ export async function syncPlatformAdmin() {
     console.error("[admin-seed] Error synchronizing platform admin:", error.message);
   }
 }
+
