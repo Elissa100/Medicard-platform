@@ -15,6 +15,12 @@ import LoginPage from "./pages/LoginPage";
 import AdminLoginPage from "./pages/AdminLoginPage";
 import AdminChangePasswordPage from "./pages/AdminChangePasswordPage";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
+import AdminClinicsPage from "./pages/admin/AdminClinicsPage";
+import AdminUsersPage from "./pages/admin/AdminUsersPage";
+import AdminCardsPage from "./pages/admin/AdminCardsPage";
+import AdminPlansPage from "./pages/admin/AdminPlansPage";
+import AdminFinancePage from "./pages/admin/AdminFinancePage";
+import AdminAuditLogPage from "./pages/admin/AdminAuditLogPage";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
 import DashboardPage from "./pages/DashboardPage";
@@ -101,6 +107,34 @@ function App() {
         <Route
           path="/admin/dashboard"
           element={<AdminDashboardPage />}
+        />
+        <Route
+          path="/admin/overview"
+          element={<Navigate to="/admin/dashboard" replace />}
+        />
+        <Route
+          path="/admin/clinics"
+          element={<AdminClinicsPage />}
+        />
+        <Route
+          path="/admin/users"
+          element={<AdminUsersPage />}
+        />
+        <Route
+          path="/admin/cards"
+          element={<AdminCardsPage />}
+        />
+        <Route
+          path="/admin/plans"
+          element={<AdminPlansPage />}
+        />
+        <Route
+          path="/admin/finance"
+          element={<AdminFinancePage />}
+        />
+        <Route
+          path="/admin/audit-log"
+          element={<AdminAuditLogPage />}
         />
 
         {/* =====================================================

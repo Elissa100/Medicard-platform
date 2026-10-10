@@ -13,6 +13,10 @@ import {
   UsersRound,
   UserRound,
   Bell,
+  Building2,
+  Layers,
+  CircleDollarSign,
+  ScrollText,
 } from "lucide-react";
 
 export interface NavItemConfig {
@@ -74,4 +78,19 @@ export const CLINICAL_NAV_GROUPS: Record<string, NavGroupConfig[]> = {
     },
   ],
 };
+
+export const ADMIN_NAV_GROUPS: NavGroupConfig[] = [
+  {
+    groupLabel: "Platform",
+    items: [
+      { id: "overview", label: "Overview", path: "/admin/dashboard", icon: LayoutDashboard },
+      { id: "clinics", label: "Clinics", path: "/admin/clinics", icon: Building2 },
+      { id: "users", label: "Users", path: "/admin/users", icon: Users },
+      { id: "cards", label: "Cards", path: "/admin/cards", icon: CreditCard },
+      { id: "plans", label: "Plans", path: "/admin/plans", icon: Layers },
+      { id: "finance", label: "Finance", path: "/admin/finance", icon: CircleDollarSign },
+      { id: "audit", label: "Audit log", path: "/admin/audit-log", icon: ScrollText },
+    ],
+  },
+];
 

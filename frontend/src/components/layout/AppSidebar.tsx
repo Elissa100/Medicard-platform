@@ -9,12 +9,14 @@ import {
 import {
   PATIENT_NAV_GROUPS,
   CLINICAL_NAV_GROUPS,
+  ADMIN_NAV_GROUPS,
   type NavGroupConfig,
   type NavItemConfig,
 } from "../../config/navigation";
 
 export type Role =
   | "patient"
+  | "platform_admin"
   | "Reception"
   | "Doctor"
   | "Nurse"
@@ -58,8 +60,11 @@ export default function AppSidebar({
   ];
 
   const isPatient = currentRole === "patient";
+  const isPlatformAdmin = currentRole === "platform_admin";
 
-  const navGroups: NavGroupConfig[] = isPatient
+  const navGroups: NavGroupConfig[] = isPlatformAdmin
+    ? ADMIN_NAV_GROUPS
+    : isPatient
     ? PATIENT_NAV_GROUPS
     : CLINICAL_NAV_GROUPS[currentRole] || CLINICAL_NAV_GROUPS.default;
 
@@ -84,7 +89,11 @@ export default function AppSidebar({
   };
 
   const handleLogout = () => {
-    if (isPatient) {
+    if (isPlatformAdmin) {
+      localStorage.removeItem("medcard_admin_token");
+      localStorage.removeItem("medcard_admin_data");
+      navigate("/admin/login");
+    } else if (isPatient) {
       localStorage.removeItem("medcard_auth_token");
       localStorage.removeItem("medcard_user_data");
       localStorage.removeItem("medcard_authenticated");
@@ -123,7 +132,7 @@ export default function AppSidebar({
       </div>
 
       {/* Clinical Role Switcher (Staff Only) */}
-      {!isPatient && (
+      {!isPatient && !isPlatformAdmin && (
         <div className="p-3 border-b border-[#E4EBF0]">
           <button
             type="button"
@@ -235,10 +244,10 @@ export default function AppSidebar({
           </div>
           <div className="min-w-0">
             <span className="block text-xs font-semibold text-[#0F2942] truncate leading-tight">
-              {userDisplayName || (isPatient ? "Patient Vault" : "Clinical Staff")}
+              {userDisplayName || (isPlatformAdmin ? "Platform Admin" : isPatient ? "Patient Vault" : "Clinical Staff")}
             </span>
             <span className="block text-[11px] text-[#7A8D9B] truncate leading-tight">
-              {userEmail || (isPatient ? "Personal account" : "Clinic portal")}
+              {userEmail || (isPlatformAdmin ? "MedCard platform" : isPatient ? "Personal account" : "Clinic portal")}
             </span>
           </div>
         </div>
