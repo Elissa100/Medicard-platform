@@ -170,6 +170,7 @@ export default function PatientRegistrationPage() {
 
     setSubmitting(true);
 
+    try {
       const authToken = localStorage.getItem("medcard_auth_token");
       const authHeaders = authToken ? { headers: { Authorization: `Bearer ${authToken}` } } : {};
 

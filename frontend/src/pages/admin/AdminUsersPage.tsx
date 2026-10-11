@@ -98,7 +98,7 @@ export default function AdminUsersPage() {
       userEmail={admin.email || "admin@medcard.rw"}
       actionButton={{
         label: "Refresh",
-        onClick: loadUsers,
+        onClick: () => { void loadUsers(); },
         icon: <RefreshCw size={14} className={isLoading ? "animate-spin" : ""} />,
       }}
     >
@@ -106,7 +106,7 @@ export default function AdminUsersPage() {
         {error && (
           <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700 flex items-center justify-between">
             <span>{error}</span>
-            <button onClick={loadUsers} className="text-xs font-semibold underline">
+            <button onClick={() => { void loadUsers(); }} className="text-xs font-semibold underline">
               Try again
             </button>
           </div>
