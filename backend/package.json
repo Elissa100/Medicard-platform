@@ -5,7 +5,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node scripts/test-facility-isolation.js",
+    "test:isolation": "node scripts/test-facility-isolation.js",
     "dev": "node src/server.js",
     "seed": "node scripts/seed-auth.js",
     "seed:admin": "node scripts/seed-admin.js",

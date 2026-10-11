@@ -8,6 +8,7 @@ import {
   deletePatient
 } from "../controllers/patient.controller.js";
 
+import { authenticate } from "../middleware/auth.middleware.js";
 import { validate } from "../middleware/validation.middleware.js";
 
 import {
@@ -16,6 +17,8 @@ import {
 } from "../validators/patient.validator.js";
 
 const router = express.Router();
+
+router.use(authenticate);
 
 router.post(
   "/",

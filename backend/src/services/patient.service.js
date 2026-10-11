@@ -1,6 +1,26 @@
 import prisma from "../config/database.js";
+import { SESSION_EXPIRY_MS } from "./patient-session.service.js";
 
-export const createPatient = async (data) => {
+export const buildFacilityAccessFilter = (facilityId) => {
+  const sessionCutoff = new Date(Date.now() - SESSION_EXPIRY_MS);
+  return {
+    OR: [
+      { appointments: { some: { facilityId } } },
+      { encounters: { some: { facilityId } } },
+      {
+        patientSessions: {
+          some: {
+            facilityId,
+            status: "ACTIVE",
+            startedAt: { gte: sessionCutoff },
+          },
+        },
+      },
+    ],
+  };
+};
+
+export const createPatient = async (data, facilityId, userId) => {
   const {
     firstName,
     lastName,
@@ -12,52 +32,84 @@ export const createPatient = async (data) => {
 
   const patientNumber = await generatePatientNumber();
 
-  return prisma.patient.create({
-    data: {
-      patientNumber,
-      firstName,
-      lastName,
-      dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
-      gender: gender || "UNKNOWN",
-      phone: phone || null,
-      email: email || null
+  return prisma.$transaction(async (tx) => {
+    const patient = await tx.patient.create({
+      data: {
+        patientNumber,
+        firstName,
+        lastName,
+        dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
+        gender: gender || "UNKNOWN",
+        phone: phone || null,
+        email: email || null
+      }
+    });
+
+    if (facilityId) {
+      await tx.encounter.create({
+        data: {
+          patientId: patient.id,
+          facilityId,
+          type: "GENERAL",
+          status: "OPEN",
+        },
+      });
+
+      if (userId) {
+        await tx.patientSession.create({
+          data: {
+            patientId: patient.id,
+            facilityId,
+            userId,
+            status: "ACTIVE",
+          },
+        });
+      }
     }
+
+    return patient;
   });
 };
 
-export const getPatients = async ({ page = 1, limit = 20, search }) => {
+export const getPatients = async ({ facilityId, page = 1, limit = 20, search }) => {
   const skip = (page - 1) * limit;
+  const facilityFilter = buildFacilityAccessFilter(facilityId);
 
   const where = search
     ? {
-        OR: [
+        AND: [
+          facilityFilter,
           {
-            firstName: {
-              contains: search,
-              mode: "insensitive"
-            }
-          },
-          {
-            lastName: {
-              contains: search,
-              mode: "insensitive"
-            }
-          },
-          {
-            patientNumber: {
-              contains: search,
-              mode: "insensitive"
-            }
-          },
-          {
-            phone: {
-              contains: search,
-              mode: "insensitive"
-            }
+            OR: [
+              {
+                firstName: {
+                  contains: search,
+                  mode: "insensitive"
+                }
+              },
+              {
+                lastName: {
+                  contains: search,
+                  mode: "insensitive"
+                }
+              },
+              {
+                patientNumber: {
+                  contains: search,
+                  mode: "insensitive"
+                }
+              },
+              {
+                phone: {
+                  contains: search,
+                  mode: "insensitive"
+                }
+              }
+            ]
           }
         ]
       }
-    : {};
+    : facilityFilter;
 
   const [patients, total] = await Promise.all([
     prisma.patient.findMany({
@@ -83,16 +135,33 @@ export const getPatients = async ({ page = 1, limit = 20, search }) => {
   };
 };
 
-export const getPatientById = async (id) => {
-  return prisma.patient.findUnique({
-    where: { id },
+export const getPatientById = async (id, facilityId) => {
+  const facilityFilter = buildFacilityAccessFilter(facilityId);
+
+  return prisma.patient.findFirst({
+    where: {
+      id,
+      ...facilityFilter,
+    },
     include: {
       cards: true
     }
   });
 };
 
-export const updatePatient = async (id, data) => {
+export const patientExistsGlobally = async (id) => {
+  const count = await prisma.patient.count({
+    where: { id },
+  });
+  return count > 0;
+};
+
+export const updatePatient = async (id, facilityId, data) => {
+  const accessible = await getPatientById(id, facilityId);
+  if (!accessible) {
+    return null;
+  }
+
   const updateData = {};
 
   if (data.firstName !== undefined) {
@@ -127,7 +196,12 @@ export const updatePatient = async (id, data) => {
   });
 };
 
-export const deletePatient = async (id) => {
+export const deletePatient = async (id, facilityId) => {
+  const accessible = await getPatientById(id, facilityId);
+  if (!accessible) {
+    return null;
+  }
+
   return prisma.patient.delete({
     where: { id }
   });

@@ -34,6 +34,14 @@ export const api = axios.create({
   timeout: 10000,
 });
 
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem("medcard_auth_token");
+  if (token && config.headers) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
 
 //Generic API response
 

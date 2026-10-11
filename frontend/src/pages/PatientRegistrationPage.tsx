@@ -170,7 +170,9 @@ export default function PatientRegistrationPage() {
 
     setSubmitting(true);
 
-    try {
+      const authToken = localStorage.getItem("medcard_auth_token");
+      const authHeaders = authToken ? { headers: { Authorization: `Bearer ${authToken}` } } : {};
+
       const patientResponse = await axios.post(`${API_URL}/patients`, {
         firstName: form.firstName.trim(),
         lastName: form.lastName.trim(),
@@ -178,7 +180,7 @@ export default function PatientRegistrationPage() {
         gender: form.gender,
         phone: form.phone.trim() || null,
         email: form.email.trim() || null,
-      });
+      }, authHeaders);
 
       const patient = patientResponse.data?.data;
       if (!patient?.id) throw new Error("No patient ID returned");
@@ -186,7 +188,7 @@ export default function PatientRegistrationPage() {
       await axios.post(`${API_URL}/cards`, {
         cardUid,
         patientId: patient.id,
-      });
+      }, authHeaders);
 
       sessionStorage.removeItem(PENDING_CARD_KEY);
       setSuccess(true);

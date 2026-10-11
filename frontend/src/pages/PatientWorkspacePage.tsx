@@ -444,8 +444,14 @@ function PatientWorkspacePage() {
         setLoading(true);
         setError("");
 
+        const authToken = localStorage.getItem("medcard_auth_token");
         const response = await fetch(
-          `${API_URL}/patients/${patientId}`
+          `${API_URL}/patients/${patientId}`,
+          {
+            headers: authToken
+              ? { Authorization: `Bearer ${authToken}` }
+              : {},
+          }
         );
 
         const data =
