@@ -1,6 +1,5 @@
 
 import prisma from "../config/database.js";
-import { closeActiveSessionsForEncounter } from "./patient-session.service.js";
 
 
 /*
@@ -481,8 +480,6 @@ export const completeEncounter =
           },
         },
       });
-
-    await closeActiveSessionsForEncounter(encounterId);
 
     return {
       encounter:
