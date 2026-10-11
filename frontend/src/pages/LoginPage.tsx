@@ -90,32 +90,32 @@ function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-section-tint lg:flex lg:h-screen lg:flex-col lg:overflow-hidden">
-      <div className="mx-auto w-full max-w-[1440px] px-5 py-5 md:px-10 lg:px-16">
-        <div className="flex items-center justify-between">
-          <button
-            type="button"
-            onClick={() => navigate("/")}
-            className="inline-flex items-center gap-2 text-body-text hover:text-navy transition-colors"
-          >
-            <ArrowLeft size={18} />
-            <span>Back to Landing</span>
-          </button>
+    <div className="h-screen overflow-hidden bg-section-tint flex flex-col">
+      {/* Top bar */}
+      <div className="w-full px-5 py-4 md:px-10 lg:px-16 flex items-center justify-between flex-shrink-0">
+        <button
+          type="button"
+          onClick={() => navigate("/")}
+          className="inline-flex items-center gap-2 text-body-text hover:text-navy transition-colors"
+        >
+          <ArrowLeft size={18} />
+          <span>Back to Landing</span>
+        </button>
 
-          <button
-            type="button"
-            onClick={() => navigate("/facility-login")}
-            className="text-sm font-semibold text-teal hover:text-navy transition-colors"
-          >
-            Facility Authentication →
-          </button>
-        </div>
-
+        <button
+          type="button"
+          onClick={() => navigate("/facility-login")}
+          className="text-sm font-semibold text-teal hover:text-navy transition-colors"
+        >
+          Facility Authentication →
+        </button>
       </div>
 
-      <div className="mx-auto flex w-full max-w-[1440px] flex-1 items-center px-5 pb-5 md:px-10 lg:min-h-0 lg:px-16 lg:pb-8">
-        <div className="mx-auto grid w-full max-w-6xl overflow-hidden rounded-[28px] bg-white shadow-card lg:grid-cols-[0.9fr_1.1fr]">
-          <aside className="hidden flex-col justify-between bg-navy p-10 text-white lg:flex">
+      {/* Main content — fills remaining height */}
+      <div className="flex-1 min-h-0 flex items-center px-5 pb-5 md:px-10 lg:px-16">
+        <div className="mx-auto w-full max-w-6xl h-full max-h-[720px] overflow-hidden rounded-[28px] bg-white shadow-card lg:grid lg:grid-cols-[0.9fr_1.1fr]">
+          {/* Left panel — desktop only */}
+          <aside className="hidden lg:flex flex-col justify-between bg-navy p-10 text-white">
             <div>
               <div className="flex items-center gap-3">
                 <img src="/medcard-logo.svg" alt="MedCard" className="h-12 w-auto brightness-0 invert" />
@@ -137,7 +137,9 @@ function LoginPage() {
             <p className="text-xs text-soft-text-on-navy">MedCard Health Systems · Rwanda</p>
           </aside>
 
-          <div className="p-6 sm:p-8 lg:px-10 lg:py-7">
+          {/* Right panel — the form */}
+          <div className="flex flex-col h-full overflow-y-auto p-6 sm:p-8 lg:px-10 lg:py-7">
+            {/* Mobile logo */}
             <div className="mb-5 flex items-center gap-3 lg:hidden">
               <img
                 src="/medcard-logo.svg"
@@ -152,10 +154,8 @@ function LoginPage() {
             </div>
 
             <div className="mb-5">
-              <div>
-                <h2 className="text-2xl font-bold text-navy">Welcome to MedCard</h2>
-                <p className="mt-1 text-sm text-body-text">Select your role and enter your staff credentials.</p>
-              </div>
+              <h2 className="text-2xl font-bold text-navy">Welcome to MedCard</h2>
+              <p className="mt-1 text-sm text-body-text">Select your role and enter your staff credentials.</p>
             </div>
 
             <div className="mb-5">

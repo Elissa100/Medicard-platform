@@ -1,6 +1,18 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Building2, LockKeyhole, MapPin, Mail, ShieldCheck, Eye, EyeOff, LoaderCircle } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Building2,
+  LockKeyhole,
+  MapPin,
+  Mail,
+  ShieldCheck,
+  Eye,
+  EyeOff,
+  LoaderCircle,
+  Hospital,
+} from "lucide-react";
 
 const FACILITY_KEY = "medcard_current_facility";
 const AUTH_TOKEN_KEY = "medcard_auth_token";
@@ -89,7 +101,7 @@ function FacilityLoginPage() {
 
   if (isVerifying) {
     return (
-      <div className="min-h-screen bg-section-tint flex items-center justify-center">
+      <div className="h-screen bg-section-tint flex items-center justify-center">
         <div className="max-w-md w-full px-5 text-center">
           <img
             src="/medcard-logo.svg"
@@ -111,63 +123,103 @@ function FacilityLoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-section-tint">
-      <div className="max-w-[1280px] mx-auto px-5 md:px-10 lg:px-20 py-12 md:py-16">
+    <div className="h-screen overflow-hidden bg-section-tint flex flex-col">
+      {/* Top bar */}
+      <div className="w-full px-5 py-4 md:px-10 lg:px-16 flex items-center justify-between flex-shrink-0">
         <button
           type="button"
           onClick={handleBack}
-          className="inline-flex items-center gap-2 text-body-text hover:text-navy transition-colors mb-8"
+          className="inline-flex items-center gap-2 text-body-text hover:text-navy transition-colors"
         >
           <ArrowLeft size={18} />
           <span>MedCard home</span>
         </button>
 
-        <div className="max-w-md mx-auto">
-          <div className="bg-white rounded-[32px] shadow-card p-8 md:p-12">
-            <div className="flex items-center gap-3 mb-8">
+        <button
+          type="button"
+          onClick={() => navigate("/login")}
+          className="text-sm font-semibold text-teal hover:text-navy transition-colors"
+        >
+          Staff login →
+        </button>
+      </div>
+
+      {/* Main content — fills remaining height */}
+      <div className="flex-1 min-h-0 flex items-center px-5 pb-5 md:px-10 lg:px-16">
+        <div className="mx-auto w-full max-w-6xl h-full max-h-[720px] overflow-hidden rounded-[28px] bg-white shadow-card lg:grid lg:grid-cols-[0.9fr_1.1fr]">
+
+          {/* Left panel — desktop only */}
+          <aside className="hidden lg:flex flex-col justify-between bg-navy p-10 text-white">
+            <div>
+              <div className="flex items-center gap-3">
+                <img src="/medcard-logo.svg" alt="MedCard" className="h-12 w-auto brightness-0 invert" />
+                <div>
+                  <h1 className="text-xl font-bold">MedCard</h1>
+                  <p className="text-sm text-soft-text-on-navy">Healthcare facility portal</p>
+                </div>
+              </div>
+
+              <div className="mt-16">
+                <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-teal/15 text-teal">
+                  <Hospital size={28} />
+                </div>
+                <h2 className="text-3xl font-bold leading-tight">Authorized facility access.</h2>
+                <p className="mt-4 max-w-sm text-sm leading-6 text-soft-text-on-navy">
+                  Sign in with your facility's authorized credentials. Each facility account grants access to its own clinical workspace.
+                </p>
+              </div>
+            </div>
+            <p className="text-xs text-soft-text-on-navy">MedCard Health Systems · Rwanda</p>
+          </aside>
+
+          {/* Right panel — the form */}
+          <div className="flex flex-col h-full overflow-y-auto p-6 sm:p-8 lg:px-10 lg:py-7">
+            {/* Mobile logo */}
+            <div className="mb-5 flex items-center gap-3 lg:hidden">
               <img
                 src="/medcard-logo.svg"
                 alt="MedCard"
-                className="h-12 w-auto"
+                className="h-10 w-auto cursor-pointer"
+                onClick={handleBack}
               />
               <div>
-                <div className="text-navy font-bold text-xl">MedCard</div>
-                <div className="text-body-text text-sm">Healthcare facility portal</div>
+                <h1 className="text-navy font-bold text-xl">MedCard</h1>
+                <p className="text-body-text text-sm">Healthcare facility portal</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 px-4 py-2 bg-pale-cyan rounded-full mb-8 w-fit">
-              <LockKeyhole size={16} className="text-teal" />
-              <span className="text-sm font-semibold text-teal">Authorized access</span>
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-pale-cyan rounded-full mb-5 w-fit">
+              <LockKeyhole size={14} className="text-teal" />
+              <span className="text-xs font-semibold text-teal">Authorized access</span>
             </div>
 
-            <div className="mb-8">
-              <p className="text-sm font-semibold text-teal mb-2">FACILITY ACCESS</p>
-              <h1 className="text-2xl font-bold text-navy mb-2">Enter your facility</h1>
-              <p className="text-body-text">Sign in for an authorized hospital or clinic.</p>
+            <div className="mb-5">
+              <h2 className="text-2xl font-bold text-navy">Enter your facility</h2>
+              <p className="mt-1 text-sm text-body-text">Sign in for an authorized hospital or clinic.</p>
             </div>
 
-            <div className="bg-section-tint rounded-xl p-4 mb-8 flex items-start gap-3">
-              <ShieldCheck size={20} className="text-teal flex-shrink-0 mt-0.5" />
+            <div className="bg-section-tint rounded-xl p-3 mb-5 flex items-start gap-3">
+              <ShieldCheck size={18} className="text-teal flex-shrink-0 mt-0.5" />
               <div>
-                <strong className="text-navy">Authorized facility only</strong>
-                <p className="text-body-text text-sm">Access is restricted to approved healthcare facilities.</p>
+                <strong className="text-navy text-sm">Authorized facilities only</strong>
+                <p className="text-body-text text-xs">Access is restricted to approved healthcare facilities.</p>
               </div>
             </div>
 
-            <form onSubmit={handleFacilityLogin} className="space-y-6">
-              <div className="grid md:grid-cols-2 gap-4">
+            <form onSubmit={handleFacilityLogin} className="space-y-4 flex-1">
+              {/* Facility type + name row */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label htmlFor="facility-type" className="block text-sm font-semibold text-navy mb-2">
                     Facility type
                   </label>
                   <div className="relative">
-                    <Building2 size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-body-text" />
+                    <Building2 size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-body-text" />
                     <select
                       id="facility-type"
                       value={facilityType}
                       onChange={(event) => setFacilityType(event.target.value as FacilityType)}
-                      className="w-full pl-10 pr-4 py-3 border border-border rounded-xl appearance-none bg-white text-navy focus:outline-none focus:ring-2 focus:ring-teal focus:ring-offset-2"
+                      className="w-full pl-9 pr-4 py-2.5 border border-border rounded-xl appearance-none bg-white text-navy focus:outline-none focus:ring-2 focus:ring-teal focus:ring-offset-2 text-sm"
                     >
                       <option value="Hospital">Hospital</option>
                       <option value="Clinic">Clinic</option>
@@ -180,26 +232,27 @@ function FacilityLoginPage() {
                     Facility name
                   </label>
                   <div className="relative">
-                    <Building2 size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-body-text" />
+                    <Building2 size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-body-text" />
                     <input
                       id="facility-name"
                       type="text"
-                      placeholder="Enter hospital or clinic name"
+                      placeholder="Hospital or clinic name"
                       value={facilityName}
                       onChange={(event) => setFacilityName(event.target.value)}
                       autoComplete="organization"
-                      className="w-full pl-10 pr-4 py-3 border border-border rounded-xl bg-white text-navy focus:outline-none focus:ring-2 focus:ring-teal focus:ring-offset-2"
+                      className="w-full pl-9 pr-4 py-2.5 border border-border rounded-xl bg-white text-navy focus:outline-none focus:ring-2 focus:ring-teal focus:ring-offset-2 text-sm"
                     />
                   </div>
                 </div>
               </div>
 
+              {/* Location */}
               <div>
                 <label htmlFor="facility-location" className="block text-sm font-semibold text-navy mb-2">
                   Location
                 </label>
                 <div className="relative">
-                  <MapPin size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-body-text" />
+                  <MapPin size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-body-text" />
                   <input
                     id="facility-location"
                     type="text"
@@ -207,17 +260,18 @@ function FacilityLoginPage() {
                     value={location}
                     onChange={(event) => setLocation(event.target.value)}
                     autoComplete="address-level2"
-                    className="w-full pl-10 pr-4 py-3 border border-border rounded-xl bg-white text-navy focus:outline-none focus:ring-2 focus:ring-teal focus:ring-offset-2"
+                    className="w-full pl-9 pr-4 py-2.5 border border-border rounded-xl bg-white text-navy focus:outline-none focus:ring-2 focus:ring-teal focus:ring-offset-2 text-sm"
                   />
                 </div>
               </div>
 
+              {/* Email */}
               <div>
                 <label htmlFor="facility-email" className="block text-sm font-semibold text-navy mb-2">
                   Authorized email
                 </label>
                 <div className="relative">
-                  <Mail size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-body-text" />
+                  <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-body-text" />
                   <input
                     id="facility-email"
                     type="email"
@@ -225,17 +279,18 @@ function FacilityLoginPage() {
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}
                     autoComplete="username"
-                    className="w-full pl-10 pr-4 py-3 border border-border rounded-xl bg-white text-navy focus:outline-none focus:ring-2 focus:ring-teal focus:ring-offset-2"
+                    className="w-full pl-9 pr-4 py-2.5 border border-border rounded-xl bg-white text-navy focus:outline-none focus:ring-2 focus:ring-teal focus:ring-offset-2 text-sm"
                   />
                 </div>
               </div>
 
+              {/* Password */}
               <div>
                 <label htmlFor="facility-password" className="block text-sm font-semibold text-navy mb-2">
                   Password
                 </label>
                 <div className="relative">
-                  <LockKeyhole size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-body-text" />
+                  <LockKeyhole size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-body-text" />
                   <input
                     id="facility-password"
                     type={showPassword ? "text" : "password"}
@@ -243,7 +298,7 @@ function FacilityLoginPage() {
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
                     autoComplete="current-password"
-                    className="w-full pl-10 pr-12 py-3 border border-border rounded-xl bg-white text-navy focus:outline-none focus:ring-2 focus:ring-teal focus:ring-offset-2"
+                    className="w-full pl-9 pr-10 py-2.5 border border-border rounded-xl bg-white text-navy focus:outline-none focus:ring-2 focus:ring-teal focus:ring-offset-2 text-sm"
                   />
                   <button
                     type="button"
@@ -251,7 +306,7 @@ function FacilityLoginPage() {
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-body-text hover:text-teal"
                     aria-label={showPassword ? "Hide password" : "Show password"}
                   >
-                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
               </div>
@@ -266,32 +321,26 @@ function FacilityLoginPage() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full inline-flex items-center justify-center h-12 px-6 text-base font-semibold text-white bg-teal rounded-full hover:bg-teal-hover transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-teal focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full inline-flex items-center justify-center h-11 px-6 text-sm font-semibold text-white bg-teal rounded-full hover:bg-teal-hover transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-teal focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isLoading ? (
                   <>
-                    <LoaderCircle size={20} className="animate-spin mr-2" />
+                    <LoaderCircle size={18} className="animate-spin mr-2" />
                     Verifying facility...
                   </>
                 ) : (
                   <>
                     Enter Authorized Facility Portal
-                    <ArrowRight size={18} className="ml-2" />
+                    <ArrowRight size={16} className="ml-2" />
                   </>
                 )}
               </button>
             </form>
 
-            <div className="flex items-center gap-2 pt-6 border-t border-border">
-              <ShieldCheck size={16} className="text-teal" />
-              <span className="text-sm text-body-text">Your facility session is protected. Clinical staff access is selected in the next step.</span>
+            <div className="mt-3 pt-3 border-t border-border flex items-center gap-2">
+              <ShieldCheck size={14} className="text-teal flex-shrink-0" />
+              <span className="text-xs text-body-text">Your facility session is protected. Clinical staff access is selected in the next step.</span>
             </div>
-          </div>
-
-          <div className="text-center mt-8 text-body-text text-sm">
-            <span>MedCard Health Systems</span>
-            <span className="mx-2">•</span>
-            <span>Secure healthcare access</span>
           </div>
         </div>
       </div>
