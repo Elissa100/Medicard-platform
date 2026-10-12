@@ -12,6 +12,28 @@ datasource db {
  * |--------------------------------------------------------------------------
  */
 
+// -- System 2 (Vault Clinic) enums --
+
+enum VaultClinicStatus {
+  INVITED
+  ACTIVE
+  SUSPENDED
+}
+
+enum VaultBookingMode {
+  MANUAL
+  AUTOMATIC
+}
+
+enum VaultClinicRole {
+  CLINIC_ADMIN
+  RECEPTIONIST
+  CLINICIAN
+}
+
+// -- End System 2 enums --
+
+
 enum UserRole {
   PLATFORM_ADMIN
   ADMIN
@@ -329,6 +351,13 @@ model Facility {
   patientSessions PatientSession[]
   paymentIntents  PaymentIntent[]
 
+  // system 2 back-references
+  vaultStaff     VaultClinicStaff[]
+  vaultSettings  VaultClinicSettings?
+  vaultServices  VaultClinicService[]
+  vaultGrants    VaultAccessGrant[]
+  vaultAuditLogs VaultAuditLog[]
+
   @@index([name])
   @@index([status])
 }
@@ -387,6 +416,11 @@ model Patient {
   diagnoses         Diagnosis[]
   labRequests       LabRequest[]
   radiologyRequests RadiologyRequest[]
+
+  // system 2 back-references
+  isTestPatient Boolean? @default(false)
+  vaultGrants   VaultAccessGrant[]
+  notifications PatientNotification[]
 
   @@index([lastName, firstName])
   @@index([phone])
@@ -451,12 +485,19 @@ model Appointment {
   reason      String?
   notes       String?
 
+  // System 2 additions
+  vaultClinicianId String?
+  vaultClinician   VaultClinicStaff? @relation("VaultClinicianAppointments", fields: [vaultClinicianId], references: [id])
+  sharedSections   String[]          @default([])
+  source           String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([patientId])
   @@index([facilityId])
   @@index([providerId])
+  @@index([vaultClinicianId])
   @@index([scheduledAt])
   @@index([status])
 }
@@ -1474,3 +1515,133 @@ model PatientVaultPayment {
 
   @@index([patientId, status])
 }
+
+/**
+ * |--------------------------------------------------------------------------
+ * | SYSTEM 2: PATIENT VAULT CLINIC MODELS
+ * |--------------------------------------------------------------------------
+ */
+
+model VaultClinicStaff {
+  id                  String             @id @default(uuid())
+  facilityId          String
+  facility            Facility           @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  name                String
+  email               String             @unique
+  phone               String?
+  role                VaultClinicRole
+  passwordHash        String
+  mustChangePassword  Boolean            @default(true)
+  isActive            Boolean            @default(true)
+  failedLoginAttempts Int                @default(0)
+  lockedUntil         DateTime?
+  passwordChangedAt   DateTime?
+  lastLoginAt         DateTime?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+
+  appointments        Appointment[]      @relation("VaultClinicianAppointments")
+  createdGrants       VaultAccessGrant[] @relation("GrantCreatedByStaff")
+  revokedGrants       VaultAccessGrant[] @relation("GrantRevokedByStaff")
+  auditLogs           VaultAuditLog[]
+
+  @@index([facilityId])
+  @@index([email])
+  @@index([role])
+}
+
+model VaultClinicSettings {
+  id                     String            @id @default(uuid())
+  facilityId             String            @unique
+  facility               Facility          @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  status                 VaultClinicStatus @default(INVITED)
+  bookingMode            VaultBookingMode  @default(MANUAL)
+  operatingHours         Json?
+  slotDurationMinutes    Int               @default(30)
+  requireConsentForVault Boolean           @default(true)
+  maxAdvanceBookingDays  Int               @default(30)
+  notificationEmail      String?
+  notificationPhone      String?
+  createdAt              DateTime          @default(now())
+  updatedAt              DateTime          @updatedAt
+
+  @@index([status])
+}
+
+model VaultClinicService {
+  id              String   @id @default(uuid())
+  facilityId      String
+  facility        Facility @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  name            String
+  code            String?
+  durationMinutes Int      @default(30)
+  price           Int?
+  currency        String   @default("RWF")
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([facilityId])
+  @@index([isActive])
+}
+
+model VaultAccessGrant {
+  id             String            @id @default(uuid())
+  facilityId     String
+  facility       Facility          @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  patientId      String
+  patient        Patient           @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  source         String
+  sharedSections String[]          @default([])
+  status         String            @default("ACTIVE")
+  expiresAt      DateTime
+  createdById    String?
+  createdBy      VaultClinicStaff? @relation("GrantCreatedByStaff", fields: [createdById], references: [id])
+  revokedById    String?
+  revokedBy      VaultClinicStaff? @relation("GrantRevokedByStaff", fields: [revokedById], references: [id])
+  revokedAt      DateTime?
+  revokeReason   String?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@index([facilityId, patientId])
+  @@index([status])
+  @@index([expiresAt])
+}
+
+model VaultAuditLog {
+  id         String            @id @default(uuid())
+  facilityId String
+  facility   Facility          @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  staffId    String?
+  staff      VaultClinicStaff? @relation(fields: [staffId], references: [id], onDelete: SetNull)
+  action     String
+  entityType String
+  entityId   String?
+  details    Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime          @default(now())
+
+  @@index([facilityId])
+  @@index([staffId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+model PatientNotification {
+  id        String   @id @default(uuid())
+  patientId String
+  patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  type      String
+  isRead    Boolean  @default(false)
+  metadata  Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([patientId, isRead])
+  @@index([createdAt])
+}
+
