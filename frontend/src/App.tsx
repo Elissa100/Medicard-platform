@@ -15,6 +15,8 @@ import VaultClinicChangePasswordPage from "./pages/vault-clinic/VaultClinicChang
 import VaultClinicSettingsPage from "./pages/vault-clinic/VaultClinicSettingsPage";
 import VaultClinicStaffPage from "./pages/vault-clinic/VaultClinicStaffPage";
 import VaultClinicAppointmentsPage from "./pages/vault-clinic/VaultClinicAppointmentsPage";
+import VaultClinicPatientsPage from "./pages/vault-clinic/VaultClinicPatientsPage";
+import VaultClinicGrantsPage from "./pages/vault-clinic/VaultClinicGrantsPage";
 import FacilityLoginPage from "./pages/FacilityLoginPage";
 import LoginPage from "./pages/LoginPage";
 import AdminLoginPage from "./pages/AdminLoginPage";
@@ -76,6 +78,8 @@ function App() {
         <Route path="/vault-clinic/settings" element={<VaultClinicSettingsPage />} />
         <Route path="/vault-clinic/staff" element={<VaultClinicStaffPage />} />
         <Route path="/vault-clinic/appointments" element={<VaultClinicAppointmentsPage />} />
+        <Route path="/vault-clinic/patients" element={<VaultClinicPatientsPage />} />
+        <Route path="/vault-clinic/grants" element={<VaultClinicGrantsPage />} />
 
         {/* =====================================================
             PATIENT REGISTRATION
