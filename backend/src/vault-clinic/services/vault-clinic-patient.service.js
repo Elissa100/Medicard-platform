@@ -117,8 +117,8 @@ export async function lookupPatient(facilityId, staff, query, { ipAddress, userA
 }
 
 export async function getPatientVaultClinicalData(facilityId, patientId, staff, { ipAddress, userAgent } = {}) {
-  // Clinicians only
-  if (staff.role !== "CLINICIAN") {
+  // Clinicians only (or any role when mock tap testing mode is enabled)
+  if (staff.role !== "CLINICIAN" && process.env.VAULT_CLINIC_MOCK_TAP !== "true") {
     const err = new Error("Clinical vault records are restricted to authorized clinicians only");
     err.statusCode = 403;
     throw err;
@@ -222,7 +222,7 @@ export async function simulateMockCardTap(facilityId, patientId, staff, { ipAddr
     throw err;
   }
 
-  if (staff.role !== "CLINICIAN") {
+  if (staff.role !== "CLINICIAN" && process.env.VAULT_CLINIC_MOCK_TAP !== "true") {
     const err = new Error("Only clinicians can create consent grants via card tap");
     err.statusCode = 403;
     throw err;
@@ -232,7 +232,13 @@ export async function simulateMockCardTap(facilityId, patientId, staff, { ipAddr
     where: { id: patientId },
   });
 
-  if (!patient || !patient.isTestPatient) {
+  if (!patient) {
+    const err = new Error("Patient not found");
+    err.statusCode = 404;
+    throw err;
+  }
+
+  if (process.env.VAULT_CLINIC_MOCK_TAP !== "true" && !patient.isTestPatient) {
     const err = new Error("Mocked card tap is restricted to verified test patients only");
     err.statusCode = 400;
     throw err;
@@ -266,6 +272,33 @@ export async function simulateMockCardTap(facilityId, patientId, staff, { ipAddr
   });
 
   return grant;
+}
+
+export async function fetchRandomTestPatient() {
+  if (process.env.VAULT_CLINIC_MOCK_TAP !== "true") {
+    const err = new Error("NFC card tap demo is disabled in this environment");
+    err.statusCode = 403;
+    throw err;
+  }
+
+  const testPatients = await prisma.patient.findMany({
+    where: { isTestPatient: true },
+    select: {
+      id: true,
+      patientNumber: true,
+      firstName: true,
+      lastName: true,
+      gender: true,
+      dateOfBirth: true,
+      phone: true,
+      email: true,
+    },
+  });
+
+  if (!testPatients.length) return null;
+
+  // Pick a random one so each tap demo feels fresh
+  return testPatients[Math.floor(Math.random() * testPatients.length)];
 }
 
 export async function listFacilityGrants(facilityId) {

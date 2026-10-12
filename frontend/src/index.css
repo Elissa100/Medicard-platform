@@ -2,6 +2,7 @@
 @import "tailwindcss";
 
 @theme {
+  --color-white: #ffffff;
   --color-navy: #003F66;
   --color-mid-blue: #2A7AA5;
   --color-teal: #00A3B8;
@@ -135,3 +136,22 @@ button {
     opacity: 1;
   }
 }
+
+.text-white,
+button.text-white,
+a.text-white,
+span.text-white,
+div.text-white,
+p.text-white {
+  color: #ffffff !important;
+}
+
+/* Ensure buttons with dark backgrounds always display white text */
+button.bg-slate-900,
+button.bg-navy,
+button.bg-teal,
+button[class*="bg-slate-900"],
+button[class*="bg-navy"] {
+  color: #ffffff !important;
+}
+

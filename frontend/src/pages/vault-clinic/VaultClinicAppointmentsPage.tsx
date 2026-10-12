@@ -281,9 +281,10 @@ export default function VaultClinicAppointmentsPage() {
               onClick={() => setActiveTab("TRIAGE")}
               className={`h-8 px-3 rounded-lg text-xs font-medium transition-colors ${
                 activeTab === "TRIAGE"
-                  ? "bg-slate-900 text-white font-semibold"
+                  ? "bg-navy text-white font-semibold"
                   : "text-slate-600 hover:text-slate-900"
               }`}
+              style={activeTab === "TRIAGE" ? { backgroundColor: "#003F66", color: "#ffffff" } : undefined}
             >
               Triage Queue ({triageCount})
             </button>
@@ -292,9 +293,10 @@ export default function VaultClinicAppointmentsPage() {
               onClick={() => setActiveTab("CONFIRMED")}
               className={`h-8 px-3 rounded-lg text-xs font-medium transition-colors ${
                 activeTab === "CONFIRMED"
-                  ? "bg-slate-900 text-white font-semibold"
+                  ? "bg-navy text-white font-semibold"
                   : "text-slate-600 hover:text-slate-900"
               }`}
+              style={activeTab === "CONFIRMED" ? { backgroundColor: "#003F66", color: "#ffffff" } : undefined}
             >
               Confirmed ({confirmedCount})
             </button>
@@ -303,9 +305,10 @@ export default function VaultClinicAppointmentsPage() {
               onClick={() => setActiveTab("ALL")}
               className={`h-8 px-3 rounded-lg text-xs font-medium transition-colors ${
                 activeTab === "ALL"
-                  ? "bg-slate-900 text-white font-semibold"
+                  ? "bg-navy text-white font-semibold"
                   : "text-slate-600 hover:text-slate-900"
               }`}
+              style={activeTab === "ALL" ? { backgroundColor: "#003F66", color: "#ffffff" } : undefined}
             >
               All Records
             </button>
@@ -432,9 +435,10 @@ export default function VaultClinicAppointmentsPage() {
                                 <button
                                   type="button"
                                   onClick={() => openActionModal(appt, "CONFIRM")}
-                                  className="h-7 px-2.5 rounded-lg bg-slate-900 text-[11px] font-medium text-white hover:bg-slate-800 transition-colors"
+                                  className="h-7 px-2.5 rounded-lg bg-teal text-[11px] font-semibold text-white hover:bg-teal/90 transition-colors shadow-2xs"
+                                  style={{ backgroundColor: "#00A3B8", color: "#ffffff" }}
                                 >
-                                  Confirm
+                                  <span style={{ color: "#ffffff" }}>Confirm</span>
                                 </button>
                                 <button
                                   type="button"
@@ -536,9 +540,10 @@ export default function VaultClinicAppointmentsPage() {
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="h-8 rounded-lg bg-slate-900 px-4 text-xs font-semibold text-white hover:bg-slate-800 disabled:opacity-50"
+                    className="h-8 rounded-lg bg-teal px-4 text-xs font-semibold text-white hover:bg-teal/90 disabled:opacity-50 transition-colors"
+                    style={{ backgroundColor: "#00A3B8", color: "#ffffff" }}
                   >
-                    {isSubmitting ? "Confirming..." : "Confirm & Notify Patient"}
+                    <span style={{ color: "#ffffff" }}>{isSubmitting ? "Confirming..." : "Confirm & Notify Patient"}</span>
                   </button>
                 </div>
               </form>
@@ -646,9 +651,10 @@ export default function VaultClinicAppointmentsPage() {
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="h-8 rounded-lg bg-slate-900 px-4 text-xs font-semibold text-white hover:bg-slate-800 disabled:opacity-50"
+                    className="h-8 rounded-lg bg-teal px-4 text-xs font-semibold text-white hover:bg-teal/90 disabled:opacity-50 transition-colors"
+                    style={{ backgroundColor: "#00A3B8", color: "#ffffff" }}
                   >
-                    {isSubmitting ? "Sending..." : "Send Proposal"}
+                    <span style={{ color: "#ffffff" }}>{isSubmitting ? "Sending..." : "Send Proposal"}</span>
                   </button>
                 </div>
               </form>
@@ -705,9 +711,10 @@ export default function VaultClinicAppointmentsPage() {
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="h-8 rounded-lg bg-slate-900 px-4 text-xs font-semibold text-white hover:bg-slate-800 disabled:opacity-50"
+                    className="h-8 rounded-lg bg-teal px-4 text-xs font-semibold text-white hover:bg-teal/90 disabled:opacity-50 transition-colors"
+                    style={{ backgroundColor: "#00A3B8", color: "#ffffff" }}
                   >
-                    {isSubmitting ? "Rescheduling..." : "Save & Reschedule"}
+                    <span style={{ color: "#ffffff" }}>{isSubmitting ? "Rescheduling..." : "Save & Reschedule"}</span>
                   </button>
                 </div>
               </form>

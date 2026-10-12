@@ -298,9 +298,9 @@ export default function VaultClinicStaffPage() {
 
         {/* Invite Staff Modal */}
         {showModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-xs">
-            <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-6 shadow-xl animate-in fade-in zoom-in-95 duration-150">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 sm:p-6 backdrop-blur-xs overflow-y-auto">
+            <div className="w-full max-w-md my-auto max-h-[85vh] flex flex-col rounded-2xl border border-slate-200 bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-150 overflow-hidden">
+              <div className="flex items-center justify-between p-5 border-b border-slate-100 shrink-0 bg-white">
                 <div className="flex items-center gap-2">
                   <div className="rounded-lg bg-teal-50 p-2 text-teal-600">
                     <Users className="h-5 w-5" />
@@ -319,7 +319,7 @@ export default function VaultClinicStaffPage() {
                 </button>
               </div>
 
-              <form onSubmit={handleInviteSubmit} className="mt-4 space-y-3.5">
+              <form onSubmit={handleInviteSubmit} className="flex-1 overflow-y-auto p-5 space-y-3.5">
                 <div>
                   <label className="block text-xs font-medium text-slate-700 mb-1">Full Name *</label>
                   <input
@@ -374,7 +374,7 @@ export default function VaultClinicStaffPage() {
                   </span>
                 </div>
 
-                <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
                   <button
                     type="button"
                     onClick={() => setShowModal(false)}
@@ -385,15 +385,16 @@ export default function VaultClinicStaffPage() {
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="h-9 inline-flex items-center justify-center rounded-lg bg-slate-900 px-4 text-xs font-semibold text-white shadow-xs hover:bg-slate-800 transition-colors disabled:opacity-50"
+                    className="h-9 inline-flex items-center justify-center rounded-lg bg-teal px-5 text-xs font-semibold text-white shadow-sm hover:bg-teal/90 transition-colors disabled:opacity-50"
+                    style={{ backgroundColor: "#00A3B8", color: "#ffffff" }}
                   >
                     {isSubmitting ? (
                       <>
-                        <LoaderCircle className="h-3.5 w-3.5 animate-spin mr-1.5" />
-                        Inviting...
+                        <LoaderCircle className="h-3.5 w-3.5 animate-spin mr-1.5" style={{ color: "#ffffff" }} />
+                        <span style={{ color: "#ffffff" }}>Inviting...</span>
                       </>
                     ) : (
-                      "Send Invitation"
+                      <span style={{ color: "#ffffff" }}>Send Invitation</span>
                     )}
                   </button>
                 </div>

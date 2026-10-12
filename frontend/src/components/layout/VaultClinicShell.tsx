@@ -134,12 +134,13 @@ export default function VaultClinicShell({
                 to={item.path}
                 className={`flex items-center gap-2.5 px-3 h-9 rounded-xl text-xs font-medium transition-colors ${
                   isActive
-                    ? "bg-slate-900 text-white font-semibold shadow-2xs"
+                    ? "bg-navy text-white font-semibold shadow-sm"
                     : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
                 }`}
+                style={isActive ? { backgroundColor: "#003F66", color: "#ffffff" } : undefined}
               >
-                <Icon className={`h-4 w-4 shrink-0 ${isActive ? "text-white" : "text-slate-400"}`} />
-                <span className="truncate">{item.label}</span>
+                <Icon className={`h-4 w-4 shrink-0 ${isActive ? "text-teal" : "text-slate-400"}`} style={isActive ? { color: "#7FD3E0" } : undefined} />
+                <span className="truncate" style={isActive ? { color: "#ffffff" } : undefined}>{item.label}</span>
               </Link>
             );
           })}
@@ -182,10 +183,11 @@ export default function VaultClinicShell({
               <button
                 type="button"
                 onClick={actionButton.onClick}
-                className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-slate-900 px-3.5 text-xs font-semibold text-white shadow-xs hover:bg-slate-800 transition-colors"
+                className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-teal px-3.5 text-xs font-semibold text-white shadow-sm hover:bg-teal/90 transition-colors"
+                style={{ backgroundColor: "#00A3B8", color: "#ffffff" }}
               >
                 {actionButton.icon}
-                <span>{actionButton.label}</span>
+                <span style={{ color: "#ffffff" }}>{actionButton.label}</span>
               </button>
             )}
 

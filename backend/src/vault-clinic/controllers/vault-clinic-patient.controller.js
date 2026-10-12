@@ -2,6 +2,7 @@ import {
   lookupPatient,
   getPatientVaultClinicalData,
   simulateMockCardTap,
+  fetchRandomTestPatient,
   listFacilityGrants,
   revokeAccessGrant,
 } from "../services/vault-clinic-patient.service.js";
@@ -80,6 +81,24 @@ export async function mockCardTap(req, res) {
     return res.status(err.statusCode || 400).json({
       success: false,
       message: err.message || "Failed to simulate card tap",
+    });
+  }
+}
+
+export async function getRandomTestPatient(req, res) {
+  try {
+    const patient = await fetchRandomTestPatient();
+    if (!patient) {
+      return res.status(404).json({
+        success: false,
+        message: "No test patient found. Please seed a test patient first.",
+      });
+    }
+    return res.status(200).json({ success: true, data: patient });
+  } catch (err) {
+    return res.status(err.statusCode || 400).json({
+      success: false,
+      message: err.message || "Failed to fetch demo patient",
     });
   }
 }

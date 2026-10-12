@@ -245,17 +245,17 @@ export default function VaultClinicSettingsPage() {
                   <button
                     type="button"
                     onClick={() => setBookingMode("MANUAL")}
-                    className={`p-4 rounded-xl border text-left transition-colors ${
+                    className={`p-4 rounded-xl border text-left transition-all ${
                       bookingMode === "MANUAL"
-                        ? "border-slate-900 bg-slate-900 text-white"
+                        ? "border-teal bg-pale-cyan/50 text-navy ring-2 ring-teal shadow-xs"
                         : "border-slate-200 bg-white hover:bg-slate-50 text-slate-800"
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-bold">Manual Receptionist Review</span>
-                      {bookingMode === "MANUAL" && <Check className="h-4 w-4" />}
+                      <span className="text-xs font-bold text-navy">Manual Receptionist Review</span>
+                      {bookingMode === "MANUAL" && <Check className="h-4 w-4 text-teal" />}
                     </div>
-                    <p className={`text-[11px] ${bookingMode === "MANUAL" ? "text-slate-300" : "text-slate-500"}`}>
+                    <p className="text-[11px] text-body-text">
                       Patient appointment requests require acceptance or rescheduling by clinic staff.
                     </p>
                   </button>
@@ -263,17 +263,17 @@ export default function VaultClinicSettingsPage() {
                   <button
                     type="button"
                     onClick={() => setBookingMode("AUTOMATIC")}
-                    className={`p-4 rounded-xl border text-left transition-colors ${
+                    className={`p-4 rounded-xl border text-left transition-all ${
                       bookingMode === "AUTOMATIC"
-                        ? "border-slate-900 bg-slate-900 text-white"
+                        ? "border-teal bg-pale-cyan/50 text-navy ring-2 ring-teal shadow-xs"
                         : "border-slate-200 bg-white hover:bg-slate-50 text-slate-800"
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-bold">Automatic Confirmation</span>
-                      {bookingMode === "AUTOMATIC" && <Check className="h-4 w-4" />}
+                      <span className="text-xs font-bold text-navy">Automatic Confirmation</span>
+                      {bookingMode === "AUTOMATIC" && <Check className="h-4 w-4 text-teal" />}
                     </div>
-                    <p className={`text-[11px] ${bookingMode === "AUTOMATIC" ? "text-slate-300" : "text-slate-500"}`}>
+                    <p className="text-[11px] text-body-text">
                       Available slots are immediately confirmed upon booking by registered vault patients.
                     </p>
                   </button>
@@ -284,15 +284,16 @@ export default function VaultClinicSettingsPage() {
                 <button
                   type="submit"
                   disabled={isSaving}
-                  className="h-9 inline-flex items-center justify-center rounded-xl bg-slate-900 px-5 text-xs font-semibold text-white shadow-xs hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:opacity-50 transition-colors"
+                  className="h-9 inline-flex items-center justify-center rounded-xl bg-teal px-5 text-xs font-semibold text-white shadow-sm hover:bg-teal/90 focus:outline-none focus:ring-2 focus:ring-teal disabled:opacity-50 transition-colors"
+                  style={{ backgroundColor: "#00A3B8", color: "#ffffff" }}
                 >
                   {isSaving ? (
                     <>
-                      <LoaderCircle className="h-3.5 w-3.5 animate-spin mr-1.5" />
-                      Saving changes...
+                      <LoaderCircle className="h-3.5 w-3.5 animate-spin mr-1.5" style={{ color: "#ffffff" }} />
+                      <span style={{ color: "#ffffff" }}>Saving changes...</span>
                     </>
                   ) : (
-                    "Save Schedule & Rules"
+                    <span style={{ color: "#ffffff" }}>Save Schedule & Rules</span>
                   )}
                 </button>
               </div>
@@ -302,16 +303,17 @@ export default function VaultClinicSettingsPage() {
             <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div className="flex items-center gap-2">
-                  <Layers className="h-4 w-4 text-teal-600" />
+                  <Layers className="h-4 w-4 text-teal" />
                   <h2 className="text-sm font-bold text-slate-900">Clinical Services Catalog</h2>
                 </div>
                 <button
                   type="button"
                   onClick={() => setShowServiceModal(true)}
-                  className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-slate-900 px-3 text-xs font-semibold text-white shadow-xs hover:bg-slate-800 transition-colors"
+                  className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-teal px-3 text-xs font-semibold text-white shadow-sm hover:bg-teal/90 transition-colors"
+                  style={{ backgroundColor: "#00A3B8", color: "#ffffff" }}
                 >
-                  <Plus className="h-3.5 w-3.5" />
-                  Add Service
+                  <Plus className="h-3.5 w-3.5" style={{ color: "#ffffff" }} />
+                  <span style={{ color: "#ffffff" }}>Add Service</span>
                 </button>
               </div>
 
@@ -427,9 +429,10 @@ export default function VaultClinicSettingsPage() {
                   </button>
                   <button
                     type="submit"
-                    className="h-8 rounded-lg bg-slate-900 px-3 text-xs font-semibold text-white shadow-xs hover:bg-slate-800"
+                    className="h-8 rounded-lg bg-teal px-4 text-xs font-semibold text-white shadow-sm hover:bg-teal/90 transition-colors"
+                    style={{ backgroundColor: "#00A3B8", color: "#ffffff" }}
                   >
-                    Add Service
+                    <span style={{ color: "#ffffff" }}>Add Service</span>
                   </button>
                 </div>
               </form>

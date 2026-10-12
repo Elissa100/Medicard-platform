@@ -281,5 +281,10 @@ export async function revokeAccessGrant(grantId: string, reason?: string) {
   });
 }
 
+export async function fetchDemoPatient() {
+  return vaultClinicFetch(`/patients/demo-patient`);
+}
+
+
 
 

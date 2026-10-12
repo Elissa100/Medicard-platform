@@ -94,15 +94,16 @@ export default function VaultClinicLoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="mt-2 w-full h-9 inline-flex items-center justify-center rounded-xl bg-slate-900 text-xs font-semibold text-white shadow-xs hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:opacity-50 transition-colors"
+              className="mt-2 w-full h-10 inline-flex items-center justify-center rounded-xl bg-teal text-xs font-semibold text-white shadow-sm hover:bg-teal/90 focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:opacity-50 transition-colors"
+              style={{ backgroundColor: "#00A3B8", color: "#ffffff" }}
             >
               {isLoading ? (
                 <>
-                  <LoaderCircle className="h-4 w-4 animate-spin mr-2" />
-                  Verifying credentials...
+                  <LoaderCircle className="h-4 w-4 animate-spin mr-2" style={{ color: "#ffffff" }} />
+                  <span style={{ color: "#ffffff" }}>Verifying credentials...</span>
                 </>
               ) : (
-                "Sign In to Clinic Workspace"
+                <span style={{ color: "#ffffff" }}>Sign In to Clinic Workspace</span>
               )}
             </button>
           </form>
