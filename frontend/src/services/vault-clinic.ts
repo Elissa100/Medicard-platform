@@ -254,4 +254,32 @@ export async function rescheduleClinicAppointment(appointmentId: string, schedul
   });
 }
 
+// Patient & Vault Access endpoints
+export async function lookupPatient(query: string) {
+  const params = new URLSearchParams({ query });
+  return vaultClinicFetch(`/patients/lookup?${params.toString()}`);
+}
+
+export async function fetchPatientVaultData(patientId: string) {
+  return vaultClinicFetch(`/patients/${patientId}/vault`);
+}
+
+export async function simulateCardTap(patientId: string) {
+  return vaultClinicFetch(`/patients/${patientId}/mock-tap`, {
+    method: "POST",
+  });
+}
+
+export async function fetchAccessGrants() {
+  return vaultClinicFetch("/patients/grants");
+}
+
+export async function revokeAccessGrant(grantId: string, reason?: string) {
+  return vaultClinicFetch(`/patients/grants/${grantId}/revoke`, {
+    method: "POST",
+    body: JSON.stringify({ reason }),
+  });
+}
+
+
 
