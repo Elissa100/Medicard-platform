@@ -1,7 +1,7 @@
 # Patient Vault Clinic System (System 2) Progress Tracker
 
 ## Status Overview
-- Current Stage: **Stage 3 Completed, Moving to Stage 4 (Appointments Dashboard & Booking Integrity)**
+- Current Stage: **Stage 4 Completed, Moving to Stage 5 (Patient Vault View, Consent Grants & Mocked Tap)**
 - Master Design: Completed & Approved (`docs/vault-clinic-design.md`)
 
 ---
@@ -53,15 +53,23 @@
   7. Management backend service, controller, and routes mounted under `/api/v1/vault-clinic/management`.
 
 ### Stage 4: Appointments Dashboard & Booking Integrity
-- **Status**: In Progress
-- **Tasks**:
-  1. Mount and verify appointments routes under `/api/v1/vault-clinic/appointments`.
-  2. Ensure double-booking prevention and triage lifecycle (SCHEDULED, PENDING_CONFIRMATION, CONFIRMED, COMPLETED, CANCELLED).
-  3. Notification triggers on status changes to `PatientNotification`.
-  4. Build `VaultClinicAppointmentsPage.tsx` (`/vault-clinic/appointments`) with Triage Queue, Active Schedule, and History views.
+- **Status**: Completed
+- **Completed Deliverables**:
+  1. Isolated appointment backend routes mounted under `/api/v1/vault-clinic/appointments`.
+  2. Double-booking prevention with strict time-overlap checking for clinicians.
+  3. Triage workflow: confirm & assign clinician, decline with reason, propose alternative time, and reschedule.
+  4. Automatic patient notifications (`PatientNotification`) on all appointment status transitions.
+  5. Full audit logging for each appointment event (`VaultAuditLog`).
+  6. Frontend dashboard `VaultClinicAppointmentsPage.tsx` with Triage Queue, Active Schedule, and History views, clinician assignment, and action modals.
 
 ### Stage 5: Patient Vault View, Consent Grants & Mocked Tap
-- **Status**: Pending
+- **Status**: In Progress
+- **Tasks**:
+  1. Patient lookup endpoint with masked privacy release (initials, YOB, masked phone) and audit logging.
+  2. Clinical vault record viewer endpoint (strictly clinician-only, requiring active grant or booking).
+  3. Consent grant management (`VaultAccessGrant` creation, expiration check, and revocation).
+  4. Mocked card tap simulator gated by `VAULT_CLINIC_MOCK_TAP=true`, `isTestPatient=true`, and clinician role.
+  5. Frontend screens: `VaultClinicPatientsPage.tsx` and `VaultClinicGrantsPage.tsx`.
 
 ### Stage 6: Reminders, Scheduled Jobs, Tests & Polish
 - **Status**: Pending
