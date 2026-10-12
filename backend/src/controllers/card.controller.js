@@ -6,6 +6,7 @@ import {
   unblockCard,
 } from "../services/card.service.js";
 
+import prisma from "../config/database.js";
 import { env } from "../config/env.js";
 
 
@@ -103,21 +104,56 @@ export const identify = async (req, res, next) => {
     |
     */
 
-    const userId =
+    let userId =
       req.user?.id ||
       req.body.userId ||
       env.nfcDemoUserId;
 
-    const facilityId =
+    let facilityId =
       req.user?.facilityId ||
       req.body.facilityId ||
       env.nfcDemoFacilityId;
 
-    const role =
+    let role =
       req.user?.role ||
       req.body.role ||
-      env.nfcDemoRole;
+      env.nfcDemoRole ||
+      "RECEPTIONIST";
 
+    /*
+    |--------------------------------------------------------------------------
+    | Auto-resolve context for physical desktop hardware readers
+    |--------------------------------------------------------------------------
+    | If invoked by the local USB NFC reader service without a user session,
+    | automatically resolve an active clinic staff and facility from the DB:
+    */
+    if (!userId || !facilityId) {
+      const fallbackUser = await prisma.user.findFirst({
+        where: { isActive: true },
+        select: { id: true, facilityId: true, role: true },
+      });
+
+      if (fallbackUser) {
+        userId = userId || fallbackUser.id;
+        facilityId = facilityId || fallbackUser.facilityId;
+        role = role || fallbackUser.role;
+      }
+    }
+
+    if (!facilityId) {
+      const fallbackFacility = await prisma.facility.findFirst({
+        select: { id: true },
+      });
+      facilityId = fallbackFacility?.id;
+    }
+
+    if (!userId) {
+      const anyUser = await prisma.user.findFirst({
+        select: { id: true, role: true },
+      });
+      userId = anyUser?.id;
+      role = role || anyUser?.role || "RECEPTIONIST";
+    }
 
     /*
     |--------------------------------------------------------------------------
