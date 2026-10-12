@@ -10,6 +10,10 @@ import NFCLandingPage from "./pages/NFCLandingPage";
 import PatientVaultPage from "./pages/PatientVaultPage";
 import PatientVaultLoginPage from "./pages/PatientVaultLoginPage";
 import VaultPortalPage from "./pages/VaultPortalPage";
+import VaultClinicLoginPage from "./pages/vault-clinic/VaultClinicLoginPage";
+import VaultClinicChangePasswordPage from "./pages/vault-clinic/VaultClinicChangePasswordPage";
+import VaultClinicSettingsPage from "./pages/vault-clinic/VaultClinicSettingsPage";
+import VaultClinicStaffPage from "./pages/vault-clinic/VaultClinicStaffPage";
 import FacilityLoginPage from "./pages/FacilityLoginPage";
 import LoginPage from "./pages/LoginPage";
 import AdminLoginPage from "./pages/AdminLoginPage";
@@ -61,6 +65,15 @@ function App() {
             VAULT PORTAL
         ====================================================== */}
         <Route path="/vault-portal" element={<VaultPortalPage />} />
+
+        {/* =====================================================
+            SYSTEM 2: PATIENT VAULT CLINIC PORTAL
+        ====================================================== */}
+        <Route path="/vault-clinic" element={<Navigate to="/vault-clinic/login" replace />} />
+        <Route path="/vault-clinic/login" element={<VaultClinicLoginPage />} />
+        <Route path="/vault-clinic/change-password" element={<VaultClinicChangePasswordPage />} />
+        <Route path="/vault-clinic/settings" element={<VaultClinicSettingsPage />} />
+        <Route path="/vault-clinic/staff" element={<VaultClinicStaffPage />} />
 
         {/* =====================================================
             PATIENT REGISTRATION
