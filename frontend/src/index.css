@@ -45,6 +45,21 @@
     0%, 100% { translate: 0 0; }
     50% { translate: 0 -6px; }
   }
+
+  @keyframes radar-pulse {
+    0% {
+      transform: scale(0.96);
+      box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+    }
+    70% {
+      transform: scale(1.02);
+      box-shadow: 0 0 0 24px rgba(16, 185, 129, 0);
+    }
+    100% {
+      transform: scale(0.96);
+      box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+    }
+  }
 }
 
 *, *::before, *::after {
@@ -154,4 +169,9 @@ button[class*="bg-slate-900"],
 button[class*="bg-navy"] {
   color: #ffffff !important;
 }
+
+.nfc-radar-pulse {
+  animation: radar-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
 
