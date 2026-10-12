@@ -1,13 +1,13 @@
-import prisma from "../config/database.js";
+import prisma from "../../config/database.js";
 
 /**
- * Validates whether a provider already has an overlapping appointment.
+ * Validates whether a clinician already has an overlapping appointment in System 2.
  */
-export async function checkProviderConflict(providerId, startTime, endTime, excludeAppointmentId = null) {
-  if (!providerId) return false;
+export async function checkClinicianConflict(vaultClinicianId, startTime, endTime, excludeAppointmentId = null) {
+  if (!vaultClinicianId) return false;
 
   const where = {
-    providerId,
+    vaultClinicianId,
     status: {
       in: ["CONFIRMED", "SCHEDULED", "CHECKED_IN"],
     },
@@ -32,7 +32,6 @@ export async function checkProviderConflict(providerId, startTime, endTime, excl
     const newStart = startTime.getTime();
     const newEnd = endTime.getTime();
 
-    // Overlap condition: startA < endB && endA > startB
     if (apptStart < newEnd && apptEnd > newStart) {
       return true;
     }
@@ -42,13 +41,14 @@ export async function checkProviderConflict(providerId, startTime, endTime, excl
 }
 
 /**
- * Returns all appointments for a clinic facility with optional provider, status, date, or mode filters.
+ * Returns all appointments for a clinic facility with optional clinician, status, or date filters.
  */
-export async function getFacilityAppointments(facilityId, { status, date, providerId, startDate, endDate, view }) {
+export async function getFacilityAppointments(facilityId, { status, date, vaultClinicianId, startDate, endDate }, staff) {
   const where = { facilityId };
 
-  if (providerId) {
-    where.providerId = providerId;
+  // If the logged in staff is a Clinician, they see their appointments by default or all if not filtered
+  if (vaultClinicianId) {
+    where.vaultClinicianId = vaultClinicianId;
   }
 
   if (status && status !== "ALL") {
@@ -79,15 +79,16 @@ export async function getFacilityAppointments(facilityId, { status, date, provid
           lastName: true,
           patientNumber: true,
           phone: true,
-          emergencyContactName: true,
-          emergencyContactPhone: true,
+          email: true,
+          dateOfBirth: true,
+          gender: true,
         },
       },
-      provider: {
+      vaultClinician: {
         select: {
           id: true,
-          firstName: true,
-          lastName: true,
+          name: true,
+          email: true,
           role: true,
         },
       },
@@ -97,264 +98,311 @@ export async function getFacilityAppointments(facilityId, { status, date, provid
 }
 
 /**
- * Creates an appointment with transactional double-booking prevention.
+ * Creates an appointment in System 2 with double-booking prevention.
  */
 export async function createClinicAppointment({
   facilityId,
   patientId,
-  providerId,
-  appointmentType = "CONSULTATION",
+  vaultClinicianId,
   scheduledAt,
   durationMinutes = 30,
   reason,
-  notes,
-  user,
+  appointmentType = "CONSULTATION",
+  sharedSections = [],
+  staff,
+  ipAddress,
+  userAgent,
 }) {
-  const start = new Date(scheduledAt);
-  const end = new Date(start.getTime() + durationMinutes * 60000);
+  const startTime = new Date(scheduledAt);
+  const endTime = new Date(startTime.getTime() + durationMinutes * 60000);
 
-  return prisma.$transaction(async (tx) => {
-    if (providerId) {
-      // Overlap check inside transaction
-      const conflict = await tx.appointment.findFirst({
-        where: {
-          providerId,
-          status: { in: ["CONFIRMED", "SCHEDULED", "CHECKED_IN"] },
-          scheduledAt: { lt: end },
-        },
-      });
-
-      if (conflict) {
-        const conflictStart = new Date(conflict.scheduledAt).getTime();
-        const conflictEnd = conflict.scheduledEnd
-          ? new Date(conflict.scheduledEnd).getTime()
-          : conflictStart + (conflict.durationMinutes || 30) * 60000;
-
-        if (conflictStart < end.getTime() && conflictEnd > start.getTime()) {
-          const err = new Error("This practitioner already has an appointment scheduled during this time slot.");
-          err.statusCode = 409;
-          throw err;
-        }
-      }
-    }
-
-    const appt = await tx.appointment.create({
-      data: {
-        facilityId,
-        patientId,
-        providerId: providerId || null,
-        appointmentType,
-        status: "CONFIRMED",
-        scheduledAt: start,
-        scheduledEnd: end,
-        durationMinutes,
-        reason,
-        notes,
-      },
-      include: {
-        patient: true,
-        facility: true,
-        provider: true,
-      },
-    });
-
-    return appt;
-  });
-}
-
-/**
- * Confirms a pending appointment request.
- */
-export async function confirmAppointmentRequest(appointmentId, { providerId, notes }, clinicUser) {
-  const appt = await prisma.appointment.findUnique({ where: { id: appointmentId } });
-  if (!appt) {
-    const error = new Error("Appointment not found");
-    error.statusCode = 404;
-    throw error;
-  }
-
-  const assignedProviderId = providerId || appt.providerId;
-  const start = new Date(appt.scheduledAt);
-  const duration = appt.durationMinutes || 30;
-  const end = new Date(start.getTime() + duration * 60000);
-
-  if (assignedProviderId) {
-    const hasConflict = await checkProviderConflict(assignedProviderId, start, end, appointmentId);
+  if (vaultClinicianId) {
+    const hasConflict = await checkClinicianConflict(vaultClinicianId, startTime, endTime);
     if (hasConflict) {
-      const error = new Error("Assigned provider has a schedule conflict for this time slot.");
-      error.statusCode = 409;
-      throw error;
+      const err = new Error("This clinician already has a scheduled consultation during the selected time slot.");
+      err.statusCode = 409;
+      throw err;
     }
   }
 
-  return prisma.appointment.update({
-    where: { id: appointmentId },
+  const appointment = await prisma.appointment.create({
     data: {
-      status: "CONFIRMED",
-      providerId: assignedProviderId,
-      scheduledEnd: end,
-      notes: notes || appt.notes,
-    },
-    include: {
-      patient: true,
-      facility: true,
-      provider: true,
-    },
-  });
-}
-
-/**
- * Declines an appointment request with reason.
- */
-export async function declineAppointmentRequest(appointmentId, { declineReason }, clinicUser) {
-  return prisma.appointment.update({
-    where: { id: appointmentId },
-    data: {
-      status: "DECLINED",
-      declineReason: declineReason || "Practitioner unavailable at requested time.",
-    },
-    include: {
-      patient: true,
-      facility: true,
-      provider: true,
-    },
-  });
-}
-
-/**
- * Proposes a new appointment time to the patient.
- */
-export async function proposeNewAppointmentTime(appointmentId, { proposedTime, notes }, clinicUser) {
-  const prop = new Date(proposedTime);
-  return prisma.appointment.update({
-    where: { id: appointmentId },
-    data: {
-      status: "RESCHEDULING",
-      proposedTime: prop,
-      notes: notes ? `Proposed new time: ${prop.toLocaleString()}. Note: ${notes}` : `Proposed new time: ${prop.toLocaleString()}`,
-    },
-    include: {
-      patient: true,
-      facility: true,
-      provider: true,
-    },
-  });
-}
-
-/**
- * Reschedules an appointment to a new date and time.
- */
-export async function rescheduleAppointment(appointmentId, { scheduledAt, durationMinutes = 30, providerId, notes }, clinicUser) {
-  const appt = await prisma.appointment.findUnique({ where: { id: appointmentId } });
-  if (!appt) {
-    const error = new Error("Appointment not found");
-    error.statusCode = 404;
-    throw error;
-  }
-
-  const start = new Date(scheduledAt);
-  const end = new Date(start.getTime() + durationMinutes * 60000);
-  const targetProviderId = providerId || appt.providerId;
-
-  if (targetProviderId) {
-    const hasConflict = await checkProviderConflict(targetProviderId, start, end, appointmentId);
-    if (hasConflict) {
-      const error = new Error("This practitioner is already booked during this time slot.");
-      error.statusCode = 409;
-      throw error;
-    }
-  }
-
-  return prisma.appointment.update({
-    where: { id: appointmentId },
-    data: {
-      status: "CONFIRMED",
-      scheduledAt: start,
-      scheduledEnd: end,
+      facilityId,
+      patientId,
+      vaultClinicianId: vaultClinicianId || null,
+      scheduledAt: startTime,
+      scheduledEnd: endTime,
       durationMinutes,
-      providerId: targetProviderId,
-      notes: notes || appt.notes,
+      reason,
+      appointmentType,
+      status: "CONFIRMED",
+      sharedSections,
+      source: "VAULT",
     },
     include: {
       patient: true,
+      vaultClinician: true,
       facility: true,
-      provider: true,
     },
   });
+
+  // Notify patient
+  await prisma.patientNotification.create({
+    data: {
+      patientId,
+      title: "Appointment Booked",
+      message: `Your appointment at ${appointment.facility.name} on ${startTime.toLocaleDateString()} at ${startTime.toLocaleTimeString()} has been confirmed.`,
+      type: "APPOINTMENT_CONFIRMED",
+      metadata: { appointmentId: appointment.id, facilityId },
+    },
+  });
+
+  // Audit log
+  await prisma.vaultAuditLog.create({
+    data: {
+      facilityId,
+      staffId: staff?.id || null,
+      action: "APPOINTMENT_CREATED",
+      entityType: "Appointment",
+      entityId: appointment.id,
+      details: { patientId, scheduledAt: startTime.toISOString(), durationMinutes },
+      ipAddress,
+      userAgent,
+    },
+  });
+
+  return appointment;
 }
 
 /**
- * Updates status (CHECKED_IN, COMPLETED, NO_SHOW, CANCELLED)
+ * Confirms a pending appointment request and optionally assigns a clinician.
  */
-export async function updateAppointmentStatus(appointmentId, { status, providerId, notes }, clinicUser) {
-  const allowedStatuses = ["SCHEDULED", "CONFIRMED", "CHECKED_IN", "COMPLETED", "CANCELLED", "NO_SHOW", "DECLINED", "RESCHEDULING"];
-  if (!allowedStatuses.includes(status)) {
-    const error = new Error(`Invalid status: ${status}`);
-    error.statusCode = 400;
-    throw error;
+export async function confirmAppointmentRequest(appointmentId, facilityId, { vaultClinicianId, scheduledAt, notes }, staff, { ipAddress, userAgent } = {}) {
+  const appointment = await prisma.appointment.findFirst({
+    where: { id: appointmentId, facilityId },
+    include: { facility: true },
+  });
+
+  if (!appointment) {
+    const err = new Error("Appointment not found");
+    err.statusCode = 404;
+    throw err;
   }
 
-  const data = { status };
-  if (providerId) data.providerId = providerId;
-  if (notes) data.notes = notes;
+  const targetTime = scheduledAt ? new Date(scheduledAt) : new Date(appointment.scheduledAt);
+  const duration = appointment.durationMinutes || 30;
+  const targetEnd = new Date(targetTime.getTime() + duration * 60000);
+  const targetClinician = vaultClinicianId || appointment.vaultClinicianId;
 
-  return prisma.appointment.update({
+  if (targetClinician) {
+    const conflict = await checkClinicianConflict(targetClinician, targetTime, targetEnd, appointmentId);
+    if (conflict) {
+      const err = new Error("Assigned clinician is already booked during this time window.");
+      err.statusCode = 409;
+      throw err;
+    }
+  }
+
+  const updated = await prisma.appointment.update({
     where: { id: appointmentId },
-    data,
-    include: {
-      patient: true,
-      facility: true,
-      provider: true,
+    data: {
+      status: "CONFIRMED",
+      vaultClinicianId: targetClinician || null,
+      scheduledAt: targetTime,
+      scheduledEnd: targetEnd,
+      notes: notes !== undefined ? notes : appointment.notes,
+    },
+    include: { patient: true, vaultClinician: true },
+  });
+
+  await prisma.patientNotification.create({
+    data: {
+      patientId: updated.patientId,
+      title: "Appointment Request Confirmed",
+      message: `Your appointment request at ${appointment.facility.name} has been approved for ${targetTime.toLocaleDateString()} at ${targetTime.toLocaleTimeString()}.`,
+      type: "APPOINTMENT_APPROVED",
+      metadata: { appointmentId: updated.id, facilityId },
     },
   });
+
+  await prisma.vaultAuditLog.create({
+    data: {
+      facilityId,
+      staffId: staff?.id || null,
+      action: "APPOINTMENT_CONFIRMED",
+      entityType: "Appointment",
+      entityId: updated.id,
+      details: { vaultClinicianId: targetClinician, scheduledAt: targetTime.toISOString() },
+      ipAddress,
+      userAgent,
+    },
+  });
+
+  return updated;
 }
 
 /**
- * Returns facility settings (booking mode and operating hours).
+ * Declines an appointment request with an explicit reason.
  */
-export async function getClinicSettings(facilityId) {
-  const facility = await prisma.facility.findUnique({
-    where: { id: facilityId },
-    select: {
-      id: true,
-      name: true,
-      code: true,
-      bookingMode: true,
-      operatingHours: true,
+export async function declineAppointmentRequest(appointmentId, facilityId, declineReason, staff, { ipAddress, userAgent } = {}) {
+  const appointment = await prisma.appointment.findFirst({
+    where: { id: appointmentId, facilityId },
+    include: { facility: true },
+  });
+
+  if (!appointment) {
+    const err = new Error("Appointment not found");
+    err.statusCode = 404;
+    throw err;
+  }
+
+  const updated = await prisma.appointment.update({
+    where: { id: appointmentId },
+    data: {
+      status: "CANCELLED",
+      declineReason: declineReason || "Clinic unable to accommodate requested slot",
+    },
+    include: { patient: true },
+  });
+
+  await prisma.patientNotification.create({
+    data: {
+      patientId: updated.patientId,
+      title: "Appointment Request Declined",
+      message: `Your appointment request at ${appointment.facility.name} could not be confirmed: ${declineReason || "Slot unavailable"}.`,
+      type: "APPOINTMENT_DECLINED",
+      metadata: { appointmentId: updated.id, facilityId },
     },
   });
 
-  return facility || {
-    bookingMode: "MANUAL",
-    operatingHours: {
-      monday: { open: "08:00", close: "17:00", active: true },
-      tuesday: { open: "08:00", close: "17:00", active: true },
-      wednesday: { open: "08:00", close: "17:00", active: true },
-      thursday: { open: "08:00", close: "17:00", active: true },
-      friday: { open: "08:00", close: "17:00", active: true },
-      saturday: { open: "09:00", close: "13:00", active: true },
-      sunday: { open: "00:00", close: "00:00", active: false },
+  await prisma.vaultAuditLog.create({
+    data: {
+      facilityId,
+      staffId: staff?.id || null,
+      action: "APPOINTMENT_DECLINED",
+      entityType: "Appointment",
+      entityId: updated.id,
+      details: { declineReason },
+      ipAddress,
+      userAgent,
     },
-  };
+  });
+
+  return updated;
 }
 
 /**
- * Updates facility settings.
+ * Proposes a rescheduled time for a patient appointment.
  */
-export async function updateClinicSettings(facilityId, { bookingMode, operatingHours }) {
-  const data = {};
-  if (bookingMode) data.bookingMode = bookingMode;
-  if (operatingHours) data.operatingHours = operatingHours;
+export async function proposeNewAppointmentTime(appointmentId, facilityId, proposedTime, notes, staff, { ipAddress, userAgent } = {}) {
+  const appointment = await prisma.appointment.findFirst({
+    where: { id: appointmentId, facilityId },
+    include: { facility: true },
+  });
 
-  return prisma.facility.update({
-    where: { id: facilityId },
-    data,
-    select: {
-      id: true,
-      name: true,
-      code: true,
-      bookingMode: true,
-      operatingHours: true,
+  if (!appointment) {
+    const err = new Error("Appointment not found");
+    err.statusCode = 404;
+    throw err;
+  }
+
+  const proposed = new Date(proposedTime);
+
+  const updated = await prisma.appointment.update({
+    where: { id: appointmentId },
+    data: {
+      proposedTime: proposed,
+      notes: notes !== undefined ? notes : appointment.notes,
+    },
+    include: { patient: true },
+  });
+
+  await prisma.patientNotification.create({
+    data: {
+      patientId: updated.patientId,
+      title: "Proposed Rescheduled Time",
+      message: `${appointment.facility.name} has proposed an alternative time for your visit: ${proposed.toLocaleDateString()} at ${proposed.toLocaleTimeString()}.`,
+      type: "APPOINTMENT_RESCHEDULE_PROPOSED",
+      metadata: { appointmentId: updated.id, proposedTime: proposed.toISOString(), facilityId },
     },
   });
+
+  await prisma.vaultAuditLog.create({
+    data: {
+      facilityId,
+      staffId: staff?.id || null,
+      action: "APPOINTMENT_PROPOSED_TIME",
+      entityType: "Appointment",
+      entityId: updated.id,
+      details: { proposedTime: proposed.toISOString() },
+      ipAddress,
+      userAgent,
+    },
+  });
+
+  return updated;
+}
+
+/**
+ * Reschedules an appointment to a new date/time with conflict verification.
+ */
+export async function rescheduleAppointment(appointmentId, facilityId, newScheduledAt, notes, staff, { ipAddress, userAgent } = {}) {
+  const appointment = await prisma.appointment.findFirst({
+    where: { id: appointmentId, facilityId },
+  });
+
+  if (!appointment) {
+    const err = new Error("Appointment not found");
+    err.statusCode = 404;
+    throw err;
+  }
+
+  const startTime = new Date(newScheduledAt);
+  const duration = appointment.durationMinutes || 30;
+  const endTime = new Date(startTime.getTime() + duration * 60000);
+
+  if (appointment.vaultClinicianId) {
+    const hasConflict = await checkClinicianConflict(appointment.vaultClinicianId, startTime, endTime, appointmentId);
+    if (hasConflict) {
+      const err = new Error("Clinician already has an overlapping appointment during the selected time.");
+      err.statusCode = 409;
+      throw err;
+    }
+  }
+
+  const updated = await prisma.appointment.update({
+    where: { id: appointmentId },
+    data: {
+      scheduledAt: startTime,
+      scheduledEnd: endTime,
+      proposedTime: null,
+      notes: notes !== undefined ? notes : appointment.notes,
+    },
+    include: { patient: true, vaultClinician: true },
+  });
+
+  await prisma.patientNotification.create({
+    data: {
+      patientId: updated.patientId,
+      title: "Appointment Rescheduled",
+      message: `Your appointment has been rescheduled to ${startTime.toLocaleDateString()} at ${startTime.toLocaleTimeString()}.`,
+      type: "APPOINTMENT_RESCHEDULED",
+      metadata: { appointmentId: updated.id, facilityId },
+    },
+  });
+
+  await prisma.vaultAuditLog.create({
+    data: {
+      facilityId,
+      staffId: staff?.id || null,
+      action: "APPOINTMENT_RESCHEDULED",
+      entityType: "Appointment",
+      entityId: updated.id,
+      details: { scheduledAt: startTime.toISOString() },
+      ipAddress,
+      userAgent,
+    },
+  });
+
+  return updated;
 }

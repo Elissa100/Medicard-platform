@@ -1,68 +1,62 @@
 import {
   getFacilityAppointments,
-  updateAppointmentStatus,
   createClinicAppointment,
   confirmAppointmentRequest,
   declineAppointmentRequest,
   proposeNewAppointmentTime,
   rescheduleAppointment,
-  getClinicSettings,
-  updateClinicSettings,
 } from "../services/appointment.service.js";
+
+function getMeta(req) {
+  return {
+    ipAddress: req.ip || req.headers["x-forwarded-for"] || req.socket.remoteAddress,
+    userAgent: req.headers["user-agent"],
+  };
+}
 
 export async function listAppointments(req, res) {
   try {
-    const facilityId = req.user.facilityId || req.query.facilityId;
-    if (!facilityId) {
-      return res.status(400).json({ success: false, message: "Facility ID is required" });
-    }
+    const facilityId = req.vaultStaff.facilityId;
+    const { status, date, vaultClinicianId, startDate, endDate } = req.query;
 
-    const { status, date, providerId, startDate, endDate, view } = req.query;
-    const appointments = await getFacilityAppointments(facilityId, {
-      status,
-      date,
-      providerId,
-      startDate,
-      endDate,
-      view,
-    });
-    res.json({ success: true, data: appointments });
+    const appointments = await getFacilityAppointments(
+      facilityId,
+      {
+        status,
+        date,
+        vaultClinicianId: req.vaultStaff.role === "CLINICIAN" && !vaultClinicianId ? req.vaultStaff.id : vaultClinicianId,
+        startDate,
+        endDate,
+      },
+      req.vaultStaff
+    );
+
+    return res.status(200).json({ success: true, data: appointments });
   } catch (error) {
-    console.error("List appointments failed:", error);
-    res.status(error.statusCode || 500).json({
+    return res.status(error.statusCode || 500).json({
       success: false,
       message: error.message || "Failed to load appointments",
     });
   }
 }
 
-export async function updateStatus(req, res) {
-  try {
-    const { appointmentId } = req.params;
-    const { status, providerId, notes } = req.body;
-    const updated = await updateAppointmentStatus(appointmentId, { status, providerId, notes }, req.user);
-    res.json({ success: true, data: updated, message: `Appointment status updated to ${status}` });
-  } catch (error) {
-    console.error("Update appointment status failed:", error);
-    res.status(error.statusCode || 500).json({
-      success: false,
-      message: error.message || "Failed to update appointment",
-    });
-  }
-}
-
 export async function createAppointment(req, res) {
   try {
-    const facilityId = req.user.facilityId || req.body.facilityId;
+    const meta = getMeta(req);
     const appointment = await createClinicAppointment({
-      facilityId,
+      facilityId: req.vaultStaff.facilityId,
       ...req.body,
-      user: req.user,
+      staff: req.vaultStaff,
+      ...meta,
     });
-    res.status(201).json({ success: true, data: appointment, message: "Appointment booked successfully" });
+
+    return res.status(201).json({
+      success: true,
+      message: "Appointment scheduled successfully",
+      data: appointment,
+    });
   } catch (error) {
-    console.error("Create appointment failed:", error);
-    res.status(error.statusCode || 500).json({
+    return res.status(error.statusCode || 400).json({
       success: false,
       message: error.message || "Failed to create appointment",
     });
@@ -72,59 +66,112 @@ export async function createAppointment(req, res) {
 export async function confirmRequest(req, res) {
   try {
     const { appointmentId } = req.params;
-    const updated = await confirmAppointmentRequest(appointmentId, req.body, req.user);
-    res.json({ success: true, data: updated, message: "Appointment request confirmed" });
+    const meta = getMeta(req);
+    const updated = await confirmAppointmentRequest(
+      appointmentId,
+      req.vaultStaff.facilityId,
+      req.body,
+      req.vaultStaff,
+      meta
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Appointment request confirmed",
+      data: updated,
+    });
   } catch (error) {
-    res.status(error.statusCode || 500).json({ success: false, message: error.message });
+    return res.status(error.statusCode || 400).json({
+      success: false,
+      message: error.message || "Failed to confirm appointment request",
+    });
   }
 }
 
 export async function declineRequest(req, res) {
   try {
     const { appointmentId } = req.params;
-    const updated = await declineAppointmentRequest(appointmentId, req.body, req.user);
-    res.json({ success: true, data: updated, message: "Appointment request declined" });
+    const { declineReason } = req.body;
+    const meta = getMeta(req);
+    const updated = await declineAppointmentRequest(
+      appointmentId,
+      req.vaultStaff.facilityId,
+      declineReason,
+      req.vaultStaff,
+      meta
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Appointment request declined",
+      data: updated,
+    });
   } catch (error) {
-    res.status(error.statusCode || 500).json({ success: false, message: error.message });
+    return res.status(error.statusCode || 400).json({
+      success: false,
+      message: error.message || "Failed to decline appointment request",
+    });
   }
 }
 
 export async function proposeTime(req, res) {
   try {
     const { appointmentId } = req.params;
-    const updated = await proposeNewAppointmentTime(appointmentId, req.body, req.user);
-    res.json({ success: true, data: updated, message: "New time proposed to patient" });
+    const { proposedTime, notes } = req.body;
+    if (!proposedTime) {
+      return res.status(400).json({ success: false, message: "Proposed time is required" });
+    }
+
+    const meta = getMeta(req);
+    const updated = await proposeNewAppointmentTime(
+      appointmentId,
+      req.vaultStaff.facilityId,
+      proposedTime,
+      notes,
+      req.vaultStaff,
+      meta
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Alternative appointment time proposed to patient",
+      data: updated,
+    });
   } catch (error) {
-    res.status(error.statusCode || 500).json({ success: false, message: error.message });
+    return res.status(error.statusCode || 400).json({
+      success: false,
+      message: error.message || "Failed to propose alternative time",
+    });
   }
 }
 
 export async function reschedule(req, res) {
   try {
     const { appointmentId } = req.params;
-    const updated = await rescheduleAppointment(appointmentId, req.body, req.user);
-    res.json({ success: true, data: updated, message: "Appointment rescheduled successfully" });
-  } catch (error) {
-    res.status(error.statusCode || 500).json({ success: false, message: error.message });
-  }
-}
+    const { scheduledAt, notes } = req.body;
+    if (!scheduledAt) {
+      return res.status(400).json({ success: false, message: "New scheduled time is required" });
+    }
 
-export async function getSettings(req, res) {
-  try {
-    const facilityId = req.user.facilityId || req.query.facilityId;
-    const settings = await getClinicSettings(facilityId);
-    res.json({ success: true, data: settings });
-  } catch (error) {
-    res.status(error.statusCode || 500).json({ success: false, message: error.message });
-  }
-}
+    const meta = getMeta(req);
+    const updated = await rescheduleAppointment(
+      appointmentId,
+      req.vaultStaff.facilityId,
+      scheduledAt,
+      notes,
+      req.vaultStaff,
+      meta
+    );
 
-export async function updateSettings(req, res) {
-  try {
-    const facilityId = req.user.facilityId;
-    const updated = await updateClinicSettings(facilityId, req.body);
-    res.json({ success: true, data: updated, message: "Clinic settings updated" });
+    return res.status(200).json({
+      success: true,
+      message: "Appointment rescheduled successfully",
+      data: updated,
+    });
   } catch (error) {
-    res.status(error.statusCode || 500).json({ success: false, message: error.message });
+    return res.status(error.statusCode || 400).json({
+      success: false,
+      message: error.message || "Failed to reschedule appointment",
+    });
   }
 }
