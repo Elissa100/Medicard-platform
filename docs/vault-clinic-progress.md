@@ -1,7 +1,7 @@
 # Patient Vault Clinic System (System 2) Progress Tracker
 
 ## Status Overview
-- Current Stage: **Stage 2 Completed, Moving to Stage 3 (App Shell & Clinic Admin Setup)**
+- Current Stage: **Stage 3 Completed, Moving to Stage 4 (Appointments Dashboard & Booking Integrity)**
 - Master Design: Completed & Approved (`docs/vault-clinic-design.md`)
 
 ---
@@ -42,15 +42,23 @@
   7. Filtered patient participating clinic directory (`getParticipatingClinics`) strictly to active vault clinics with configured hours and services.
 
 ### Stage 3: New App Shell & Clinic Admin Setup
-- **Status**: In Progress
-- **Tasks**:
+- **Status**: Completed
+- **Completed Deliverables**:
   1. Isolated layout shell `VaultClinicShell.tsx` (fixed 240px sidebar, 56px header, connected cross logo, compact density).
-  2. Clinic sign-in page (`/vault-clinic/login`) and first-login forced password change screen (`/vault-clinic/change-password`).
-  3. Clinic setup wizard: operating hours, service catalog, booking mode.
-  4. Staff management screen (`/vault-clinic/staff`): invite receptionists and clinicians with temporary passwords.
+  2. Frontend session manager & API client `frontend/src/services/vault-clinic.ts` with audience-isolated storage keys and redirection on token expiry / password change requirement.
+  3. Clinic sign-in screen `VaultClinicLoginPage.tsx` (`/vault-clinic/login`) with zero exposed credentials.
+  4. First-login forced password change screen `VaultClinicChangePasswordPage.tsx` (`/vault-clinic/change-password`) with strict complexity enforcement.
+  5. Clinic settings & onboarding checklist screen `VaultClinicSettingsPage.tsx` (`/vault-clinic/settings`) for hours, booking mode, and service catalog.
+  6. Staff management screen `VaultClinicStaffPage.tsx` (`/vault-clinic/staff`) with invitation modal and Brevo temporary password dispatch.
+  7. Management backend service, controller, and routes mounted under `/api/v1/vault-clinic/management`.
 
 ### Stage 4: Appointments Dashboard & Booking Integrity
-- **Status**: Pending
+- **Status**: In Progress
+- **Tasks**:
+  1. Mount and verify appointments routes under `/api/v1/vault-clinic/appointments`.
+  2. Ensure double-booking prevention and triage lifecycle (SCHEDULED, PENDING_CONFIRMATION, CONFIRMED, COMPLETED, CANCELLED).
+  3. Notification triggers on status changes to `PatientNotification`.
+  4. Build `VaultClinicAppointmentsPage.tsx` (`/vault-clinic/appointments`) with Triage Queue, Active Schedule, and History views.
 
 ### Stage 5: Patient Vault View, Consent Grants & Mocked Tap
 - **Status**: Pending
@@ -61,4 +69,4 @@
 ---
 
 ## Open Questions & Blockers
-None. Schema and platform admin components are verified with 0 TypeScript/build errors.
+None. Builds, linters, and type-checks are 100% green.
