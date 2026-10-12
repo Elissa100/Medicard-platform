@@ -31,9 +31,8 @@ import registrationRoutes from "./routes/registration.routes.js";
 import patientVaultRoutes from "./routes/patient-vault.routes.js";
 import contactRoutes from "./routes/contact.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
-
-
-
+import vaultClinicAuthRoutes from "./vault-clinic/routes/vault-clinic-auth.routes.js";
+import vaultClinicAdminRoutes from "./vault-clinic/routes/vault-clinic-admin.routes.js";
 const app = express();
 
 // Render forwards requests through one proxy; trust its client IP for rate limiting.
@@ -311,11 +310,21 @@ app.use(
   adminRoutes
 );
 
+/*
+|--------------------------------------------------------------------------
+| SYSTEM 2: PATIENT VAULT CLINIC ROUTES
+|--------------------------------------------------------------------------
+*/
 
+app.use(
+  "/api/v1/vault-clinic/auth",
+  vaultClinicAuthRoutes
+);
 
-
-
-
+app.use(
+  "/api/v1/admin/vault-clinics",
+  vaultClinicAdminRoutes
+);
 
 /*
 |--------------------------------------------------------------------------
