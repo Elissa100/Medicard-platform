@@ -189,3 +189,69 @@ export async function toggleClinicStaff(staffId: string, isActive: boolean) {
   });
 }
 
+// Appointments endpoints
+export async function fetchClinicAppointments(params: {
+  status?: string;
+  date?: string;
+  vaultClinicianId?: string;
+  startDate?: string;
+  endDate?: string;
+} = {}) {
+  const query = new URLSearchParams();
+  if (params.status && params.status !== "ALL") query.set("status", params.status);
+  if (params.date) query.set("date", params.date);
+  if (params.vaultClinicianId) query.set("vaultClinicianId", params.vaultClinicianId);
+  if (params.startDate) query.set("startDate", params.startDate);
+  if (params.endDate) query.set("endDate", params.endDate);
+
+  const queryStr = query.toString();
+  return vaultClinicFetch(`/appointments${queryStr ? `?${queryStr}` : ""}`);
+}
+
+export async function createClinicAppointment(payload: {
+  patientId: string;
+  vaultClinicianId?: string;
+  scheduledAt: string;
+  durationMinutes?: number;
+  reason?: string;
+  appointmentType?: string;
+  sharedSections?: string[];
+}) {
+  return vaultClinicFetch("/appointments", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function confirmClinicAppointment(
+  appointmentId: string,
+  payload: { vaultClinicianId?: string; scheduledAt?: string; notes?: string } = {}
+) {
+  return vaultClinicFetch(`/appointments/${appointmentId}/confirm`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function declineClinicAppointment(appointmentId: string, declineReason: string) {
+  return vaultClinicFetch(`/appointments/${appointmentId}/decline`, {
+    method: "POST",
+    body: JSON.stringify({ declineReason }),
+  });
+}
+
+export async function proposeAppointmentTime(appointmentId: string, proposedTime: string, notes?: string) {
+  return vaultClinicFetch(`/appointments/${appointmentId}/propose-time`, {
+    method: "POST",
+    body: JSON.stringify({ proposedTime, notes }),
+  });
+}
+
+export async function rescheduleClinicAppointment(appointmentId: string, scheduledAt: string, notes?: string) {
+  return vaultClinicFetch(`/appointments/${appointmentId}/reschedule`, {
+    method: "POST",
+    body: JSON.stringify({ scheduledAt, notes }),
+  });
+}
+
+
