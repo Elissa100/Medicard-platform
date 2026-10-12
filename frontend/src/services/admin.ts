@@ -200,3 +200,43 @@ export async function fetchAuditLogs(params: { search?: string; action?: string;
   return adminFetch(`/audit-logs?${query.toString()}`);
 }
 
+export async function fetchVaultClinics(params: { search?: string; status?: string; page?: number; limit?: number } = {}) {
+  const query = new URLSearchParams();
+  if (params.search) query.set("search", params.search);
+  if (params.status && params.status !== "ALL") query.set("status", params.status);
+  if (params.page) query.set("page", String(params.page));
+  if (params.limit) query.set("limit", String(params.limit));
+
+  const queryStr = query.toString();
+  return adminFetch(`/vault-clinics${queryStr ? `?${queryStr}` : ""}`);
+}
+
+export async function createVaultClinic(data: {
+  name: string;
+  code: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  adminName: string;
+  adminEmail: string;
+  adminPhone?: string;
+  bookingMode?: "MANUAL" | "AUTOMATIC";
+}) {
+  return adminFetch("/vault-clinics", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateVaultClinicStatus(facilityId: string, status: "ACTIVE" | "SUSPENDED" | "INVITED") {
+  return adminFetch(`/vault-clinics/${facilityId}/status`, {
+    method: "PATCH",
+    body: JSON.stringify({ status }),
+  });
+}
+
+export async function fetchVaultClinicDetails(facilityId: string) {
+  return adminFetch(`/vault-clinics/${facilityId}`);
+}
+
+
