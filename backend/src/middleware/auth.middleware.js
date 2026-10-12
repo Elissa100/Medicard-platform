@@ -34,6 +34,19 @@ export async function authenticate(req, res, next) {
 }
 
 /**
+ * Require staff account (rejects patient and invalid tokens)
+ */
+export function requireStaff(req, res, next) {
+  if (!req.user || req.user.type !== "staff") {
+    return res.status(403).json({
+      success: false,
+      message: "Access restricted to authorized clinic staff",
+    });
+  }
+  next();
+}
+
+/**
  * Check if user has required role
  */
 export function authorize(...allowedRoles) {

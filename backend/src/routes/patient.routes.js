@@ -8,7 +8,7 @@ import {
   deletePatient
 } from "../controllers/patient.controller.js";
 
-import { authenticate } from "../middleware/auth.middleware.js";
+import { authenticate, requireStaff } from "../middleware/auth.middleware.js";
 import { validate } from "../middleware/validation.middleware.js";
 
 import {
@@ -18,7 +18,7 @@ import {
 
 const router = express.Router();
 
-router.use(authenticate);
+router.use(authenticate, requireStaff);
 
 router.post(
   "/",
