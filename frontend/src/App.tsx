@@ -16,6 +16,7 @@ import AdminLoginPage from "./pages/AdminLoginPage";
 import AdminChangePasswordPage from "./pages/AdminChangePasswordPage";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
 import AdminClinicsPage from "./pages/admin/AdminClinicsPage";
+import AdminVaultClinicsPage from "./pages/admin/AdminVaultClinicsPage";
 import AdminUsersPage from "./pages/admin/AdminUsersPage";
 import AdminCardsPage from "./pages/admin/AdminCardsPage";
 import AdminPlansPage from "./pages/admin/AdminPlansPage";
@@ -115,6 +116,10 @@ function App() {
         <Route
           path="/admin/clinics"
           element={<AdminClinicsPage />}
+        />
+        <Route
+          path="/admin/vault-clinics"
+          element={<AdminVaultClinicsPage />}
         />
         <Route
           path="/admin/users"
