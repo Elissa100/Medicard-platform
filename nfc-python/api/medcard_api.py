@@ -1,7 +1,8 @@
+import os
 import requests
 
 
-API_URL = "http://localhost:5000/api/v1"
+API_URL = os.environ.get("MEDCARD_API_URL", "http://localhost:5000/api/v1")
 
 
 def identify_card(card_uid):
