@@ -366,11 +366,14 @@ app.use((req, res) => {
 app.use((err, req, res, next) => {
   console.error(err);
 
-  res.status(err.statusCode || 500).json({
+  const statusCode = err.statusCode || 500;
+  const isClientError = statusCode >= 400 && statusCode < 500;
+
+  res.status(statusCode).json({
     success: false,
 
     message:
-      process.env.NODE_ENV === "production"
+      process.env.NODE_ENV === "production" && !isClientError
         ? "Internal server error"
         : err.message,
   });

@@ -281,7 +281,18 @@ export const identify = async (req, res, next) => {
       );
     }
 
-    next(error);
+    const statusCode = error.statusCode || 400;
+    return res.status(statusCode).json({
+      success: false,
+      code:
+        statusCode === 404
+          ? "CARD_NOT_REGISTERED"
+          : statusCode === 403
+            ? "CARD_NOT_ALLOWED"
+            : "IDENTIFICATION_ERROR",
+      message: error.message || "Card identification failed",
+      cardUid,
+    });
   }
 };
 
