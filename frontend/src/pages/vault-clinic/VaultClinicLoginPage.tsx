@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { vaultClinicLogin } from "../../services/vault-clinic";
 import { Lock, Mail, LoaderCircle, AlertCircle } from "lucide-react";
 
@@ -107,9 +107,15 @@ export default function VaultClinicLoginPage() {
             </button>
           </form>
 
-          <div className="mt-6 border-t border-slate-100 pt-4 text-center">
+          <div className="mt-6 border-t border-slate-100 pt-4 text-center space-y-2">
             <p className="text-[11px] text-slate-400">
               Need access? Contact your clinic administrator to receive your account invitation.
+            </p>
+            <p className="text-xs text-slate-500 pt-1">
+              Looking for your personal health records?{" "}
+              <Link to="/patient-vault/login" className="font-semibold text-teal-600 hover:text-teal-700">
+                Patient Sign In
+              </Link>
             </p>
           </div>
         </div>

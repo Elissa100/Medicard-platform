@@ -55,7 +55,14 @@ export default function NFCLandingPage() {
               </a>
             </nav>
 
-            <div className="hidden md:flex items-center gap-4">
+            <div className="hidden md:flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => navigate("/vault-clinic/login")}
+                className="inline-flex items-center justify-center px-4 py-2 text-base font-semibold text-navy border border-navy/30 rounded-full hover:bg-navy/5 transition-colors focus:outline-none focus:ring-2 focus:ring-navy"
+              >
+                Clinic Portal
+              </button>
               <button
                 type="button"
                 onClick={() => navigate("/login")}
@@ -102,6 +109,16 @@ export default function NFCLandingPage() {
               <a href="#contact" onClick={() => setMenuOpen(false)} className="block py-3 text-base font-semibold text-body-text hover:text-teal">
                 Contact
               </a>
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpen(false);
+                  navigate("/vault-clinic/login");
+                }}
+                className="w-full py-3 text-base font-semibold text-teal border-2 border-teal rounded-full"
+              >
+                Partner Clinic Portal
+              </button>
               <button
                 type="button"
                 onClick={() => {

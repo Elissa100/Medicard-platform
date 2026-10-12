@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, LoaderCircle, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Building2, LoaderCircle, ShieldCheck } from "lucide-react";
 
 const API_URL = import.meta.env.VITE_API_URL || "https://medicard-platform.onrender.com/api/v1";
 const AUTH_TOKEN_KEY = "medcard_auth_token";
@@ -138,6 +138,17 @@ export default function PatientVaultLoginPage() {
               Choose a plan
             </Link>
           </p>
+
+          <div className="mt-8 pt-6 border-t border-border text-center">
+            <p className="text-xs text-body-text mb-2">Are you a healthcare provider or clinic staff?</p>
+            <Link
+              to="/vault-clinic/login"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-teal hover:text-navy bg-pale-cyan/50 hover:bg-pale-cyan px-3.5 py-2 rounded-xl transition-colors"
+            >
+              <Building2 size={15} className="text-teal" />
+              Partner Clinic Sign In &rarr;
+            </Link>
+          </div>
         </div>
       </div>
     </div>
