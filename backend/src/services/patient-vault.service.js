@@ -332,12 +332,24 @@ export async function getPatientLabResults(patientId) {
 }
 
 /**
- * Returns participating clinics directory.
+ * Returns participating clinics directory for Patient Vault.
+ * Lists only facilities with an ACTIVE vault status, configured operating hours,
+ * and at least one active service.
  */
 export async function getParticipatingClinics() {
   try {
     const facilities = await prisma.facility.findMany({
-      where: { status: "ACTIVE" },
+      where: {
+        vaultSettings: {
+          status: "ACTIVE",
+          operatingHours: { not: null },
+        },
+        vaultServices: {
+          some: {
+            isActive: true,
+          },
+        },
+      },
       select: {
         id: true,
         name: true,
@@ -345,61 +357,46 @@ export async function getParticipatingClinics() {
         phone: true,
         email: true,
         address: true,
+        vaultSettings: {
+          select: {
+            status: true,
+            bookingMode: true,
+            operatingHours: true,
+            slotDurationMinutes: true,
+          },
+        },
+        vaultServices: {
+          where: { isActive: true },
+          select: {
+            id: true,
+            name: true,
+            durationMinutes: true,
+            price: true,
+            currency: true,
+          },
+        },
       },
       orderBy: { name: "asc" },
     });
 
-    if (facilities && facilities.length > 0) {
-      return facilities.map((f) => ({
-        ...f,
-        services: ["General Consultation", "Dental Care", "Pediatrics", "Laboratory Screening"],
-        operatingHours: "Mon - Sat: 08:00 AM - 06:00 PM",
-      }));
-    }
+    return facilities.map((f) => ({
+      id: f.id,
+      name: f.name,
+      code: f.code,
+      phone: f.phone,
+      email: f.email,
+      address: f.address,
+      bookingMode: f.vaultSettings?.bookingMode || "MANUAL",
+      operatingHours: f.vaultSettings?.operatingHours || "Mon - Fri: 08:00 AM - 05:00 PM",
+      services: f.vaultServices.map((s) => s.name),
+      serviceDetails: f.vaultServices,
+    }));
   } catch (err) {
-    console.warn("Could not query facilities from DB, using participating directory fallback:", err.message);
+    console.error("Failed to query participating vault clinics:", err.message);
+    return [];
   }
-
-  // Graceful directory fallback for participating clinics in Rwanda
-  return [
-    {
-      id: "clinic-kfh",
-      name: "King Faisal Hospital",
-      code: "KFH",
-      address: "KG 544 St, Gasabo, Kigali",
-      phone: "+250 788 123 456",
-      services: ["General Consultation", "Cardiology", "Pediatrics", "Dental Care", "Laboratory Screening"],
-      operatingHours: "24/7 Emergency & Mon - Fri 08:00 - 18:00",
-    },
-    {
-      id: "clinic-remera",
-      name: "Remera Community Clinic",
-      code: "RCC",
-      address: "KG 11 Ave, Remera, Kigali",
-      phone: "+250 790 280 727",
-      services: ["General Consultation", "Dental Care", "Preventive Screening", "Pediatrics"],
-      operatingHours: "Mon - Sat: 08:00 AM - 06:00 PM",
-    },
-    {
-      id: "clinic-nyarugenge",
-      name: "Nyarugenge District Hospital",
-      code: "NDH",
-      address: "Nyamirambo, Nyarugenge, Kigali",
-      phone: "+250 788 345 678",
-      services: ["General Consultation", "Dental Care", "Radiology", "Maternity"],
-      operatingHours: "Mon - Sun: 08:00 AM - 07:00 PM",
-    },
-    {
-      id: "clinic-gasabo",
-      name: "Gasabo Family PolyClinic",
-      code: "GFP",
-      address: "Kimironko, Gasabo, Kigali",
-      phone: "+250 788 987 654",
-      services: ["General Consultation", "Dental Care", "Laboratory Screening"],
-      operatingHours: "Mon - Fri: 08:30 AM - 05:30 PM",
-    },
-  ];
 }
+
 
 /**
  * Returns appointments for a patient or their dependent.
