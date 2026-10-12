@@ -17,6 +17,7 @@ import {
   Layers,
   CircleDollarSign,
   ScrollText,
+  ShieldCheck,
 } from "lucide-react";
 
 export interface NavItemConfig {
@@ -85,6 +86,7 @@ export const ADMIN_NAV_GROUPS: NavGroupConfig[] = [
     items: [
       { id: "overview", label: "Overview", path: "/admin/dashboard", icon: LayoutDashboard },
       { id: "clinics", label: "Clinics", path: "/admin/clinics", icon: Building2 },
+      { id: "vault-clinics", label: "Vault clinics", path: "/admin/vault-clinics", icon: ShieldCheck },
       { id: "users", label: "Users", path: "/admin/users", icon: Users },
       { id: "cards", label: "Cards", path: "/admin/cards", icon: CreditCard },
       { id: "plans", label: "Plans", path: "/admin/plans", icon: Layers },
