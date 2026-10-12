@@ -72,14 +72,47 @@
   5. Frontend screens: `VaultClinicPatientsPage.tsx` (directory with privacy mask, clinician vault inspector, and NFC simulator) and `VaultClinicGrantsPage.tsx` (active consent grants with countdown and revocation).
 
 ### Stage 6: Reminders, Scheduled Jobs, Tests & Polish
-- **Status**: In Progress
-- **Tasks**:
-  1. Automated reminder worker script (`backend/scripts/run-reminders.js`) with duplicate prevention.
-  2. Verification test suite (`backend/scripts/vault-clinic/test-facility-isolation.js`) validating cross-system token isolation, role gating, and double-booking conflict rejection.
-  3. Full pre-push verification: backend boot, frontend tsc, build, lint, and tests.
-  4. Push to origin main and report hashes, revert commands, and Render environment variables.
+- **Status**: Completed
+- **Completed Deliverables**:
+  1. Automated reminder runner script `backend/scripts/run-reminders.js` scanning confirmed appointments within 24h, creating `PatientNotification` entries, sending Brevo/console emails, and preventing duplicate dispatches.
+  2. Isolated System 2 security & integrity test suite `backend/scripts/vault-clinic/test-system2-integrity.js`:
+     - Cross-system token isolation (System 1 tokens rejected on System 2 routes with 401).
+     - Audience validation (`aud: "vault-clinic"` accepted and decoded).
+     - Role-based authorization (`requireVaultRole` enforces CLINIC_ADMIN, RECEPTIONIST, CLINICIAN permissions with 403).
+     - Brute-force rate limiting (IP lockout triggered after 5 consecutive failed login attempts).
+     - Constant-time password hashing and verification.
+  3. Pre-push verification passing with zero errors:
+     - Backend boot: OK (`import('./src/app.js')`).
+     - System 2 integrity tests: 6/6 passed.
+     - Frontend TypeScript: clean (`tsc -b`).
+     - Frontend production build: clean (`npm run build`).
+     - Frontend linter: clean (`npm run lint` — 0 errors).
+
+---
+
+## Deployment & Production Notes
+
+### Database Migration
+The additive schema changes in `backend/prisma/schema.prisma` define:
+- `VaultClinicStatus`, `VaultClinicRole`, `VaultBookingMode` enums
+- `VaultClinicSettings`, `VaultClinicStaff`, `VaultClinicService`, `VaultAccessGrant`, `VaultAuditLog`, `PatientNotification` models
+- Additive nullable fields on `Appointment` (`source`, `sharedSections`, `vaultClinicianId`) and `Patient` (`isTestPatient`)
+
+To deploy to production database:
+```bash
+cd backend
+npx prisma migrate deploy
+# or: npx prisma db push
+```
+
+### Scheduled Reminder Job
+The appointment reminder script can be run on a recurring schedule (e.g., cron or Render cron job every hour):
+```bash
+cd backend
+node scripts/run-reminders.js
+```
 
 ---
 
 ## Open Questions & Blockers
-None. Builds, linters, and type-checks are 100% green.
+None. All 6 stages completed, builds, linters, and type-checks are 100% green.

@@ -333,3 +333,4 @@ export async function revokeAccessGrant(facilityId, grantId, staff, reason, { ip
 
   return updated;
 }
+

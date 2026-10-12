@@ -30,3 +30,4 @@ router.get("/grants", getGrants);
 router.post("/grants/:grantId/revoke", revokeGrant);
 
 export default router;
+

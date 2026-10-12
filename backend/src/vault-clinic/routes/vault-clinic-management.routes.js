@@ -36,3 +36,4 @@ router.post("/staff", inviteStaff);
 router.patch("/staff/:id/toggle", toggleStaff);
 
 export default router;
+
