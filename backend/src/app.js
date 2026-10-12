@@ -33,6 +33,7 @@ import contactRoutes from "./routes/contact.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
 import vaultClinicAuthRoutes from "./vault-clinic/routes/vault-clinic-auth.routes.js";
 import vaultClinicAdminRoutes from "./vault-clinic/routes/vault-clinic-admin.routes.js";
+import vaultClinicManagementRoutes from "./vault-clinic/routes/vault-clinic-management.routes.js";
 const app = express();
 
 // Render forwards requests through one proxy; trust its client IP for rate limiting.
@@ -319,6 +320,11 @@ app.use(
 app.use(
   "/api/v1/vault-clinic/auth",
   vaultClinicAuthRoutes
+);
+
+app.use(
+  "/api/v1/vault-clinic/management",
+  vaultClinicManagementRoutes
 );
 
 app.use(
