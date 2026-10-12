@@ -1,7 +1,7 @@
 # Patient Vault Clinic System (System 2) Progress Tracker
 
 ## Status Overview
-- Current Stage: **Stage 4 Completed, Moving to Stage 5 (Patient Vault View, Consent Grants & Mocked Tap)**
+- Current Stage: **Stage 5 Completed, Moving to Stage 6 (Reminders, Scheduled Jobs, Tests & Polish)**
 - Master Design: Completed & Approved (`docs/vault-clinic-design.md`)
 
 ---
@@ -63,16 +63,21 @@
   6. Frontend dashboard `VaultClinicAppointmentsPage.tsx` with Triage Queue, Active Schedule, and History views, clinician assignment, and action modals.
 
 ### Stage 5: Patient Vault View, Consent Grants & Mocked Tap
-- **Status**: In Progress
-- **Tasks**:
+- **Status**: Completed
+- **Completed Deliverables**:
   1. Patient lookup endpoint with masked privacy release (initials, YOB, masked phone) and audit logging.
   2. Clinical vault record viewer endpoint (strictly clinician-only, requiring active grant or booking).
   3. Consent grant management (`VaultAccessGrant` creation, expiration check, and revocation).
   4. Mocked card tap simulator gated by `VAULT_CLINIC_MOCK_TAP=true`, `isTestPatient=true`, and clinician role.
-  5. Frontend screens: `VaultClinicPatientsPage.tsx` and `VaultClinicGrantsPage.tsx`.
+  5. Frontend screens: `VaultClinicPatientsPage.tsx` (directory with privacy mask, clinician vault inspector, and NFC simulator) and `VaultClinicGrantsPage.tsx` (active consent grants with countdown and revocation).
 
 ### Stage 6: Reminders, Scheduled Jobs, Tests & Polish
-- **Status**: Pending
+- **Status**: In Progress
+- **Tasks**:
+  1. Automated reminder worker script (`backend/scripts/run-reminders.js`) with duplicate prevention.
+  2. Verification test suite (`backend/scripts/vault-clinic/test-facility-isolation.js`) validating cross-system token isolation, role gating, and double-booking conflict rejection.
+  3. Full pre-push verification: backend boot, frontend tsc, build, lint, and tests.
+  4. Push to origin main and report hashes, revert commands, and Render environment variables.
 
 ---
 
