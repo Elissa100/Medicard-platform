@@ -7,6 +7,7 @@ import {
   Plus,
   X,
   LoaderCircle,
+  AlertCircle,
 } from "lucide-react";
 
 interface Clinic {
@@ -32,6 +33,7 @@ export default function AdminClinicsPage() {
   // Modal state
   const [showModal, setShowModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [modalError, setModalError] = useState<string | null>(null);
   const [newClinic, setNewClinic] = useState({
     name: "",
     code: "",
@@ -67,13 +69,14 @@ export default function AdminClinicsPage() {
         prev.map((c) => (c.id === clinic.id ? { ...c, status: nextStatus } : c))
       );
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to update clinic status");
+      setError(err instanceof Error ? err.message : "Failed to update clinic status");
     }
   };
 
   const handleCreateClinic = async (e: FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setModalError(null);
     try {
       const created = await createClinic(newClinic);
       setClinics((prev) => [created, ...prev]);
@@ -81,7 +84,7 @@ export default function AdminClinicsPage() {
       setNewClinic({ name: "", code: "", phone: "", email: "", address: "" });
       loadClinics();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to create clinic");
+      setModalError(err instanceof Error ? err.message : "Failed to create clinic");
     } finally {
       setIsSubmitting(false);
     }
@@ -106,7 +109,10 @@ export default function AdminClinicsPage() {
       userEmail={admin.email || "admin@medcard.rw"}
       actionButton={{
         label: "Onboard clinic",
-        onClick: () => setShowModal(true),
+        onClick: () => {
+          setModalError(null);
+          setShowModal(true);
+        },
         icon: <Plus size={14} />,
       }}
     >
@@ -262,6 +268,13 @@ export default function AdminClinicsPage() {
               </div>
 
               <form onSubmit={handleCreateClinic} className="space-y-4">
+                {modalError && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700 flex items-start gap-2">
+                    <AlertCircle size={16} className="shrink-0 text-red-600 mt-0.5" />
+                    <span className="leading-relaxed">{modalError}</span>
+                  </div>
+                )}
+
                 <div>
                   <label className="block text-xs font-semibold text-[#0B1F3A] mb-1">
                     Clinic name *

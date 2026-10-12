@@ -49,6 +49,7 @@ export default function AdminVaultClinicsPage() {
   // Registration modal
   const [showModal, setShowModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [modalError, setModalError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     code: "",
@@ -107,6 +108,7 @@ export default function AdminVaultClinicsPage() {
   const handleCreateClinic = async (e: FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setModalError(null);
     setError(null);
 
     try {
@@ -129,7 +131,9 @@ export default function AdminVaultClinicsPage() {
       setTimeout(() => setSuccessMessage(null), 6000);
       await loadClinics();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to register vault clinic");
+      const msg = err instanceof Error ? err.message : "Failed to register vault clinic";
+      setModalError(msg);
+      setError(msg);
     } finally {
       setIsSubmitting(false);
     }
@@ -239,9 +243,10 @@ export default function AdminVaultClinicsPage() {
                   onClick={() => setStatusFilter(tab)}
                   className={`h-8 px-3 rounded-lg text-xs font-medium transition-colors ${
                     statusFilter === tab
-                      ? "bg-slate-900 text-white"
+                      ? "bg-navy text-white font-semibold"
                       : "text-slate-600 hover:text-slate-900"
                   }`}
+                  style={statusFilter === tab ? { backgroundColor: "#003F66", color: "#ffffff" } : undefined}
                 >
                   {tab === "ALL" ? "All" : tab.charAt(0) + tab.slice(1).toLowerCase()}
                 </button>
@@ -250,11 +255,15 @@ export default function AdminVaultClinicsPage() {
 
             <button
               type="button"
-              onClick={() => setShowModal(true)}
-              className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-slate-900 px-4 text-xs font-semibold text-white shadow-sm hover:bg-slate-800 transition-colors"
+              onClick={() => {
+                setModalError(null);
+                setShowModal(true);
+              }}
+              className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-teal px-4 text-xs font-semibold text-white shadow-sm hover:bg-teal/90 transition-colors"
+              style={{ backgroundColor: "#00A3B8", color: "#ffffff" }}
             >
-              <Plus className="h-4 w-4" />
-              Register Vault Clinic
+              <Plus className="h-4 w-4" style={{ color: "#ffffff" }} />
+              <span style={{ color: "#ffffff" }}>Register Vault Clinic</span>
             </button>
           </div>
         </div>
@@ -269,10 +278,24 @@ export default function AdminVaultClinicsPage() {
           ) : clinics.length === 0 ? (
             <div className="py-16 text-center text-slate-500">
               <ShieldCheck className="mx-auto h-10 w-10 text-slate-300 mb-2" />
-              <p className="text-sm font-medium">No vault clinics registered yet</p>
-              <p className="text-xs text-slate-400 mt-1">
+              <p className="text-sm font-semibold text-slate-800">No vault clinics registered yet</p>
+              <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
                 Register a clinic to provision their portal and invite their clinic administrator.
               </p>
+              <div className="mt-5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setModalError(null);
+                    setShowModal(true);
+                  }}
+                  className="inline-flex h-10 items-center gap-2 rounded-xl bg-teal px-5 text-xs font-semibold text-white shadow-md hover:bg-teal/90 transition-colors"
+                  style={{ backgroundColor: "#00A3B8", color: "#ffffff" }}
+                >
+                  <Plus className="h-4 w-4" style={{ color: "#ffffff" }} />
+                  <span style={{ color: "#ffffff" }}>Register Vault Clinic</span>
+                </button>
+              </div>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -358,28 +381,37 @@ export default function AdminVaultClinicsPage() {
 
         {/* Register Clinic Modal */}
         {showModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-xs">
-            <div className="w-full max-w-lg rounded-xl border border-slate-200 bg-white p-6 shadow-xl animate-in fade-in zoom-in-95 duration-150">
-              <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-                <div className="flex items-center gap-2">
-                  <div className="rounded-lg bg-teal-50 p-2 text-teal-600">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 sm:p-6 backdrop-blur-xs overflow-y-auto">
+            <div className="w-full max-w-lg my-auto max-h-[85vh] flex flex-col rounded-2xl border border-slate-200 bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-150 overflow-hidden">
+              {/* Fixed Header */}
+              <div className="flex items-center justify-between p-5 border-b border-slate-100 shrink-0 bg-white">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-xl bg-teal-50 p-2 text-teal-600">
                     <ShieldCheck className="h-5 w-5" />
                   </div>
                   <div>
                     <h3 className="text-base font-semibold text-slate-900">Register Patient Vault Clinic</h3>
-                    <p className="text-xs text-slate-500">Configure clinic profile and invite the initial clinic administrator</p>
+                    <p className="text-xs text-slate-500">Configure clinic profile and invite the clinic administrator</p>
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                  className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
                 >
                   <X className="h-4 w-4" />
                 </button>
               </div>
 
-              <form onSubmit={handleCreateClinic} className="mt-4 space-y-4">
+              {/* Scrollable Form Body */}
+              <form id="vault-clinic-form" onSubmit={handleCreateClinic} className="flex-1 overflow-y-auto p-5 space-y-4">
+                {modalError && (
+                  <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800 flex items-start gap-2">
+                    <AlertCircle className="h-4 w-4 shrink-0 text-rose-600 mt-0.5" />
+                    <span className="leading-relaxed">{modalError}</span>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-medium text-slate-700 mb-1">Clinic Name *</label>
@@ -491,37 +523,40 @@ export default function AdminVaultClinicsPage() {
                   </select>
                 </div>
 
-                <div className="rounded-lg bg-slate-50 border border-slate-200 p-3 text-xs text-slate-500 flex items-start gap-2">
-                  <Mail className="h-4 w-4 shrink-0 text-slate-400 mt-0.5" />
+                <div className="rounded-xl bg-slate-50 border border-slate-200 p-3 text-xs text-slate-600 flex items-start gap-2">
+                  <Mail className="h-4 w-4 shrink-0 text-teal-600 mt-0.5" />
                   <span>
-                    A secure temporary password will be generated automatically and emailed to the administrator. They will be required to change it on their first login.
+                    A secure temporary password will be generated automatically and dispatched to the administrator. They will be required to change it on their first login.
                   </span>
                 </div>
-
-                <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
-                  <button
-                    type="button"
-                    onClick={() => setShowModal(false)}
-                    className="h-9 rounded-lg border border-slate-200 px-4 text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="h-9 inline-flex items-center justify-center rounded-lg bg-slate-900 px-4 text-xs font-semibold text-white shadow-sm hover:bg-slate-800 transition-colors disabled:opacity-50"
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <LoaderCircle className="h-3.5 w-3.5 animate-spin mr-1.5" />
-                        Registering...
-                      </>
-                    ) : (
-                      "Register and Send Invitation"
-                    )}
-                  </button>
-                </div>
               </form>
+
+              {/* Fixed Footer */}
+              <div className="flex items-center justify-end gap-3 p-4 border-t border-slate-100 bg-slate-50 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  className="h-9 rounded-lg border border-slate-200 bg-white px-4 text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  form="vault-clinic-form"
+                  disabled={isSubmitting}
+                  className="h-9 inline-flex items-center justify-center rounded-lg bg-teal px-5 text-xs font-semibold text-white shadow-sm hover:bg-teal/90 transition-colors disabled:opacity-50"
+                  style={{ backgroundColor: "#00A3B8", color: "#ffffff" }}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <LoaderCircle className="h-3.5 w-3.5 animate-spin mr-1.5" style={{ color: "#ffffff" }} />
+                      <span style={{ color: "#ffffff" }}>Registering...</span>
+                    </>
+                  ) : (
+                    <span style={{ color: "#ffffff" }}>Register and Send Invitation</span>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         )}

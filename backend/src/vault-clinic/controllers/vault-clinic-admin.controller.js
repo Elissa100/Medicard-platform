@@ -62,6 +62,12 @@ export async function createClinic(req, res) {
       data: result,
     });
   } catch (error) {
+    if (error.code === "P2002" || error.message?.includes("Unique constraint failed")) {
+      return res.status(409).json({
+        success: false,
+        message: "A facility or staff member with this code or email already exists. Please choose a different code or email.",
+      });
+    }
     return res.status(400).json({
       success: false,
       message: error.message || "Failed to register vault clinic",

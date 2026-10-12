@@ -46,13 +46,19 @@ export async function createClinic(req, res) {
     const { name, code, phone, email, address } = req.body;
 
     if (!name || !code) {
-      return res.status(400).json({ success: false, message: "Name and code are required" });
+      return res.status(400).json({ success: false, message: "Clinic name and code are required." });
     }
 
     const data = await adminService.createClinic({ name, code, phone, email, address }, req.user, getContext(req));
     res.status(201).json({ success: true, data });
   } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
+    if (error.code === "P2002" || error.message?.includes("Unique constraint failed")) {
+      return res.status(409).json({
+        success: false,
+        message: `A facility with code "${req.body.code}" already exists. Please enter a different code.`,
+      });
+    }
+    res.status(400).json({ success: false, message: error.message || "Failed to create clinic" });
   }
 }
 
