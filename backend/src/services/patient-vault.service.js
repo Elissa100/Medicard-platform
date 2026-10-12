@@ -224,7 +224,7 @@ export async function getPatientConsultations(patientId) {
   return prisma.encounter.findMany({
     where: {
       patientId,
-      status: { in: ["CLOSED", "COMPLETED"] },
+      status: "COMPLETED",
     },
     orderBy: { startedAt: "desc" },
     select: {
