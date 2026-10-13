@@ -43,7 +43,7 @@ export const PATIENT_NAV_GROUPS: NavGroupConfig[] = [
       { id: "history", label: "Medical history", icon: HeartPulse },
       { id: "consultations", label: "Consultations", icon: Stethoscope },
       { id: "prescriptions", label: "Prescriptions and results", icon: Pill },
-      { id: "documents", label: "Documents and insurance", icon: FileText },
+      { id: "documents", label: "Documents", icon: FileText },
       { id: "notifications", label: "Notifications", icon: Bell },
     ],
   },
