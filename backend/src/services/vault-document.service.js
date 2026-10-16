@@ -104,7 +104,16 @@ export async function uploadDocument(req, res) {
       throw bad("A file (PDF, JPEG, PNG or WebP) is required.");
     }
 
-    // 5. Upload to Supabase Storage
+    // 5. Find a valid system user id for the database constraint (uploadedById -> User.id)
+    let uploader =
+      (await prisma.user.findFirst({ where: { role: "PLATFORM_ADMIN" } })) ||
+      (await prisma.user.findFirst());
+
+    if (!uploader) {
+      throw new Error("No system user available to record document ownership.");
+    }
+
+    // 6. Upload to Supabase Storage
     const storagePath = await uploadDocumentToStorage(
       profile.id,
       req.file.buffer,
@@ -112,19 +121,25 @@ export async function uploadDocument(req, res) {
       req.file.mimetype
     );
 
-    // 6. Save document record in database
-    const doc = await prisma.medicalDocument.create({
-      data: {
-        patientId: profile.id,
-        // Self-uploads don't have a clinical encounter
-        uploadedById: ownerId,
-        type: type.toUpperCase(),
-        title: title.trim(),
-        description: description?.trim() || null,
-        fileUrl: storagePath,        // we store the storage path, not a public URL
-        mimeType: req.file.mimetype,
-      },
-    });
+    // 7. Save document record in database (with storage rollback if DB fails)
+    let doc;
+    try {
+      doc = await prisma.medicalDocument.create({
+        data: {
+          patientId: profile.id,
+          encounterId: null, // null identifies self-uploaded patient documents
+          uploadedById: uploader.id,
+          type: type.toUpperCase(),
+          title: title.trim(),
+          description: description?.trim() || null,
+          fileUrl: storagePath,
+          mimeType: req.file.mimetype,
+        },
+      });
+    } catch (dbErr) {
+      await deleteDocumentFromStorage(storagePath);
+      throw dbErr;
+    }
 
     res.status(201).json({
       success: true,
@@ -198,14 +213,14 @@ export async function deleteDocument(req, res) {
 
     const doc = await prisma.medicalDocument.findFirst({
       where: { id: documentId, patientId: profileId },
-      select: { id: true, fileUrl: true, uploadedById: true },
+      select: { id: true, fileUrl: true, encounterId: true },
     });
 
     if (!doc) throw notFound("Document not found.");
 
-    // Only allow deletion if the patient uploaded it themselves (not a clinic)
-    if (doc.uploadedById !== ownerId) {
-      throw forbidden("Only documents you uploaded yourself can be deleted from the portal.");
+    // Documents attached to a clinical encounter cannot be deleted by the patient
+    if (doc.encounterId) {
+      throw forbidden("Clinical documents released by a healthcare facility cannot be deleted.");
     }
 
     // Delete from storage first, then remove the DB record

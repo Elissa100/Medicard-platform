@@ -232,7 +232,7 @@ export async function getPatientConsultations(patientId) {
       type: true,
       status: true,
       startedAt: true,
-      endedAt: true,
+      completedAt: true,
       facility: { select: { id: true, name: true } },
       provider: { select: { firstName: true, lastName: true, role: true } },
       clinicalNotes: {
