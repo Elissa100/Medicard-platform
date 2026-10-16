@@ -38,12 +38,8 @@ export function Contact() {
     <section id="contact" className="scroll-mt-[72px] bg-navy py-16 text-white md:scroll-mt-[88px] md:py-24">
       <div className="mx-auto max-w-[1280px] px-5 md:px-10 lg:px-20">
         <div className="mb-10 max-w-2xl">
-          <div className="mb-4 flex items-center gap-3">
-            <img src="/medcard-logo.svg" alt="MedCard" className="h-9 w-auto brightness-0 invert" />
-            <div>
-              <p className="font-bold">MedCard</p>
-              <p className="text-xs text-teal">Technology Solutions</p>
-            </div>
+          <div className="mb-4 flex items-center">
+            <img src="/medcard-logo.svg" alt="MedCard Technology Solutions" className="h-9 w-auto brightness-0 invert" />
           </div>
           <h2 className="text-3xl font-bold md:text-4xl">Contact us</h2>
           <p className="mt-3 text-soft-text-on-navy">Questions or interested in working with us? Send a message and our team will get back to you.</p>

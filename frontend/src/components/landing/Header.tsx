@@ -9,16 +9,12 @@ export function Header() {
     <header className="fixed top-0 left-0 right-0 z-50 h-[72px] md:h-[88px] bg-white/95 backdrop-blur border-b border-border">
       <div className="max-w-[1280px] mx-auto px-5 md:px-10 lg:px-20 h-full">
         <div className="flex items-center justify-between h-full">
-          <a href="/" className="flex items-center gap-3">
+          <a href="/" className="flex items-center">
             <img
               src="/medcard-logo.svg"
-              alt="MedCard"
-              className="h-8 w-auto"
+              alt="MedCard Technology Solutions"
+              className="h-8 md:h-9 w-auto"
             />
-            <div className="flex flex-col">
-              <span className="text-navy font-bold text-lg leading-none">MedCard</span>
-              <span className="text-xs text-body-text">Technology Solutions</span>
-            </div>
           </a>
 
           <nav className="hidden md:flex items-center gap-8">
@@ -34,12 +30,6 @@ export function Header() {
           </nav>
 
           <div className="hidden md:flex items-center gap-2 lg:gap-3">
-            <a
-              href="/vault-clinic/login"
-              className="text-sm font-semibold text-body-text hover:text-navy px-3 py-2 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-teal"
-            >
-              Clinic login
-            </a>
             <a
               href="/facility-login"
               className="text-sm font-semibold text-body-text hover:text-navy px-3 py-2 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-teal"
@@ -84,13 +74,6 @@ export function Header() {
                 {link.label}
               </a>
             ))}
-            <a
-              href="/vault-clinic/login"
-              onClick={() => setMenuOpen(false)}
-              className="block py-3 text-base font-semibold text-navy hover:text-teal"
-            >
-              Clinic login
-            </a>
             <a
               href="/facility-login"
               onClick={() => setMenuOpen(false)}
