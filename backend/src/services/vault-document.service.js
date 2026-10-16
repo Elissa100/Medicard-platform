@@ -32,6 +32,18 @@ function bad(msg) {
   return e;
 }
 
+let cachedUploaderId = null;
+async function getUploaderId() {
+  if (cachedUploaderId) return cachedUploaderId;
+  const uploader =
+    (await prisma.user.findFirst({ where: { role: "PLATFORM_ADMIN" }, select: { id: true } })) ||
+    (await prisma.user.findFirst({ select: { id: true } }));
+  if (uploader) {
+    cachedUploaderId = uploader.id;
+  }
+  return cachedUploaderId;
+}
+
 /**
  * Verify that the patient is on an active PREMIUM plan.
  */
@@ -43,6 +55,7 @@ async function assertPremium(patientId) {
       status: "ACTIVE",
       endDate: { gte: new Date() },
     },
+    select: { id: true },
   });
 
   if (!sub) {
@@ -57,13 +70,17 @@ async function assertPremium(patientId) {
  */
 async function assertOwnedProfile(ownerId, profileId) {
   if (ownerId === profileId) {
-    const p = await prisma.patient.findUnique({ where: { id: ownerId } });
+    const p = await prisma.patient.findUnique({
+      where: { id: ownerId },
+      select: { id: true },
+    });
     if (!p) throw notFound("Patient profile not found");
     return p;
   }
 
   const dep = await prisma.patient.findFirst({
     where: { id: profileId, guardianId: ownerId },
+    select: { id: true },
   });
   if (!dep) throw notFound("Profile not found or not accessible");
   return dep;
@@ -84,13 +101,18 @@ export async function uploadDocument(req, res) {
     const ownerId = req.user.id;
     const { profileId } = req.params;
 
-    // 1. Validate profile ownership
-    const profile = await assertOwnedProfile(ownerId, profileId);
+    // 1. Fast parallel validation: profile ownership + Premium plan + uploader ID
+    const [profile, , uploaderId] = await Promise.all([
+      assertOwnedProfile(ownerId, profileId),
+      assertPremium(ownerId),
+      getUploaderId(),
+    ]);
 
-    // 2. Enforce Premium plan on the primary account holder
-    await assertPremium(ownerId);
+    if (!uploaderId) {
+      throw new Error("No system user available to record document ownership.");
+    }
 
-    // 3. Validate required fields
+    // 2. Validate required fields
     const { title, type, description = "" } = req.body;
     if (!title || title.trim().length === 0 || title.length > 200) {
       throw bad("Title is required and must be between 1 and 200 characters.");
@@ -99,21 +121,12 @@ export async function uploadDocument(req, res) {
       throw bad(`Document type must be one of: ${ALLOWED_TYPES.join(", ")}`);
     }
 
-    // 4. Ensure a file was actually included
+    // 3. Ensure a file was actually included
     if (!req.file) {
       throw bad("A file (PDF, JPEG, PNG or WebP) is required.");
     }
 
-    // 5. Find a valid system user id for the database constraint (uploadedById -> User.id)
-    let uploader =
-      (await prisma.user.findFirst({ where: { role: "PLATFORM_ADMIN" } })) ||
-      (await prisma.user.findFirst());
-
-    if (!uploader) {
-      throw new Error("No system user available to record document ownership.");
-    }
-
-    // 6. Upload to Supabase Storage
+    // 4. Upload to Supabase Storage
     const storagePath = await uploadDocumentToStorage(
       profile.id,
       req.file.buffer,
@@ -121,14 +134,14 @@ export async function uploadDocument(req, res) {
       req.file.mimetype
     );
 
-    // 7. Save document record in database (with storage rollback if DB fails)
+    // 5. Save document record in database (with storage rollback if DB fails)
     let doc;
     try {
       doc = await prisma.medicalDocument.create({
         data: {
           patientId: profile.id,
           encounterId: null, // null identifies self-uploaded patient documents
-          uploadedById: uploader.id,
+          uploadedById: uploaderId,
           type: type.toUpperCase(),
           title: title.trim(),
           description: description?.trim() || null,

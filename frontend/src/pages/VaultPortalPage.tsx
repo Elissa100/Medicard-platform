@@ -408,10 +408,22 @@ export default function VaultPortalPage() {
         headers: { Authorization: `Bearer ${token}` }, // no Content-Type – browser sets multipart boundary
         body: formData,
       });
-      const data = await res.json();
-      if (!res.ok || !data.success) throw new Error(data.message || "Upload failed.");
+      const resData = await res.json();
+      if (!res.ok || !resData.success) throw new Error(resData.message || "Upload failed.");
+      const newDoc = resData.data;
+      setDashboard((prev) => {
+        if (!prev) return prev;
+        // Only update main patient; dependents come through VaultProfile.dependents field
+        if (prev.patient.id !== profileId) return prev;
+        return {
+          ...prev,
+          patient: {
+            ...prev.patient,
+            medicalDocuments: [newDoc, ...(prev.patient.medicalDocuments || [])],
+          },
+        };
+      });
       setNotice("Document uploaded successfully.");
-      await fetchDashboard();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not upload document.");
     } finally {
@@ -429,8 +441,20 @@ export default function VaultPortalPage() {
       );
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.message || "Delete failed.");
+      setDashboard((prev) => {
+        if (!prev) return prev;
+        if (prev.patient.id !== profileId) return prev;
+        return {
+          ...prev,
+          patient: {
+            ...prev.patient,
+            medicalDocuments: (prev.patient.medicalDocuments || []).filter(
+              (d) => d.id !== documentId
+            ),
+          },
+        };
+      });
       setNotice("Document deleted.");
-      await fetchDashboard();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not delete document.");
     } finally {

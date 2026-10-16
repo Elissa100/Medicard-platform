@@ -1,5 +1,17 @@
 import { useState, useRef, type ChangeEvent } from "react";
-import { FileText, ShieldCheck, Upload, X, Download, Trash2, Lock } from "lucide-react";
+import {
+  FileText,
+  ShieldCheck,
+  Upload,
+  X,
+  Download,
+  Trash2,
+  Lock,
+  Eye,
+  ExternalLink,
+  RotateCw,
+  Loader2,
+} from "lucide-react";
 import type { VaultProfile } from "./types";
 import { formatDate } from "./types";
 import { PageHeader, Card, StatusBadge, EmptyState } from "./components/ui";
@@ -32,6 +44,69 @@ function insuranceVariant(status: string) {
   return "blue";
 }
 
+/**
+ * Compresses an image in-browser before upload to keep upload times well under 2-3 seconds.
+ */
+async function compressImageIfNeeded(file: File): Promise<File> {
+  if (!file.type.startsWith("image/") || file.type === "image/svg+xml") {
+    return file;
+  }
+  // If file is already small (<= 800 KB), skip compression
+  if (file.size <= 800 * 1024) return file;
+
+  return new Promise((resolve) => {
+    const img = new Image();
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      img.onload = () => {
+        const maxDimension = 1920;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxDimension || height > maxDimension) {
+          if (width > height) {
+            height = Math.round((height * maxDimension) / width);
+            width = maxDimension;
+          } else {
+            width = Math.round((width * maxDimension) / height);
+            height = maxDimension;
+          }
+        }
+
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          resolve(file);
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob(
+          (blob) => {
+            if (blob && blob.size < file.size) {
+              const compressed = new File([blob], file.name, {
+                type: blob.type || file.type,
+                lastModified: Date.now(),
+              });
+              resolve(compressed);
+            } else {
+              resolve(file);
+            }
+          },
+          file.type === "image/png" ? "image/png" : "image/jpeg",
+          0.85
+        );
+      };
+      img.onerror = () => resolve(file);
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = () => resolve(file);
+    reader.readAsDataURL(file);
+  });
+}
+
 export default function VaultDocumentsTab({
   selectedProfile,
   isPremium,
@@ -48,6 +123,20 @@ export default function VaultDocumentsTab({
   const [fileError, setFileError] = useState("");
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [isCompressing, setIsCompressing] = useState(false);
+
+  // Document preview modal state
+  const [previewDoc, setPreviewDoc] = useState<{
+    id: string;
+    title: string;
+    type: string;
+    mimeType?: string | null;
+    createdAt?: string;
+    url: string;
+    useGoogleViewer: boolean;
+  } | null>(null);
+  const [previewLoadingId, setPreviewLoadingId] = useState<string | null>(null);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const ALLOWED_TYPES = ["application/pdf", "image/jpeg", "image/png", "image/webp"];
@@ -73,21 +162,62 @@ export default function VaultDocumentsTab({
 
   const handleUpload = async () => {
     if (!file || !title.trim()) return;
-    await onUploadDocument(file, title.trim(), type, description.trim());
-    // Reset form
-    setFile(null);
-    setTitle("");
-    setType("MEDICAL_REPORT");
-    setDescription("");
-    setShowUploadForm(false);
-    if (fileInputRef.current) fileInputRef.current.value = "";
+    setIsCompressing(true);
+    try {
+      const readyFile = await compressImageIfNeeded(file);
+      await onUploadDocument(readyFile, title.trim(), type, description.trim());
+      // Reset form
+      setFile(null);
+      setTitle("");
+      setType("MEDICAL_REPORT");
+      setDescription("");
+      setShowUploadForm(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    } finally {
+      setIsCompressing(false);
+    }
+  };
+
+  const handlePreview = async (doc: (typeof selectedProfile.medicalDocuments)[0]) => {
+    setPreviewLoadingId(doc.id);
+    try {
+      const url = await onGetDownloadUrl(doc.id);
+      if (url) {
+        const isMobile =
+          typeof navigator !== "undefined" &&
+          /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        const isPdf =
+          doc.mimeType?.includes("pdf") || doc.title.toLowerCase().endsWith(".pdf");
+        setPreviewDoc({
+          id: doc.id,
+          title: doc.title,
+          type: doc.type,
+          mimeType: doc.mimeType,
+          createdAt: doc.createdAt,
+          url,
+          useGoogleViewer: !!(isMobile && isPdf),
+        });
+      }
+    } finally {
+      setPreviewLoadingId(null);
+    }
   };
 
   const handleDownload = async (docId: string) => {
     setDownloadingId(docId);
     try {
       const url = await onGetDownloadUrl(docId);
-      if (url) window.open(url, "_blank", "noopener noreferrer");
+      if (url) {
+        // Trigger download via anchor
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "";
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }
     } finally {
       setDownloadingId(null);
     }
@@ -226,11 +356,23 @@ export default function VaultDocumentsTab({
               </button>
               <button
                 type="button"
-                disabled={!file || !title.trim() || isSaving}
+                disabled={!file || !title.trim() || isSaving || isCompressing}
                 onClick={handleUpload}
                 className="h-9 px-4 rounded-lg bg-[#003F66] hover:bg-[#003252] text-white text-[13px] font-semibold flex items-center gap-1.5 disabled:opacity-50 transition-colors shrink-0"
               >
-                {isSaving ? "Uploading..." : "Upload"}
+                {isCompressing ? (
+                  <>
+                    <Loader2 size={13} className="animate-spin" />
+                    <span>Optimizing...</span>
+                  </>
+                ) : isSaving ? (
+                  <>
+                    <Loader2 size={13} className="animate-spin" />
+                    <span>Uploading...</span>
+                  </>
+                ) : (
+                  <span>Upload</span>
+                )}
               </button>
             </div>
           </div>
@@ -264,8 +406,12 @@ export default function VaultDocumentsTab({
             {selectedProfile.medicalDocuments.map((doc) => (
               <div key={doc.id} className="py-2.5 first:pt-0 last:pb-0 flex items-center gap-3">
                 <FileText size={16} className="text-[#7A8D9B] shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <span className="text-[14px] font-semibold text-[#0F2942] block truncate">
+                <div
+                  className="flex-1 min-w-0 cursor-pointer group"
+                  onClick={() => handlePreview(doc)}
+                  title="Click to preview document"
+                >
+                  <span className="text-[14px] font-semibold text-[#0F2942] group-hover:text-[#007C8C] transition-colors block truncate">
                     {doc.title}
                   </span>
                   <span className="text-[12px] text-[#7A8D9B]">
@@ -274,17 +420,35 @@ export default function VaultDocumentsTab({
                   </span>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
-                  {/* Download / view button */}
+                  {/* Preview button */}
+                  <button
+                    type="button"
+                    onClick={() => handlePreview(doc)}
+                    disabled={previewLoadingId === doc.id}
+                    className="h-8 w-8 flex items-center justify-center rounded-lg text-[#475B6B] hover:text-[#003F66] hover:bg-[#F0F4F8] transition-colors disabled:opacity-50"
+                    title="Preview document"
+                  >
+                    {previewLoadingId === doc.id ? (
+                      <Loader2 size={15} className="animate-spin text-[#007C8C]" />
+                    ) : (
+                      <Eye size={15} />
+                    )}
+                  </button>
+                  {/* Download button */}
                   <button
                     type="button"
                     onClick={() => handleDownload(doc.id)}
                     disabled={downloadingId === doc.id}
                     className="h-8 w-8 flex items-center justify-center rounded-lg text-[#475B6B] hover:text-[#003F66] hover:bg-[#F0F4F8] transition-colors disabled:opacity-50"
-                    title="Download / view"
+                    title="Download file"
                   >
-                    <Download size={15} />
+                    {downloadingId === doc.id ? (
+                      <Loader2 size={15} className="animate-spin text-[#007C8C]" />
+                    ) : (
+                      <Download size={15} />
+                    )}
                   </button>
-                  {/* Delete button – only for patient-uploaded docs (no uploadedById check needed; backend enforces it) */}
+                  {/* Delete button – only for patient-uploaded docs */}
                   {isPremium && (
                     <button
                       type="button"
@@ -348,6 +512,156 @@ export default function VaultDocumentsTab({
           />
         )}
       </Card>
+
+      {/* Universal Document Preview Modal (Mobile & Desktop) */}
+      {previewDoc && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-xs transition-opacity"
+          onClick={() => setPreviewDoc(null)}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div
+            className="bg-white rounded-2xl w-full max-w-4xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden border border-[#E4EBF0]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="px-4 py-3 border-b border-[#E4EBF0] flex items-center justify-between gap-3 bg-[#F8FAFC]">
+              <div className="flex items-center gap-2 min-w-0">
+                <FileText size={18} className="text-[#007C8C] shrink-0" />
+                <div className="min-w-0">
+                  <h3 className="text-sm sm:text-base font-semibold text-[#0F2942] truncate">
+                    {previewDoc.title}
+                  </h3>
+                  <p className="text-[11px] text-[#7A8D9B]">
+                    {previewDoc.type.replace(/_/g, " ")} · {previewDoc.mimeType?.toUpperCase() || "DOCUMENT"}
+                  </p>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center gap-1.5 shrink-0">
+                {/* PDF Alternate Viewer Toggle */}
+                {(previewDoc.mimeType?.includes("pdf") || previewDoc.title.toLowerCase().endsWith(".pdf")) && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setPreviewDoc((prev) =>
+                        prev ? { ...prev, useGoogleViewer: !prev.useGoogleViewer } : null
+                      )
+                    }
+                    className="h-8 px-2.5 rounded-lg border border-[#E4EBF0] bg-white hover:bg-[#F0F4F8] text-[12px] font-medium text-[#475B6B] flex items-center gap-1.5 transition-colors"
+                    title={previewDoc.useGoogleViewer ? "Switch to native PDF view" : "Switch to mobile PDF viewer"}
+                  >
+                    <RotateCw size={12} />
+                    <span className="hidden sm:inline">
+                      {previewDoc.useGoogleViewer ? "Native view" : "Mobile viewer"}
+                    </span>
+                  </button>
+                )}
+
+                {/* Open in new tab / fullscreen */}
+                <a
+                  href={previewDoc.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="h-8 px-2.5 rounded-lg border border-[#E4EBF0] bg-white hover:bg-[#F0F4F8] text-[12px] font-medium text-[#475B6B] flex items-center gap-1.5 transition-colors"
+                  title="Open original in new tab"
+                >
+                  <ExternalLink size={13} />
+                  <span className="hidden sm:inline">Fullscreen</span>
+                </a>
+
+                {/* Direct Download */}
+                <button
+                  type="button"
+                  onClick={() => handleDownload(previewDoc.id)}
+                  className="h-8 px-2.5 rounded-lg bg-[#003F66] hover:bg-[#003252] text-white text-[12px] font-medium flex items-center gap-1.5 transition-colors"
+                  title="Download file"
+                >
+                  <Download size={13} />
+                  <span className="hidden sm:inline">Download</span>
+                </button>
+
+                {/* Close Button */}
+                <button
+                  type="button"
+                  onClick={() => setPreviewDoc(null)}
+                  className="h-8 w-8 flex items-center justify-center rounded-lg text-[#7A8D9B] hover:text-[#0F2942] hover:bg-[#F0F4F8] transition-colors"
+                  aria-label="Close preview"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Body */}
+            <div className="flex-1 min-h-[50vh] sm:min-h-[68vh] max-h-[78vh] p-2 sm:p-4 overflow-auto flex items-center justify-center bg-[#F1F5F9]">
+              {previewDoc.mimeType?.startsWith("image/") ? (
+                <img
+                  src={previewDoc.url}
+                  alt={previewDoc.title}
+                  className="max-h-[72vh] max-w-full w-auto h-auto object-contain rounded-lg shadow-md bg-white"
+                />
+              ) : previewDoc.mimeType?.includes("pdf") || previewDoc.title.toLowerCase().endsWith(".pdf") ? (
+                <div className="w-full h-full flex flex-col">
+                  <iframe
+                    src={
+                      previewDoc.useGoogleViewer
+                        ? `https://docs.google.com/viewer?url=${encodeURIComponent(previewDoc.url)}&embedded=true`
+                        : previewDoc.url
+                    }
+                    className="w-full h-full min-h-[55vh] sm:min-h-[68vh] rounded-lg border border-[#E4EBF0] bg-white shadow-inner"
+                    title={previewDoc.title}
+                  />
+                  <p className="text-[11px] text-[#7A8D9B] text-center mt-2">
+                    {previewDoc.useGoogleViewer ? "Using Mobile PDF Viewer." : "Using browser PDF engine."}{" "}
+                    Can't see pages? Tap{" "}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setPreviewDoc((prev) =>
+                          prev ? { ...prev, useGoogleViewer: !prev.useGoogleViewer } : null
+                        )
+                      }
+                      className="text-[#007C8C] underline font-medium hover:text-[#003F66]"
+                    >
+                      switch viewer
+                    </button>{" "}
+                    or{" "}
+                    <a
+                      href={previewDoc.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[#007C8C] underline font-medium hover:text-[#003F66]"
+                    >
+                      open fullscreen
+                    </a>
+                    .
+                  </p>
+                </div>
+              ) : (
+                <div className="text-center p-8 bg-white rounded-xl border border-[#E4EBF0] shadow-sm max-w-md">
+                  <FileText size={40} className="mx-auto text-[#007C8C] mb-3" />
+                  <p className="text-sm font-semibold text-[#0F2942] mb-1">{previewDoc.title}</p>
+                  <p className="text-xs text-[#7A8D9B] mb-4">
+                    Preview is not supported for this file format in the browser.
+                  </p>
+                  <a
+                    href={previewDoc.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#003F66] text-white text-xs font-semibold hover:bg-[#003252] transition-colors"
+                  >
+                    <Download size={13} />
+                    Download to view
+                  </a>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

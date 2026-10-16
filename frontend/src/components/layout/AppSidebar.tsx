@@ -4,6 +4,7 @@ import {
   LogOut,
   X,
   ChevronDown,
+  ChevronRight,
   ArrowRightLeft,
 } from "lucide-react";
 import {
@@ -67,6 +68,22 @@ export default function AppSidebar({
     : isPatient
     ? PATIENT_NAV_GROUPS
     : CLINICAL_NAV_GROUPS[currentRole] || CLINICAL_NAV_GROUPS.default;
+
+  // Track collapsed/expanded state for collapsible groups (e.g. "Account")
+  // Automatically expand if an item in the group is currently active, or default to collapsed to keep sidebar clean.
+  const isAccountItemActive = PATIENT_NAV_GROUPS.find((g) => g.groupLabel === "Account")
+    ?.items.some((it) => it.id === activeNavId);
+
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
+    Account: !!isAccountItemActive,
+  });
+
+  const toggleGroup = (groupLabel: string) => {
+    setExpandedGroups((prev) => ({
+      ...prev,
+      [groupLabel]: !prev[groupLabel],
+    }));
+  };
 
   const handleRoleSelect = (role: Role) => {
     localStorage.setItem(CURRENT_ROLE_KEY, role);
@@ -185,55 +202,100 @@ export default function AppSidebar({
 
       {/* Navigation List (Scrollable flex-1) */}
       <nav className="flex-1 min-h-0 overflow-y-auto px-3 py-3 space-y-4">
-        {navGroups.map((group, groupIdx) => (
-          <div key={groupIdx} className="space-y-1">
-            {group.groupLabel && (
-              <div className="px-2.5 py-1 text-[11px] font-medium text-[#7A8D9B]">
-                {group.groupLabel}
-              </div>
-            )}
-            <div className="space-y-0.5">
-              {group.items.map((item) => {
-                const Icon = item.icon;
-                const isActive = activeNavId
-                  ? activeNavId === item.id
-                  : window.location.pathname === item.path;
+        {navGroups.map((group, groupIdx) => {
+          const isCollapsible = group.groupLabel === "Account";
+          const isExpanded = isCollapsible ? !!expandedGroups[group.groupLabel || ""] : true;
+          const activeItem = group.items.find((item) =>
+            activeNavId ? activeNavId === item.id : window.location.pathname === item.path
+          );
 
-                return (
+          return (
+            <div key={groupIdx} className="space-y-1">
+              {group.groupLabel && (
+                isCollapsible ? (
+                  // Expand / Collapse Breadcrumb Header for Account section
                   <button
-                    key={item.id}
                     type="button"
-                    onClick={() => handleItemClick(item)}
-                    className={`w-full h-9 px-2.5 rounded-lg flex items-center justify-between text-[13px] font-medium transition-colors ${
-                      isActive
+                    onClick={() => toggleGroup(group.groupLabel!)}
+                    className={`w-full px-2.5 py-1.5 rounded-lg flex items-center justify-between text-left transition-colors ${
+                      !isExpanded && activeItem
                         ? "bg-[#F0F4F8] text-[#0F2942] font-semibold"
-                        : "text-[#475B6B] hover:bg-[#F6F8FA] hover:text-[#0F2942]"
+                        : "text-[#7A8D9B] hover:text-[#0F2942] hover:bg-[#F6F8FA]"
                     }`}
+                    title={isExpanded ? `Collapse ${group.groupLabel}` : `Expand ${group.groupLabel}`}
                   >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <Icon
-                        size={16}
-                        className={isActive ? "text-[#00A3B8]" : "text-[#7A8D9B]"}
-                      />
-                      <span className="truncate">{item.label}</span>
-                    </div>
-                    {item.badge !== undefined && (
-                      <span
-                        className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${
-                          isActive
-                            ? "bg-[#00A3B8]/15 text-[#00A3B8]"
-                            : "bg-[#F0F4F8] text-[#7A8D9B]"
-                        } ${item.badgeClass || ""}`}
-                      >
-                        {item.badge}
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="text-[11px] font-medium uppercase tracking-wider">
+                        {group.groupLabel}
                       </span>
+                      {!isExpanded && activeItem && (
+                        <>
+                          <span className="text-[#C4CFD8] text-[11px]">/</span>
+                          <span className="text-xs font-semibold text-[#003F66] truncate">
+                            {activeItem.label}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                    {isExpanded ? (
+                      <ChevronDown size={14} className="text-[#7A8D9B] shrink-0" />
+                    ) : (
+                      <ChevronRight size={14} className="text-[#7A8D9B] shrink-0" />
                     )}
                   </button>
-                );
-              })}
+                ) : (
+                  <div className="px-2.5 py-1 text-[11px] font-medium text-[#7A8D9B]">
+                    {group.groupLabel}
+                  </div>
+                )
+              )}
+
+              {/* Items displayed when expanded */}
+              {isExpanded && (
+                <div className={`space-y-0.5 ${isCollapsible ? "pl-1 pt-0.5" : ""}`}>
+                  {group.items.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = activeNavId
+                      ? activeNavId === item.id
+                      : window.location.pathname === item.path;
+
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => handleItemClick(item)}
+                        className={`w-full h-9 px-2.5 rounded-lg flex items-center justify-between text-[13px] font-medium transition-colors ${
+                          isActive
+                            ? "bg-[#F0F4F8] text-[#0F2942] font-semibold"
+                            : "text-[#475B6B] hover:bg-[#F6F8FA] hover:text-[#0F2942]"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <Icon
+                            size={16}
+                            className={isActive ? "text-[#00A3B8]" : "text-[#7A8D9B]"}
+                          />
+                          <span className="truncate">{item.label}</span>
+                        </div>
+                        {item.badge !== undefined && (
+                          <span
+                            className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${
+                              isActive
+                                ? "bg-[#00A3B8]/15 text-[#00A3B8]"
+                                : "bg-[#F0F4F8] text-[#7A8D9B]"
+                            } ${item.badgeClass || ""}`}
+                          >
+                            {item.badge}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </nav>
 
       {/* 56px Account & Logout Row (shrink-0) */}
