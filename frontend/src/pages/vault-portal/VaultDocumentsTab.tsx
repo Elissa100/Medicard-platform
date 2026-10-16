@@ -1,4 +1,4 @@
-import { useState, useRef, type ChangeEvent } from "react";
+import { useState, useRef, type ChangeEvent, type DragEvent } from "react";
 import {
   FileText,
   ShieldCheck,
@@ -124,6 +124,7 @@ export default function VaultDocumentsTab({
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isCompressing, setIsCompressing] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
   // Document preview modal state
   const [previewDoc, setPreviewDoc] = useState<{
@@ -142,22 +143,55 @@ export default function VaultDocumentsTab({
   const ALLOWED_TYPES = ["application/pdf", "image/jpeg", "image/png", "image/webp"];
   const MAX_SIZE = 15 * 1024 * 1024;
 
-  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0];
-    if (!f) return;
+  const validateAndSetFile = (f: File) => {
     if (!ALLOWED_TYPES.includes(f.type)) {
       setFileError("Only PDF, JPEG, PNG, or WebP files are allowed.");
       setFile(null);
-      return;
+      return false;
     }
     if (f.size > MAX_SIZE) {
       setFileError("File must be smaller than 15 MB.");
       setFile(null);
-      return;
+      return false;
     }
     setFileError("");
     setFile(f);
     if (!title) setTitle(f.name.replace(/\.[^.]+$/, ""));
+    return true;
+  };
+
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (f) validateAndSetFile(f);
+  };
+
+  const handleDragEnter = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isDragging) setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    const droppedFile = e.dataTransfer.files?.[0];
+    if (droppedFile) {
+      validateAndSetFile(droppedFile);
+    }
   };
 
   const handleUpload = async () => {
@@ -269,29 +303,56 @@ export default function VaultDocumentsTab({
             <div>
               <label className={LABEL_CLASS}>File (PDF, JPEG, PNG, WebP · max 15 MB)</label>
               <div
-                className="mt-1 border-2 border-dashed border-[#E4EBF0] rounded-lg p-4 text-center cursor-pointer hover:border-[#007C8C] hover:bg-[#F6F8FA] transition-colors"
+                onDragEnter={handleDragEnter}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
                 onClick={() => fileInputRef.current?.click()}
+                className={`mt-1 border-2 border-dashed rounded-lg p-5 text-center cursor-pointer transition-all ${
+                  isDragging
+                    ? "border-[#007C8C] bg-[#F0F8FA] scale-[1.01] ring-2 ring-[#007C8C]/20 shadow-sm"
+                    : "border-[#E4EBF0] hover:border-[#007C8C] hover:bg-[#F6F8FA]"
+                }`}
               >
-                {file ? (
-                  <div className="flex items-center justify-center gap-2 text-[13px] text-[#0F2942] font-medium">
-                    <FileText size={16} className="text-[#007C8C]" />
-                    <span className="truncate max-w-[260px]">{file.name}</span>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setFile(null);
-                        if (fileInputRef.current) fileInputRef.current.value = "";
-                      }}
-                      className="text-[#7A8D9B] hover:text-red-600 p-0.5 rounded shrink-0"
-                    >
-                      <X size={14} />
-                    </button>
+                {isDragging ? (
+                  <div className="text-[13px] text-[#007C8C] font-semibold flex flex-col items-center gap-1.5 py-1">
+                    <Upload size={24} className="animate-bounce text-[#007C8C]" />
+                    <span>Drop your file here to attach</span>
+                    <span className="text-[11px] font-normal text-[#7A8D9B]">
+                      PDF, JPEG, PNG, or WebP up to 15 MB
+                    </span>
+                  </div>
+                ) : file ? (
+                  <div className="flex flex-col items-center gap-1.5">
+                    <div className="flex items-center justify-center gap-2 text-[13px] text-[#0F2942] font-medium bg-white px-3 py-1.5 rounded-md border border-[#E4EBF0] shadow-2xs">
+                      <FileText size={16} className="text-[#007C8C]" />
+                      <span className="truncate max-w-[260px]">{file.name}</span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setFile(null);
+                          if (fileInputRef.current) fileInputRef.current.value = "";
+                        }}
+                        className="text-[#7A8D9B] hover:text-red-600 p-0.5 rounded shrink-0 transition-colors"
+                        title="Remove file"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                    <span className="text-[11px] text-[#7A8D9B]">
+                      Drag a new file or click to replace
+                    </span>
                   </div>
                 ) : (
-                  <div className="text-[13px] text-[#7A8D9B]">
-                    <Upload size={20} className="mx-auto mb-1 text-[#C4CFD8]" />
-                    Click to choose a file
+                  <div className="text-[13px] text-[#7A8D9B] py-1">
+                    <Upload size={22} className="mx-auto mb-1.5 text-[#C4CFD8]" />
+                    <div>
+                      <span className="font-semibold text-[#007C8C]">Click to browse</span> or drag and drop your file here
+                    </div>
+                    <p className="text-[11px] text-[#7A8D9B] mt-0.5">
+                      PDF, JPEG, PNG, or WebP up to 15 MB
+                    </p>
                   </div>
                 )}
                 <input
