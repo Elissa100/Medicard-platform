@@ -36,7 +36,7 @@ export default function VaultPrescriptionsTab({
           <div className="divide-y divide-[#E4EBF0]">
             {prescriptions.map((p) => (
               <div key={p.id} className="py-3.5 first:pt-0 last:pb-0 space-y-2">
-                <div className="flex items-center justify-between gap-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-2">
                   <span className="font-semibold text-[14px] text-[#0F2942]">
                     Dr. {p.prescribedBy.firstName} {p.prescribedBy.lastName}
                   </span>
@@ -86,7 +86,7 @@ export default function VaultPrescriptionsTab({
           <div className="divide-y divide-[#E4EBF0]">
             {labResults.map((lab) => (
               <div key={lab.id} className="py-3.5 first:pt-0 last:pb-0 space-y-2">
-                <div className="flex items-center justify-between gap-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-2">
                   <span className="font-semibold text-[14px] text-[#0F2942]">
                     {lab.encounter?.facility?.name || "Clinic Lab"}
                   </span>

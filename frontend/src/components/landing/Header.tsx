@@ -33,7 +33,13 @@ export function Header() {
             ))}
           </nav>
 
-          <div className="hidden md:flex items-center gap-3">
+          <div className="hidden md:flex items-center gap-2 lg:gap-3">
+            <a
+              href="/facility-login"
+              className="text-sm font-semibold text-body-text hover:text-navy px-3 py-2 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-teal"
+            >
+              Facility login
+            </a>
             <a
               href="/admin/login"
               className="text-sm font-semibold text-body-text hover:text-navy px-3 py-2 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-teal"
@@ -42,7 +48,7 @@ export function Header() {
             </a>
             <a
               href={landingConfig.nav.cta.href}
-              className="inline-flex items-center justify-center px-6 py-2.5 text-base font-semibold text-white bg-teal rounded-full hover:bg-teal-hover transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-teal focus:ring-offset-2"
+              className="inline-flex items-center justify-center px-5 lg:px-6 py-2.5 text-sm lg:text-base font-semibold text-white bg-teal rounded-full hover:bg-teal-hover transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-teal focus:ring-offset-2 shrink-0"
             >
               {landingConfig.nav.cta.label}
             </a>
@@ -72,6 +78,13 @@ export function Header() {
                 {link.label}
               </a>
             ))}
+            <a
+              href="/facility-login"
+              onClick={() => setMenuOpen(false)}
+              className="block py-3 text-base font-semibold text-navy hover:text-teal"
+            >
+              Facility login
+            </a>
             <a
               href="/admin/login"
               onClick={() => setMenuOpen(false)}

@@ -99,7 +99,7 @@ export default function VaultOverviewTab({
           <button
             type="button"
             onClick={onOpenBooking}
-            className="h-9 px-3.5 rounded-lg bg-[#003F66] hover:bg-[#003252] text-white text-[13px] font-semibold flex items-center gap-1.5 transition-colors"
+            className="h-9 px-3.5 rounded-lg bg-[#003F66] hover:bg-[#003252] text-white text-[13px] font-semibold flex items-center gap-1.5 transition-colors shrink-0 whitespace-nowrap"
           >
             Book an appointment
           </button>
@@ -145,11 +145,11 @@ export default function VaultOverviewTab({
               )}
             </div>
 
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-2 shrink-0 self-stretch sm:self-auto">
               <button
                 type="button"
                 onClick={() => onNavigateTab("appointments")}
-                className="h-9 px-3.5 rounded-lg bg-white border border-[#E4EBF0] text-[13px] font-medium text-[#0F2942] hover:bg-[#F6F8FA] transition-colors"
+                className="flex-1 sm:flex-initial h-9 px-3.5 rounded-lg bg-white border border-[#E4EBF0] text-[13px] font-medium text-[#0F2942] hover:bg-[#F6F8FA] transition-colors text-center"
               >
                 Reschedule
               </button>
@@ -157,7 +157,7 @@ export default function VaultOverviewTab({
                 type="button"
                 onClick={() => onCancelAppointment(nextAppointment.id)}
                 disabled={cancellingAppointmentId === nextAppointment.id}
-                className="h-9 px-3.5 rounded-lg border border-red-200 text-[13px] font-medium text-red-600 hover:bg-red-50 disabled:opacity-50 transition-colors"
+                className="flex-1 sm:flex-initial h-9 px-3.5 rounded-lg border border-red-200 text-[13px] font-medium text-red-600 hover:bg-red-50 disabled:opacity-50 transition-colors text-center"
               >
                 {cancellingAppointmentId === nextAppointment.id ? "Cancelling..." : "Cancel"}
               </button>

@@ -29,7 +29,7 @@ export default function VaultFamilyTab({
           <button
             type="button"
             onClick={onOpenDependentModal}
-            className="h-9 px-3.5 rounded-lg bg-[#003F66] hover:bg-[#003252] text-white text-[13px] font-semibold flex items-center gap-1.5 transition-colors"
+            className="h-9 px-3.5 rounded-lg bg-[#003F66] hover:bg-[#003252] text-white text-[13px] font-semibold flex items-center gap-1.5 transition-colors shrink-0"
           >
             <Plus size={14} />
             <span>Add dependent</span>

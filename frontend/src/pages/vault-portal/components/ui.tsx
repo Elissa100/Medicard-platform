@@ -10,15 +10,17 @@ export interface PageHeaderProps {
 
 export function PageHeader({ title, description, action, selector }: PageHeaderProps) {
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2">
-      <div>
-        <h1 className="text-[20px] font-semibold text-[#0F2942] tracking-tight">{title}</h1>
-        {description && <p className="text-[13px] text-[#7A8D9B] mt-0.5">{description}</p>}
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 pb-2">
+      <div className="min-w-0">
+        <h1 className="text-lg sm:text-[20px] font-semibold text-[#0F2942] tracking-tight leading-tight">{title}</h1>
+        {description && <p className="text-xs sm:text-[13px] text-[#7A8D9B] mt-0.5 leading-snug">{description}</p>}
       </div>
-      <div className="flex items-center gap-2.5">
-        {selector}
-        {action}
-      </div>
+      {(selector || action) && (
+        <div className="flex items-center gap-2 sm:gap-2.5 self-start sm:self-auto shrink-0 flex-wrap">
+          {selector}
+          {action}
+        </div>
+      )}
     </div>
   );
 }
@@ -41,12 +43,12 @@ export function Card({
   headerClassName = "",
 }: CardProps) {
   return (
-    <div className={`bg-white rounded-xl border border-[#E4EBF0] p-4 sm:p-5 ${className}`}>
+    <div className={`bg-white rounded-xl border border-[#E4EBF0] p-3.5 sm:p-5 ${className}`}>
       {(title || action) && (
-        <div className={`flex items-center justify-between gap-3 mb-4 ${headerClassName}`}>
-          <div>
-            {title && <h2 className="text-[15px] font-semibold text-[#0F2942] leading-tight">{title}</h2>}
-            {subtitle && <p className="text-[12px] text-[#7A8D9B] mt-0.5">{subtitle}</p>}
+        <div className={`flex items-center justify-between gap-2.5 mb-3.5 sm:mb-4 flex-wrap sm:flex-nowrap ${headerClassName}`}>
+          <div className="min-w-0">
+            {title && <h2 className="text-[14px] sm:text-[15px] font-semibold text-[#0F2942] leading-tight">{title}</h2>}
+            {subtitle && <p className="text-[11px] sm:text-[12px] text-[#7A8D9B] mt-0.5 leading-snug">{subtitle}</p>}
           </div>
           {action && <div className="shrink-0">{action}</div>}
         </div>
@@ -71,13 +73,13 @@ export function StatStrip({ stats, className = "" }: StatStripProps) {
   return (
     <div className={`bg-white rounded-xl border border-[#E4EBF0] grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-[#E4EBF0] ${className}`}>
       {stats.map((stat, i) => (
-        <div key={i} className="p-4 sm:p-5 flex flex-col justify-between">
-          <div className="text-[13px] font-medium text-[#7A8D9B]">{stat.label}</div>
-          <div className="mt-2 text-[22px] font-semibold text-[#0F2942] tracking-tight leading-none truncate">
+        <div key={i} className="p-3.5 sm:p-5 flex flex-col justify-between min-w-0">
+          <div className="text-[12px] sm:text-[13px] font-medium text-[#7A8D9B]">{stat.label}</div>
+          <div className="mt-1.5 sm:mt-2 text-[20px] sm:text-[22px] font-semibold text-[#0F2942] tracking-tight leading-none truncate">
             {stat.value}
           </div>
           {stat.subtext && (
-            <div className="mt-2 text-[12px] text-[#475B6B] truncate">{stat.subtext}</div>
+            <div className="mt-1.5 sm:mt-2 text-[11px] sm:text-[12px] text-[#475B6B] truncate">{stat.subtext}</div>
           )}
         </div>
       ))}
@@ -108,10 +110,10 @@ export function DefinitionList({ items, columns = 3, className = "" }: Definitio
   return (
     <div className={`grid ${colClass} gap-3 sm:gap-4 ${className}`}>
       {items.map((item, i) => (
-        <div key={i} className="space-y-1">
-          <span className="text-[12px] text-[#7A8D9B] block font-medium">{item.label}</span>
-          <div className="text-[14px] font-medium text-[#0F2942] flex items-center justify-between gap-2">
-            <span className="truncate">{item.value}</span>
+        <div key={i} className="space-y-1 min-w-0">
+          <span className="text-[11px] sm:text-[12px] text-[#7A8D9B] block font-medium">{item.label}</span>
+          <div className="text-[13px] sm:text-[14px] font-medium text-[#0F2942] flex items-center justify-between gap-2">
+            <span className="break-words min-w-0">{item.value}</span>
             {item.action}
           </div>
         </div>

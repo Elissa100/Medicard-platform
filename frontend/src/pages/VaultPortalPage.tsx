@@ -511,7 +511,7 @@ export default function VaultPortalPage() {
       onNotificationsClick={() => setActiveTab("notifications")}
       hasUnreadNotifications={false}
     >
-      <div className="p-6 space-y-6 max-w-7xl mx-auto">
+      <div className="p-3.5 sm:p-6 space-y-4 sm:space-y-6 max-w-7xl mx-auto">
         {/* Status / Notice alerts */}
         {(error || notice) && (
           <div

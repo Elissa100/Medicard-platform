@@ -34,7 +34,7 @@ export default function VaultHistoryTab({
           <button
             type="button"
             onClick={onOpenAllergyModal}
-            className="h-9 px-3.5 rounded-lg bg-white border border-[#E4EBF0] text-[13px] font-medium text-[#0F2942] hover:bg-[#F6F8FA] flex items-center gap-1.5 transition-colors"
+            className="h-9 px-3.5 rounded-lg bg-white border border-[#E4EBF0] text-[13px] font-medium text-[#0F2942] hover:bg-[#F6F8FA] flex items-center gap-1.5 transition-colors shrink-0"
           >
             <Plus size={14} />
             <span>Add allergy</span>
@@ -48,11 +48,11 @@ export default function VaultHistoryTab({
                 key={allergy.id}
                 className="py-2.5 first:pt-0 last:pb-0 flex items-center justify-between gap-3"
               >
-                <div>
-                  <span className="font-semibold text-[14px] text-[#0F2942] block">
+                <div className="min-w-0 flex-1">
+                  <span className="font-semibold text-[14px] text-[#0F2942] block break-words">
                     {allergy.allergen}
                   </span>
-                  <span className="text-[12px] text-[#7A8D9B]">
+                  <span className="text-[12px] text-[#7A8D9B] block break-words">
                     Severity: {allergy.severity || "Not stated"}
                     {allergy.reaction ? ` · Reaction: ${allergy.reaction}` : ""}
                   </span>
@@ -61,7 +61,7 @@ export default function VaultHistoryTab({
                   type="button"
                   onClick={() => onDeleteAllergy(allergy.id)}
                   disabled={isSaving}
-                  className="text-[#7A8D9B] hover:text-red-600 p-1 rounded transition-colors disabled:opacity-50"
+                  className="text-[#7A8D9B] hover:text-red-600 p-1.5 rounded transition-colors disabled:opacity-50 shrink-0"
                   aria-label="Remove allergy"
                 >
                   <X size={14} />
@@ -95,7 +95,7 @@ export default function VaultHistoryTab({
           <button
             type="button"
             onClick={onOpenConditionModal}
-            className="h-9 px-3.5 rounded-lg bg-white border border-[#E4EBF0] text-[13px] font-medium text-[#0F2942] hover:bg-[#F6F8FA] flex items-center gap-1.5 transition-colors"
+            className="h-9 px-3.5 rounded-lg bg-white border border-[#E4EBF0] text-[13px] font-medium text-[#0F2942] hover:bg-[#F6F8FA] flex items-center gap-1.5 transition-colors shrink-0"
           >
             <Plus size={14} />
             <span>Add condition</span>
@@ -109,17 +109,17 @@ export default function VaultHistoryTab({
                 key={cond.id}
                 className="py-2.5 first:pt-0 last:pb-0 flex items-center justify-between gap-3"
               >
-                <div>
-                  <span className="font-semibold text-[14px] text-[#0F2942] block">{cond.name}</span>
+                <div className="min-w-0 flex-1">
+                  <span className="font-semibold text-[14px] text-[#0F2942] block break-words">{cond.name}</span>
                   {cond.description && (
-                    <span className="text-[12px] text-[#7A8D9B]">{cond.description}</span>
+                    <span className="text-[12px] text-[#7A8D9B] block break-words">{cond.description}</span>
                   )}
                 </div>
                 <button
                   type="button"
                   onClick={() => onDeleteCondition(cond.id)}
                   disabled={isSaving}
-                  className="text-[#7A8D9B] hover:text-red-600 p-1 rounded transition-colors disabled:opacity-50"
+                  className="text-[#7A8D9B] hover:text-red-600 p-1.5 rounded transition-colors disabled:opacity-50 shrink-0"
                   aria-label="Remove condition"
                 >
                   <X size={14} />

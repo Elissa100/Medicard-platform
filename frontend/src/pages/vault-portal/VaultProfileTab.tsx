@@ -37,7 +37,7 @@ export default function VaultProfileTab({
             <button
               type="submit"
               disabled={isSaving}
-              className="h-9 px-4 rounded-lg bg-[#003F66] hover:bg-[#003252] text-white text-[13px] font-semibold flex items-center gap-1.5 disabled:opacity-50 transition-colors"
+              className="h-9 px-4 rounded-lg bg-[#003F66] hover:bg-[#003252] text-white text-[13px] font-semibold flex items-center gap-1.5 disabled:opacity-50 transition-colors shrink-0"
             >
               {isSaving && <LoaderCircle size={14} className="animate-spin text-white" />}
               <span>Save changes</span>

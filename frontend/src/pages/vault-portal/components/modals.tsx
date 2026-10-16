@@ -34,8 +34,8 @@ export function BookAppointmentModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
-      <div className="bg-white rounded-xl border border-[#E4EBF0] max-w-lg w-full p-5 space-y-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/40 overflow-y-auto">
+      <div className="bg-white rounded-xl border border-[#E4EBF0] max-w-lg w-full max-h-[92dvh] overflow-y-auto p-4 sm:p-5 space-y-3.5 sm:space-y-4 my-auto">
         <div className="flex items-center justify-between border-b border-[#E4EBF0] pb-3">
           <h3 className="text-[15px] font-semibold text-[#0F2942]">Book an appointment</h3>
           <button
@@ -123,14 +123,14 @@ export function BookAppointmentModal({
             <button
               type="button"
               onClick={onClose}
-              className="h-9 px-3.5 rounded-lg border border-[#E4EBF0] text-[13px] font-medium text-[#475B6B] hover:bg-[#F6F8FA] transition-colors"
+              className="h-9 px-3.5 rounded-lg border border-[#E4EBF0] text-[13px] font-medium text-[#475B6B] hover:bg-[#F6F8FA] transition-colors shrink-0 whitespace-nowrap"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="h-9 px-4 rounded-lg bg-[#003F66] hover:bg-[#003252] text-white text-[13px] font-semibold flex items-center gap-1.5 disabled:opacity-50 transition-colors"
+              className="h-9 px-4 rounded-lg bg-[#003F66] hover:bg-[#003252] text-white text-[13px] font-semibold flex items-center gap-1.5 disabled:opacity-50 transition-colors shrink-0 whitespace-nowrap"
             >
               {isSubmitting && <LoaderCircle size={14} className="animate-spin text-white" />}
               <span>Submit request</span>
@@ -164,8 +164,8 @@ export function AddAllergyModal({ isOpen, onClose, isSaving, onSubmit }: AddAlle
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
-      <div className="bg-white rounded-xl border border-[#E4EBF0] max-w-sm w-full p-5 space-y-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/40 overflow-y-auto">
+      <div className="bg-white rounded-xl border border-[#E4EBF0] max-w-sm w-full max-h-[92dvh] overflow-y-auto p-4 sm:p-5 space-y-3.5 sm:space-y-4 my-auto">
         <div className="flex items-center justify-between border-b border-[#E4EBF0] pb-2.5">
           <h3 className="text-[15px] font-semibold text-[#0F2942]">Add allergy record</h3>
           <button
@@ -202,14 +202,14 @@ export function AddAllergyModal({ isOpen, onClose, isSaving, onSubmit }: AddAlle
             <button
               type="button"
               onClick={onClose}
-              className="h-9 px-3.5 rounded-lg border border-[#E4EBF0] text-[13px] font-medium text-[#475B6B] hover:bg-[#F6F8FA] transition-colors"
+              className="h-9 px-3.5 rounded-lg border border-[#E4EBF0] text-[13px] font-medium text-[#475B6B] hover:bg-[#F6F8FA] transition-colors shrink-0 whitespace-nowrap"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSaving}
-              className="h-9 px-4 rounded-lg bg-[#003F66] hover:bg-[#003252] text-white text-[13px] font-semibold disabled:opacity-50 transition-colors"
+              className="h-9 px-4 rounded-lg bg-[#003F66] hover:bg-[#003252] text-white text-[13px] font-semibold disabled:opacity-50 transition-colors shrink-0 whitespace-nowrap"
             >
               {isSaving ? "Saving..." : "Save allergy"}
             </button>
@@ -242,8 +242,8 @@ export function AddConditionModal({ isOpen, onClose, isSaving, onSubmit }: AddCo
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
-      <div className="bg-white rounded-xl border border-[#E4EBF0] max-w-sm w-full p-5 space-y-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/40 overflow-y-auto">
+      <div className="bg-white rounded-xl border border-[#E4EBF0] max-w-sm w-full max-h-[92dvh] overflow-y-auto p-4 sm:p-5 space-y-3.5 sm:space-y-4 my-auto">
         <div className="flex items-center justify-between border-b border-[#E4EBF0] pb-2.5">
           <h3 className="text-[15px] font-semibold text-[#0F2942]">Add medical condition</h3>
           <button
@@ -280,14 +280,14 @@ export function AddConditionModal({ isOpen, onClose, isSaving, onSubmit }: AddCo
             <button
               type="button"
               onClick={onClose}
-              className="h-9 px-3.5 rounded-lg border border-[#E4EBF0] text-[13px] font-medium text-[#475B6B] hover:bg-[#F6F8FA] transition-colors"
+              className="h-9 px-3.5 rounded-lg border border-[#E4EBF0] text-[13px] font-medium text-[#475B6B] hover:bg-[#F6F8FA] transition-colors shrink-0 whitespace-nowrap"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSaving}
-              className="h-9 px-4 rounded-lg bg-[#003F66] hover:bg-[#003252] text-white text-[13px] font-semibold disabled:opacity-50 transition-colors"
+              className="h-9 px-4 rounded-lg bg-[#003F66] hover:bg-[#003252] text-white text-[13px] font-semibold disabled:opacity-50 transition-colors shrink-0 whitespace-nowrap"
             >
               {isSaving ? "Saving..." : "Save condition"}
             </button>
@@ -320,8 +320,8 @@ export function AddDependentModal({ isOpen, onClose, isSaving, onSubmit }: AddDe
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
-      <div className="bg-white rounded-xl border border-[#E4EBF0] max-w-sm w-full p-5 space-y-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/40 overflow-y-auto">
+      <div className="bg-white rounded-xl border border-[#E4EBF0] max-w-sm w-full max-h-[92dvh] overflow-y-auto p-4 sm:p-5 space-y-3.5 sm:space-y-4 my-auto">
         <div className="flex items-center justify-between border-b border-[#E4EBF0] pb-2.5">
           <h3 className="text-[15px] font-semibold text-[#0F2942]">Add family profile</h3>
           <button
@@ -357,14 +357,14 @@ export function AddDependentModal({ isOpen, onClose, isSaving, onSubmit }: AddDe
             <button
               type="button"
               onClick={onClose}
-              className="h-9 px-3.5 rounded-lg border border-[#E4EBF0] text-[13px] font-medium text-[#475B6B] hover:bg-[#F6F8FA] transition-colors"
+              className="h-9 px-3.5 rounded-lg border border-[#E4EBF0] text-[13px] font-medium text-[#475B6B] hover:bg-[#F6F8FA] transition-colors shrink-0 whitespace-nowrap"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSaving}
-              className="h-9 px-4 rounded-lg bg-[#003F66] hover:bg-[#003252] text-white text-[13px] font-semibold disabled:opacity-50 transition-colors"
+              className="h-9 px-4 rounded-lg bg-[#003F66] hover:bg-[#003252] text-white text-[13px] font-semibold disabled:opacity-50 transition-colors shrink-0 whitespace-nowrap"
             >
               {isSaving ? "Creating..." : "Create profile"}
             </button>

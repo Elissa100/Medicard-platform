@@ -78,15 +78,15 @@ export default function AppTopbar({
         {leftContent ? (
           leftContent
         ) : isPatient && profiles && profiles.length > 0 ? (
-          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-medium text-[#7A8D9B] hidden sm:inline">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className="text-xs font-medium text-[#7A8D9B] hidden md:inline shrink-0">
                 Active record:
               </span>
               <select
                 value={selectedProfileId}
                 onChange={(e) => onSelectProfileId?.(e.target.value)}
-                className="h-8 text-xs font-medium text-[#0F2942] bg-[#F6F8FA] border border-[#E4EBF0] rounded-lg px-2.5 py-1 focus:outline-none focus:ring-1 focus:ring-[#00A3B8]"
+                className="h-8 text-xs font-medium text-[#0F2942] bg-[#F6F8FA] border border-[#E4EBF0] rounded-lg px-2 py-1 max-w-[130px] xs:max-w-[160px] sm:max-w-[220px] truncate focus:outline-none focus:ring-1 focus:ring-[#007C8C]"
                 aria-label="Select active record"
               >
                 {profiles.map((p) => (
@@ -98,7 +98,7 @@ export default function AppTopbar({
             </div>
 
             {isViewingDependent && selectedProfile && (
-              <span className="h-[22px] px-2.5 rounded-full text-xs font-medium bg-amber-50 text-amber-800 border border-amber-200/70 flex items-center">
+              <span className="hidden md:inline-flex h-[22px] px-2.5 rounded-full text-xs font-medium bg-amber-50 text-amber-800 border border-amber-200/70 items-center shrink-0">
                 Viewing: {selectedProfile.name}, dependent
               </span>
             )}
@@ -118,7 +118,7 @@ export default function AppTopbar({
       </div>
 
       {/* Right Area */}
-      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+      <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
         {rightContent ? (
           rightContent
         ) : isPatient ? (
@@ -127,10 +127,12 @@ export default function AppTopbar({
               <button
                 type="button"
                 onClick={onBookAppointmentClick}
-                className="h-8 sm:h-9 px-3.5 bg-[#00A3B8] hover:bg-[#008f9e] text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-colors shadow-xs"
+                className="h-8 sm:h-9 px-2.5 sm:px-3.5 bg-[#003F66] hover:bg-[#003252] text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-colors shrink-0"
+                title="Book an appointment"
+                aria-label="Book an appointment"
               >
                 <CalendarPlus size={15} className="text-white shrink-0" />
-                <span className="text-white font-semibold">Book an appointment</span>
+                <span className="text-white font-semibold hidden sm:inline">Book an appointment</span>
               </button>
             )}
 
@@ -143,7 +145,7 @@ export default function AppTopbar({
               >
                 <Bell size={17} />
                 {hasUnreadNotifications && (
-                  <span className="absolute top-2 right-2 w-2 h-2 bg-[#00A3B8] rounded-full" />
+                  <span className="absolute top-2 right-2 w-2 h-2 bg-[#007C8C] rounded-full" />
                 )}
               </button>
             )}

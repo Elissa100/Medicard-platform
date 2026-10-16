@@ -1,7 +1,10 @@
-import { Check, X } from "lucide-react";
+import { useState } from "react";
+import { Check, X, ChevronDown, ChevronUp } from "lucide-react";
 import { landingConfig } from "../../data/landing";
 
 export function PatientVault() {
+  const [showPlans, setShowPlans] = useState(false);
+
   return (
     <section id="patient-vault" className="scroll-mt-[72px] md:scroll-mt-[88px] py-16 md:py-24 bg-white">
       <div className="max-w-[1280px] mx-auto px-5 md:px-10 lg:px-20">
@@ -32,81 +35,114 @@ export function PatientVault() {
           <div className="hidden md:block absolute top-6 left-[33.33%] right-[33.33%] border-t-2 border-dashed border-border" />
         </div>
 
-        <div className="max-w-[720px] mx-auto text-center mb-12">
-          <p className="text-body-text text-lg mb-2">
+        <div className="max-w-[720px] mx-auto text-center mb-10">
+          <p className="text-body-text text-base sm:text-lg mb-3">
             Patient Vault is MedCard's secure personal health record service. Store your medical history, allergies, prescriptions, lab results and insurance — all in one private place — and share it instantly with any healthcare provider using your NFC MedCard.
           </p>
-          <p className="text-muted-text text-sm mb-8">
-            Choose a plan below and get started in minutes. No long-term contract — cancel anytime.
+          <p className="text-muted-text text-sm mb-6">
+            Choose a plan to get started in minutes, or sign in to your existing account.
           </p>
-          <a
-            href="/patient-vault"
-            className="inline-flex items-center gap-2 bg-teal text-white font-semibold px-8 py-3.5 rounded-full hover:bg-teal/90 transition-colors focus:outline-none focus:ring-2 focus:ring-teal focus:ring-offset-2"
-          >
-            Get Started with Patient Vault
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-          </a>
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
+            <button
+              type="button"
+              onClick={() => setShowPlans(!showPlans)}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-teal text-white font-semibold px-7 py-3.5 rounded-full hover:bg-teal-hover transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-teal focus:ring-offset-2 cursor-pointer"
+            >
+              <span>{showPlans ? "Hide Plans" : "Get Started with Patient Vault"}</span>
+              {showPlans ? (
+                <ChevronUp size={18} />
+              ) : (
+                <ChevronDown size={18} />
+              )}
+            </button>
+
+            <a
+              href="/patient-vault/login"
+              className="w-full sm:w-auto inline-flex items-center justify-center px-7 py-3.5 text-base font-semibold text-navy bg-pale-cyan/60 hover:bg-pale-cyan border border-border rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-teal focus:ring-offset-2"
+            >
+              Sign In to Vault
+            </a>
+          </div>
+
+          {!showPlans && (
+            <p className="text-xs text-muted-text mt-4">
+              Click &ldquo;Get Started with Patient Vault&rdquo; to view subscription tiers (starting from 100 RWF /mo).
+            </p>
+          )}
         </div>
 
-        <div className="grid md:grid-cols-2 gap-12 max-w-[900px] mx-auto">
-          {landingConfig.patientVault.pricing.map((plan) => (
-            <div
-              key={plan.name}
-              className={`relative p-8 rounded-[32px] h-full flex flex-col ${
-                plan.featured
-                  ? "bg-navy text-white border-2 border-teal"
-                  : "bg-white border border-border"
-              }`}
-            >
-              {plan.featured && (
-                <div className="absolute top-0 right-0 bg-teal text-white text-xs font-bold px-3 py-1 rounded-bl-lg rounded-tr-lg">
-                  MOST POPULAR
-                </div>
-              )}
-              
-              <h3 className="text-2xl font-bold mb-2">{plan.name}</h3>
-              {plan.subtitle && (
-                <p className={`mb-4 text-sm ${plan.featured ? "text-soft-text-on-navy" : "text-body-text"}`}>
-                  {plan.subtitle}
-                </p>
-              )}
-              <div className="mb-6">
-                <span className="text-[64px] font-bold leading-none">
-                  {plan.price}
-                </span>
-                <span className={plan.featured ? "text-soft-text-on-navy" : "text-muted-text"}>
-                  {" "}{plan.period}
-                </span>
-              </div>
-              
-              <ul className="space-y-3 mb-8 flex-grow">
-                {plan.features.map((feature, index) => (
-                  <li key={index} className="flex items-start gap-3">
-                    {feature.active ? (
-                      <Check size={20} className={plan.featured ? "text-teal flex-shrink-0 mt-0.5" : "text-teal flex-shrink-0 mt-0.5"} />
-                    ) : (
-                      <X size={20} className="text-muted-text flex-shrink-0 mt-0.5" />
-                    )}
-                    <span className={plan.featured ? "text-white" : feature.active ? "text-navy" : "text-muted-text"}>
-                      {feature.text}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-              
-              <a
-                href="#contact"
-                className={`inline-flex items-center justify-center w-full py-3 rounded-full font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-teal focus:ring-offset-2 ${
-                  plan.featured
-                    ? "bg-white text-navy hover:bg-pale-cyan"
-                    : "bg-navy text-white hover:bg-mid-blue"
-                }`}
-              >
-                Choose {plan.name}
-              </a>
+        {/* Plan Details: Hidden until 'Get Started' is clicked */}
+        {showPlans && (
+          <div id="pricing-plans" className="animate-in fade-in duration-300">
+            <div className="text-center mb-8">
+              <h3 className="text-xl sm:text-2xl font-bold text-navy">Choose Your Vault Plan</h3>
+              <p className="text-sm text-body-text mt-1">
+                Transparent pricing with no long-term commitment. Cancel or upgrade anytime.
+              </p>
             </div>
-          ))}
-        </div>
+
+            <div className="grid md:grid-cols-2 gap-8 lg:gap-12 max-w-[900px] mx-auto">
+              {landingConfig.patientVault.pricing.map((plan) => (
+                <div
+                  key={plan.name}
+                  className={`relative p-6 sm:p-8 rounded-[32px] h-full flex flex-col ${
+                    plan.featured
+                      ? "bg-navy text-white border-2 border-teal"
+                      : "bg-white border border-border"
+                  }`}
+                >
+                  {plan.featured && (
+                    <div className="absolute top-0 right-0 bg-teal text-white text-xs font-bold px-3 py-1 rounded-bl-lg rounded-tr-lg">
+                      MOST POPULAR
+                    </div>
+                  )}
+
+                  <h4 className="text-2xl font-bold mb-2">{plan.name}</h4>
+                  {plan.subtitle && (
+                    <p className={`mb-4 text-sm ${plan.featured ? "text-soft-text-on-navy" : "text-body-text"}`}>
+                      {plan.subtitle}
+                    </p>
+                  )}
+                  <div className="mb-6">
+                    <span className="text-[48px] sm:text-[64px] font-bold leading-none">
+                      {plan.price}
+                    </span>
+                    <span className={plan.featured ? "text-soft-text-on-navy" : "text-muted-text"}>
+                      {" "}{plan.period}
+                    </span>
+                  </div>
+
+                  <ul className="space-y-3 mb-8 flex-grow">
+                    {plan.features.map((feature, index) => (
+                      <li key={index} className="flex items-start gap-3">
+                        {feature.active ? (
+                          <Check size={20} className="text-teal flex-shrink-0 mt-0.5" />
+                        ) : (
+                          <X size={20} className="text-muted-text flex-shrink-0 mt-0.5" />
+                        )}
+                        <span className={plan.featured ? "text-white" : feature.active ? "text-navy" : "text-muted-text"}>
+                          {feature.text}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  <a
+                    href={`/patient-vault?plan=${plan.name.toLowerCase()}`}
+                    className={`inline-flex items-center justify-center w-full py-3.5 rounded-full font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-teal focus:ring-offset-2 ${
+                      plan.featured
+                        ? "bg-white text-navy hover:bg-pale-cyan"
+                        : "bg-navy text-white hover:bg-mid-blue"
+                    }`}
+                  >
+                    Get Started with {plan.name}
+                  </a>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </section>
   );

@@ -62,8 +62,8 @@ export default function VaultDocumentsTab({ selectedProfile }: VaultDocumentsTab
           <div className="divide-y divide-[#E4EBF0]">
             {selectedProfile.patientInsurances.map((ins) => (
               <div key={ins.id} className="py-2.5 first:pt-0 last:pb-0">
-                <div className="flex items-center justify-between gap-2">
-                  <div>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 sm:gap-2">
+                  <div className="min-w-0">
                     <span className="text-[14px] font-semibold text-[#0F2942] block">
                       {ins.plan.provider.name} — {ins.plan.name}
                     </span>
@@ -71,7 +71,7 @@ export default function VaultDocumentsTab({ selectedProfile }: VaultDocumentsTab
                       Member ID: {ins.membershipNumber}
                     </span>
                   </div>
-                  <StatusBadge status={ins.status} variant={insuranceVariant(ins.status)} />
+                  <StatusBadge status={ins.status} variant={insuranceVariant(ins.status)} className="self-start sm:self-auto shrink-0" />
                 </div>
               </div>
             ))}

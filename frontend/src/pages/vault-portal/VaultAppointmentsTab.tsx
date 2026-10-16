@@ -53,11 +53,11 @@ export default function VaultAppointmentsTab({
       />
 
       {/* Subtab Navigation */}
-      <div className="flex items-center gap-2 border-b border-[#E4EBF0] pb-3">
+      <div className="flex items-center gap-1.5 sm:gap-2 border-b border-[#E4EBF0] pb-2 sm:pb-3 overflow-x-auto scrollbar-none">
         <button
           type="button"
           onClick={() => setSubTab("upcoming")}
-          className={`h-9 px-3.5 rounded-lg text-[13px] font-medium transition-colors ${
+          className={`h-8 sm:h-9 px-3 sm:px-3.5 rounded-lg text-xs sm:text-[13px] font-medium whitespace-nowrap shrink-0 transition-colors ${
             subTab === "upcoming"
               ? "bg-[#003F66] text-white font-semibold"
               : "bg-white border border-[#E4EBF0] text-[#475B6B] hover:bg-[#F6F8FA]"
@@ -68,7 +68,7 @@ export default function VaultAppointmentsTab({
         <button
           type="button"
           onClick={() => setSubTab("past")}
-          className={`h-9 px-3.5 rounded-lg text-[13px] font-medium transition-colors ${
+          className={`h-8 sm:h-9 px-3 sm:px-3.5 rounded-lg text-xs sm:text-[13px] font-medium whitespace-nowrap shrink-0 transition-colors ${
             subTab === "past"
               ? "bg-[#003F66] text-white font-semibold"
               : "bg-white border border-[#E4EBF0] text-[#475B6B] hover:bg-[#F6F8FA]"
@@ -79,7 +79,7 @@ export default function VaultAppointmentsTab({
         <button
           type="button"
           onClick={() => setSubTab("find")}
-          className={`h-9 px-3.5 rounded-lg text-[13px] font-medium transition-colors ${
+          className={`h-8 sm:h-9 px-3 sm:px-3.5 rounded-lg text-xs sm:text-[13px] font-medium whitespace-nowrap shrink-0 transition-colors ${
             subTab === "find"
               ? "bg-[#003F66] text-white font-semibold"
               : "bg-white border border-[#E4EBF0] text-[#475B6B] hover:bg-[#F6F8FA]"
@@ -95,10 +95,10 @@ export default function VaultAppointmentsTab({
           {upcomingAppointments.length > 0 ? (
             upcomingAppointments.map((appt) => (
               <Card key={appt.id}>
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div className="space-y-1.5">
-                    <div className="flex items-center gap-2.5">
-                      <h3 className="font-semibold text-[15px] text-[#0F2942]">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+                  <div className="space-y-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="font-semibold text-[14px] sm:text-[15px] text-[#0F2942] truncate">
                         {appt.facility.name}
                       </h3>
                       <StatusBadge
@@ -106,8 +106,8 @@ export default function VaultAppointmentsTab({
                         variant={appt.status === "CONFIRMED" ? "green" : "amber"}
                       />
                     </div>
-                    <p className="text-[13px] text-[#475B6B] flex items-center gap-1.5">
-                      <Clock size={14} className="text-[#7A8D9B]" />
+                    <p className="text-[12px] sm:text-[13px] text-[#475B6B] flex items-center gap-1.5 flex-wrap">
+                      <Clock size={14} className="text-[#7A8D9B] shrink-0" />
                       <span>{formatDateTime(appt.scheduledAt)}</span>
                       <span className="text-[#7A8D9B]">· {appt.appointmentType}</span>
                     </p>
@@ -116,12 +116,12 @@ export default function VaultAppointmentsTab({
                     )}
                   </div>
 
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex items-center gap-2 shrink-0 self-stretch sm:self-auto">
                     <button
                       type="button"
                       onClick={() => onCancelAppointment(appt.id)}
                       disabled={cancellingAppointmentId === appt.id}
-                      className="h-9 px-3.5 rounded-lg border border-red-200 text-[13px] font-medium text-red-600 hover:bg-red-50 disabled:opacity-50 transition-colors"
+                      className="w-full sm:w-auto h-9 px-3.5 rounded-lg border border-red-200 text-[13px] font-medium text-red-600 hover:bg-red-50 disabled:opacity-50 transition-colors whitespace-nowrap text-center"
                     >
                       {cancellingAppointmentId === appt.id ? "Cancelling..." : "Cancel booking"}
                     </button>
@@ -224,12 +224,12 @@ export default function VaultAppointmentsTab({
                   </div>
                 </div>
 
-                <div className="pt-3 mt-3 border-t border-[#E4EBF0] flex items-center justify-between">
+                <div className="pt-3 mt-3 border-t border-[#E4EBF0] flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                   <span className="text-[12px] text-[#7A8D9B]">{clinic.operatingHours}</span>
                   <button
                     type="button"
                     onClick={() => onOpenBookingModal(clinic.id)}
-                    className="h-9 px-3.5 rounded-lg bg-[#003F66] hover:bg-[#003252] text-white text-[13px] font-semibold transition-colors"
+                    className="h-9 px-4 rounded-lg bg-[#003F66] hover:bg-[#003252] text-white text-[13px] font-semibold transition-colors shrink-0 whitespace-nowrap self-stretch sm:self-auto text-center flex items-center justify-center"
                   >
                     Book appointment
                   </button>
