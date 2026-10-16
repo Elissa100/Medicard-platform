@@ -121,6 +121,32 @@ export async function sendVerificationEmail(email, code) {
   return { success: true, messageId };
 }
 
+export async function sendPasswordResetEmail(email, code) {
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+      <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+      <body style="font-family:Arial,sans-serif;line-height:1.6;color:#333;max-width:600px;margin:0 auto;padding:20px">
+        <div style="background:linear-gradient(135deg,#003F66 0%,#00A3B8 100%);color:white;padding:30px;text-align:center;border-radius:10px 10px 0 0">
+          <h1 style="margin:0;font-size:28px;">MedCard</h1>
+          <p style="margin:5px 0 0 0;font-size:14px;opacity:0.9;">Password Reset Request</p>
+        </div>
+        <div style="background:#f9fafb;padding:30px;border-radius:0 0 10px 10px;border:1px solid #E4EBF0;border-top:none;">
+          <h2 style="color:#0F2942;font-size:20px;margin-top:0;">Reset Your Password</h2>
+          <p style="color:#475B6B;font-size:14px;">We received a request to reset the password for your MedCard account. Use this 6-digit verification code to set up a new password:</p>
+          <div style="background:#003F66;color:white;font-size:32px;font-weight:bold;letter-spacing:8px;padding:20px;text-align:center;border-radius:8px;margin:24px 0">${code}</div>
+          <p style="color:#7A8D9B;font-size:13px;line-height:1.5;">This code will expire in <strong>15 minutes</strong>. If you did not request a password reset, you can safely ignore this email. Your password will remain unchanged.</p>
+        </div>
+        <p style="text-align:center;margin-top:24px;font-size:12px;color:#7A8D9B">This is an automated email from MedCard Rwanda. Please do not reply.</p>
+      </body>
+    </html>
+  `;
+
+  const messageId = await sendBrevoEmail(email, 'MedCard - Password Reset Code', htmlContent);
+  console.log(`Password reset email accepted by Brevo: ${messageId}`);
+  return { success: true, messageId };
+}
+
 export async function sendWelcomeEmail(email, firstName, plan) {
   const safeFirstName = String(firstName).replace(/[&<>"']/g, (character) => ({
     '&': '&amp;',

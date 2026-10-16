@@ -9,6 +9,7 @@ import CompanyLandingPage from "./pages/CompanyLandingPage";
 import NFCLandingPage from "./pages/NFCLandingPage";
 import PatientVaultPage from "./pages/PatientVaultPage";
 import PatientVaultLoginPage from "./pages/PatientVaultLoginPage";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import VaultPortalPage from "./pages/VaultPortalPage";
 import VaultClinicLoginPage from "./pages/vault-clinic/VaultClinicLoginPage";
 import VaultClinicChangePasswordPage from "./pages/vault-clinic/VaultClinicChangePasswordPage";
@@ -63,6 +64,8 @@ function App() {
         ====================================================== */}
         <Route path="/patient-vault" element={<PatientVaultPage />} />
         <Route path="/patient-vault/login" element={<PatientVaultLoginPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/patient-vault/forgot-password" element={<Navigate to="/forgot-password" replace />} />
 
         {/* =====================================================
             VAULT PORTAL

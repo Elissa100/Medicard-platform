@@ -101,9 +101,17 @@ export default function PatientVaultLoginPage() {
             </div>
 
             <div>
-              <label htmlFor="patient-password" className="block text-sm font-semibold text-navy mb-2">
-                Password
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label htmlFor="patient-password" className="block text-sm font-semibold text-navy">
+                  Password
+                </label>
+                <Link
+                  to="/forgot-password"
+                  className="text-xs font-semibold text-teal hover:text-navy hover:underline transition-colors"
+                >
+                  Forgot password?
+                </Link>
+              </div>
               <input
                 id="patient-password"
                 type="password"

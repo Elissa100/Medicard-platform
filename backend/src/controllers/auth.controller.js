@@ -1,4 +1,13 @@
-import { staffLogin, facilityLogin, patientLogin, getUserByToken, platformAdminLogin, adminChangePassword } from "../services/auth.service.js";
+import {
+  staffLogin,
+  facilityLogin,
+  patientLogin,
+  getUserByToken,
+  platformAdminLogin,
+  adminChangePassword,
+  requestPasswordReset,
+  resetPasswordWithCode,
+} from "../services/auth.service.js";
 import { verifyToken } from "../services/auth.service.js";
 
 
@@ -205,3 +214,51 @@ export async function changePlatformAdminPassword(req, res) {
     });
   }
 }
+
+/**
+ * Forgot password - request verification code
+ */
+export async function forgotPassword(req, res) {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: "Email is required",
+      });
+    }
+
+    const result = await requestPasswordReset(email);
+    res.json(result);
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: error.message || "Unable to process password reset request",
+    });
+  }
+}
+
+/**
+ * Reset password - verify code and set new password
+ */
+export async function resetPassword(req, res) {
+  try {
+    const { email, code, newPassword } = req.body;
+
+    if (!email || !code || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "Email, verification code, and new password are required",
+      });
+    }
+
+    const result = await resetPasswordWithCode(email, code, newPassword);
+    res.json(result);
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: error.message || "Unable to reset password",
+    });
+  }
+}
+

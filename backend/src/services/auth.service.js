@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import prisma from "../config/database.js";
+import { sendPasswordResetEmail } from "./email.service.js";
 
 const JWT_SECRET = process.env.JWT_SECRET || "medcard-secret-key-change-in-production";
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "7d";
@@ -313,3 +314,114 @@ export async function adminChangePassword(userId, currentPassword, newPassword, 
     },
   });
 }
+
+/**
+ * Request password reset verification code
+ */
+export async function requestPasswordReset(email) {
+  const cleanEmail = String(email || "").trim().toLowerCase();
+
+  if (!cleanEmail || !cleanEmail.includes("@")) {
+    throw new Error("Please enter a valid email address.");
+  }
+
+  // Look for existing account in Patient, User, or VaultClinicStaff
+  const [patient, user, staff] = await Promise.all([
+    prisma.patient.findFirst({ where: { email: cleanEmail, passwordHash: { not: null } } }),
+    prisma.user.findFirst({ where: { email: cleanEmail } }),
+    prisma.vaultClinicStaff.findFirst({ where: { email: cleanEmail, passwordHash: { not: null } } }),
+  ]);
+
+  if (!patient && !user && !staff) {
+    throw new Error("No account found with this email address.");
+  }
+
+  // Generate 6-digit numeric verification code
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+
+  await prisma.verificationCode.upsert({
+    where: { email: cleanEmail },
+    update: {
+      code,
+      expiresAt,
+      verified: false,
+    },
+    create: {
+      email: cleanEmail,
+      code,
+      expiresAt,
+      verified: false,
+    },
+  });
+
+  try {
+    await sendPasswordResetEmail(cleanEmail, code);
+  } catch (err) {
+    console.error("Failed to deliver password reset email:", err);
+    throw new Error("Unable to deliver verification email. Please try again shortly.");
+  }
+
+  return {
+    success: true,
+    message: "A 6-digit verification code has been sent to your email.",
+  };
+}
+
+/**
+ * Verify code and reset password
+ */
+export async function resetPasswordWithCode(email, code, newPassword) {
+  const cleanEmail = String(email || "").trim().toLowerCase();
+  const cleanCode = String(code || "").trim();
+
+  if (!cleanEmail || !cleanCode) {
+    throw new Error("Email and verification code are required.");
+  }
+
+  if (!newPassword || newPassword.length < 6) {
+    throw new Error("Password must be at least 6 characters long.");
+  }
+
+  const record = await prisma.verificationCode.findFirst({
+    where: {
+      email: cleanEmail,
+      code: cleanCode,
+      verified: false,
+      expiresAt: { gte: new Date() },
+    },
+  });
+
+  if (!record) {
+    throw new Error("Invalid or expired verification code. Please request a new one.");
+  }
+
+  const passwordHash = await hashPassword(newPassword);
+
+  const updates = [
+    prisma.patient.updateMany({
+      where: { email: cleanEmail },
+      data: { passwordHash },
+    }),
+    prisma.user.updateMany({
+      where: { email: cleanEmail },
+      data: { passwordHash, mustChangePassword: false },
+    }),
+    prisma.vaultClinicStaff.updateMany({
+      where: { email: cleanEmail },
+      data: { passwordHash, mustChangePassword: false },
+    }),
+    prisma.verificationCode.update({
+      where: { id: record.id },
+      data: { verified: true },
+    }),
+  ];
+
+  await Promise.all(updates);
+
+  return {
+    success: true,
+    message: "Password reset successfully. You can now sign in with your new password.",
+  };
+}
+

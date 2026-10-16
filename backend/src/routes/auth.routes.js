@@ -8,6 +8,8 @@ import {
   logout,
   loginPlatformAdmin,
   changePlatformAdminPassword,
+  forgotPassword,
+  resetPassword,
 } from "../controllers/auth.controller.js";
 
 const router = express.Router();
@@ -18,6 +20,14 @@ const adminLoginLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, message: "Too many login attempts. Try again in 15 minutes." },
+});
+
+const passwordResetLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 15,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: "Too many password reset attempts. Please try again in 15 minutes." },
 });
 
 /**
@@ -54,6 +64,20 @@ router.post("/admin/login", adminLoginLimiter, loginPlatformAdmin);
  * @access  Private (PLATFORM_ADMIN only)
  */
 router.post("/admin/change-password", changePlatformAdminPassword);
+
+/**
+ * @route   POST /api/v1/auth/forgot-password
+ * @desc    Request password reset verification code
+ * @access  Public
+ */
+router.post("/forgot-password", passwordResetLimiter, forgotPassword);
+
+/**
+ * @route   POST /api/v1/auth/reset-password
+ * @desc    Verify code and set new password
+ * @access  Public
+ */
+router.post("/reset-password", passwordResetLimiter, resetPassword);
 
 /**
  * @route   GET /api/v1/auth/me
