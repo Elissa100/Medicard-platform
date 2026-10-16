@@ -35,6 +35,12 @@ export function Header() {
 
           <div className="hidden md:flex items-center gap-2 lg:gap-3">
             <a
+              href="/vault-clinic/login"
+              className="text-sm font-semibold text-body-text hover:text-navy px-3 py-2 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-teal"
+            >
+              Clinic login
+            </a>
+            <a
               href="/facility-login"
               className="text-sm font-semibold text-body-text hover:text-navy px-3 py-2 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-teal"
             >
@@ -78,6 +84,13 @@ export function Header() {
                 {link.label}
               </a>
             ))}
+            <a
+              href="/vault-clinic/login"
+              onClick={() => setMenuOpen(false)}
+              className="block py-3 text-base font-semibold text-navy hover:text-teal"
+            >
+              Clinic login
+            </a>
             <a
               href="/facility-login"
               onClick={() => setMenuOpen(false)}
