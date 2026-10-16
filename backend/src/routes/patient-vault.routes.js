@@ -17,6 +17,12 @@ import {
   bookAppointment,
   cancelAppointment,
 } from "../controllers/patient-vault.controller.js";
+import {
+  uploadDocument,
+  getDocumentDownloadUrl,
+  deleteDocument,
+} from "../services/vault-document.service.js";
+import { handleUploadMiddleware } from "../middleware/upload.middleware.js";
 
 const router = express.Router();
 router.use(authenticate, requirePatient);
@@ -46,5 +52,10 @@ router.delete("/profiles/:profileId/conditions/:itemId", (req, res, next) => {
   return deleteHealthItem(req, res, next);
 });
 router.delete("/profiles/:profileId/health/:kind/:itemId", deleteHealthItem);
+
+// ── Document Upload / Download / Delete (Premium only for upload) ─────────────
+router.post("/profiles/:profileId/documents", handleUploadMiddleware, uploadDocument);
+router.get("/profiles/:profileId/documents/:documentId/download", getDocumentDownloadUrl);
+router.delete("/profiles/:profileId/documents/:documentId", deleteDocument);
 
 export default router;

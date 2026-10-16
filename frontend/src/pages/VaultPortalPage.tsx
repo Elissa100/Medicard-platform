@@ -388,6 +388,71 @@ export default function VaultPortalPage() {
     }
   };
 
+  const uploadDocument = async (
+    profileId: string,
+    file: File,
+    title: string,
+    type: string,
+    description: string
+  ) => {
+    setIsSaving(true);
+    setError("");
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("title", title);
+      formData.append("type", type);
+      formData.append("description", description);
+      const res = await fetch(`${API_URL}/vault/profiles/${profileId}/documents`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` }, // no Content-Type – browser sets multipart boundary
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.message || "Upload failed.");
+      setNotice("Document uploaded successfully.");
+      await fetchDashboard();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not upload document.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const deleteDocument = async (profileId: string, documentId: string) => {
+    setIsSaving(true);
+    setError("");
+    try {
+      const res = await fetch(
+        `${API_URL}/vault/profiles/${profileId}/documents/${documentId}`,
+        { method: "DELETE", headers: getHeaders() }
+      );
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.message || "Delete failed.");
+      setNotice("Document deleted.");
+      await fetchDashboard();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not delete document.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const getDocumentUrl = async (profileId: string, documentId: string): Promise<string | null> => {
+    try {
+      const res = await fetch(
+        `${API_URL}/vault/profiles/${profileId}/documents/${documentId}/download`,
+        { headers: getHeaders() }
+      );
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.message);
+      return data.data.signedUrl as string;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not get download link.");
+      return null;
+    }
+  };
+
   const upgradePlan = async () => {
     if (!paymentPhone.trim()) {
       setError("Please enter your Mobile Money phone number.");
@@ -591,7 +656,20 @@ export default function VaultPortalPage() {
         )}
 
         {activeTab === "documents" && (
-          <VaultDocumentsTab selectedProfile={selectedProfile} />
+          <VaultDocumentsTab
+            selectedProfile={selectedProfile}
+            isPremium={isPremium}
+            isSaving={isSaving}
+            onUploadDocument={(file, title, type, description) =>
+              uploadDocument(selectedProfile.id, file, title, type, description)
+            }
+            onDeleteDocument={(documentId) =>
+              deleteDocument(selectedProfile.id, documentId)
+            }
+            onGetDownloadUrl={(documentId) =>
+              getDocumentUrl(selectedProfile.id, documentId)
+            }
+          />
         )}
 
         {activeTab === "notifications" && (
