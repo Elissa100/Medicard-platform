@@ -464,7 +464,7 @@ export async function getPlans() {
       {
         id: "PREMIUM",
         name: "Premium",
-        priceRwf: 5000,
+        priceRwf: 2000,
         billingCycle: "monthly",
         description: "Complete vault with family profiles and connected NFC card.",
         activeSubscribers: premiumCount,

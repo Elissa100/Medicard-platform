@@ -9,8 +9,8 @@ const XENTRIPAY_BASE_URL = (
   process.env.XENTRIPAY_BASE_URL || 'https://merchant.test.xentripay.com'
 ).replace(/\/+$/, '');
 const VAULT_PLAN_PRICES = {
-  BASIC: 100,
-  PREMIUM: 150,
+  BASIC: 1000,
+  PREMIUM: 2000,
 };
 
 const adapter = new PrismaPg({

@@ -1,4 +1,4 @@
-// prices are set to test amounts (100 / 150 RWF). update to 1000 / 5000 before going live.
+// Vault plan pricing (1,000 / 2,000 RWF)
 export interface PlanFeature {
   text: string;
   active: boolean;
@@ -21,8 +21,8 @@ export const VAULT_PLANS: Record<"BASIC" | "PREMIUM", VaultPlan> = {
     id: "BASIC",
     name: "Basic",
     displayName: "Basic Vault",
-    price: "100 RWF",
-    amountRwf: 100,
+    price: "1,000 RWF",
+    amountRwf: 1000,
     period: "/ month",
     subtitle: "Essential personal digital health record access and clinic history.",
     featured: false,
@@ -38,8 +38,8 @@ export const VAULT_PLANS: Record<"BASIC" | "PREMIUM", VaultPlan> = {
     id: "PREMIUM",
     name: "Premium",
     displayName: "Premium Vault",
-    price: "150 RWF",
-    amountRwf: 150,
+    price: "2,000 RWF",
+    amountRwf: 2000,
     period: "/ month",
     subtitle: "Complete family health management, laboratory reports, and digital document storage.",
     featured: true,

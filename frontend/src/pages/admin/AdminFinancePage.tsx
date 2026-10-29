@@ -299,7 +299,7 @@ export default function AdminFinancePage() {
               </div>
 
               <div className="flex items-center justify-between pt-2 border-t border-[#E4EBF0]">
-                <span className="text-sm font-medium text-[#0B1F3A]">Premium vault (5,000 RWF/mo)</span>
+                <span className="text-sm font-medium text-[#0B1F3A]">Premium vault (2,000 RWF/mo)</span>
                 <span className="text-sm font-semibold text-[#0B1F3A]">
                   {isLoading ? "—" : formatRwf(overview?.byPlan.Premium ?? 0)}
                 </span>

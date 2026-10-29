@@ -74,7 +74,7 @@ export function PatientVault() {
 
           {!showPlans && (
             <p className="text-xs text-muted-text mt-4">
-              Click &ldquo;Get Started with Patient Vault&rdquo; to view subscription tiers (starting from 100 RWF /mo).
+              Click &ldquo;Get Started with Patient Vault&rdquo; to view subscription tiers (starting from 1,000 RWF /mo).
             </p>
           )}
         </div>
